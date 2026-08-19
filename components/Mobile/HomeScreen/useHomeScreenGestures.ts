@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 
 interface UseHomeScreenGesturesProps {
     isDragging: boolean;
@@ -21,70 +21,67 @@ export function useHomeScreenGestures({
     setCurrentApp,
     appContainerRef,
 }: UseHomeScreenGesturesProps) {
-    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-    const [isSwipingFromBottom, setIsSwipingFromBottom] = useState(false);
-    const [isDraggingSwipe, setIsDraggingSwipe] = useState(false);
-    const [swipeUpPosition, setSwipeUpPosition] = useState(0);
+    const touchStartRef = useRef<{ x: number; y: number; isBottomSwipe: boolean } | null>(null);
+    const isAnimatingCloseRef = useRef(false);
 
-    // Reset swipe state when app closes to prevent blinking
+    // Reset styles whenever currentApp transitions to null
     useEffect(() => {
-        if (!currentApp) {
-            setIsSwipingFromBottom(false);
-            setIsDraggingSwipe(false);
-            setSwipeUpPosition(0);
+        if (!currentApp && appContainerRef.current) {
+            appContainerRef.current.style.transform = '';
+            appContainerRef.current.style.opacity = '';
+            appContainerRef.current.style.transition = '';
+            appContainerRef.current.style.willChange = '';
+            isAnimatingCloseRef.current = false;
         }
-    }, [currentApp]);
-
-    // Clear touch tracking when drag starts to prevent swipe conflict
-    useEffect(() => {
-        if (isDragging) {
-            touchStartRef.current = null;
-        }
-    }, [isDragging]);
+    }, [currentApp, appContainerRef]);
 
     const handleTouchStart = (e: React.TouchEvent) => {
-        if (isDragging) return;
+        if (isDragging || isAnimatingCloseRef.current) return;
         const touch = e.touches[0];
-        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+        const isBottom = touch.clientY >= window.innerHeight - 55;
 
-        // Close App Init
-        if (currentApp && !isSwipingFromBottom) {
-            if (touch.clientY >= window.innerHeight - 40) {
-                // Bottom bar area
-                setIsSwipingFromBottom(true);
-                setSwipeUpPosition(0);
+        touchStartRef.current = {
+            x: touch.clientX,
+            y: touch.clientY,
+            isBottomSwipe: Boolean(currentApp && isBottom),
+        };
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (isDragging || !touchStartRef.current || isAnimatingCloseRef.current) return;
+
+        const touch = touchStartRef.current;
+        const cy = e.touches[0].clientY;
+
+        // Close App Swipe Logic
+        if (touch.isBottomSwipe && appContainerRef.current) {
+            const deltaY = touch.y - cy;
+            if (deltaY > 0) {
+                const progress = Math.min(100, (deltaY / window.innerHeight) * 100);
+                const scale = Math.max(0.88, 1 - (progress * 0.0015));
+                appContainerRef.current.style.transition = 'none';
+                appContainerRef.current.style.transform = `translate3d(0, -${progress}%, 0) scale(${scale})`;
+                appContainerRef.current.style.borderRadius = `${Math.min(40, progress * 0.8)}px`;
+                appContainerRef.current.style.opacity = progress > 75
+                    ? String(Math.max(0, 1 - (progress - 75) / 25))
+                    : '1';
             }
         }
     };
 
-    const handleTouchMove = (e: React.TouchEvent) => {
-        if (isDragging || !touchStartRef.current) return;
-        const cy = e.touches[0].clientY;
-        const startY = touchStartRef.current.y;
-
-        // Close App Swipe Logic
-        if (currentApp && isSwipingFromBottom) {
-            const progress = Math.max(0, Math.min(100, ((startY - cy) / window.innerHeight) * 100));
-            setIsDraggingSwipe(true);
-            requestAnimationFrame(() => {
-                if (appContainerRef.current) {
-                    appContainerRef.current.style.transform = `translate3d(0, -${progress}vh, 0)`;
-                    appContainerRef.current.style.transition = 'none';
-                    if (progress > 80)
-                        appContainerRef.current.style.opacity = `${1 - (progress - 80) / 20}`;
-                }
-            });
-        }
-    };
-
     const handleTouchEnd = (e: React.TouchEvent) => {
-        if (isDragging || !touchStartRef.current) return;
+        if (isDragging || !touchStartRef.current || isAnimatingCloseRef.current) {
+            touchStartRef.current = null;
+            return;
+        }
+
+        const touch = touchStartRef.current;
         const cx = e.changedTouches[0].clientX;
         const cy = e.changedTouches[0].clientY;
-        const startX = touchStartRef.current.x;
-        const deltaX = cx - startX;
+        const deltaX = cx - touch.x;
+        const deltaY = touch.y - cy;
 
-        // Page Swipe Logic
+        // Page Swipe Logic (when on home screen)
         if (!currentApp && !appToOpen) {
             const SWIPE_THRESHOLD = window.innerWidth * 0.2;
             if (deltaX < -SWIPE_THRESHOLD && currentPage < 1) setCurrentPage(1);
@@ -92,47 +89,39 @@ export function useHomeScreenGestures({
         }
 
         // Close App Swipe Logic
-        if (currentApp && isSwipingFromBottom) {
-            const deltaY = touchStartRef.current.y - cy;
+        if (touch.isBottomSwipe && currentApp && appContainerRef.current) {
+            const container = appContainerRef.current;
 
-            if (deltaY > window.innerHeight * 0.2) {
-                // Close Animation
-                if (appContainerRef.current) {
-                    // Force GPU acceleration
-                    appContainerRef.current.style.willChange = 'transform, opacity';
-                    appContainerRef.current.style.transition =
-                        'transform 0.3s ease-out, opacity 0.3s ease-out';
-                    appContainerRef.current.style.transform = `translate3d(0, -100vh, 0)`;
-                    appContainerRef.current.style.opacity = '0';
-                }
+            if (deltaY > window.innerHeight * 0.12) {
+                // Trigger Close Animation
+                isAnimatingCloseRef.current = true;
+                container.style.willChange = 'transform, opacity';
+                container.style.transition = 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease-out, border-radius 0.25s ease-out';
+                container.style.transform = 'translate3d(0, -100%, 0) scale(0.85)';
+                container.style.opacity = '0';
+                container.style.borderRadius = '40px';
 
-                // Reset state AFTER animation matches transition duration
+                const targetApp = currentApp;
                 setTimeout(() => {
-                    // Hard hide before state update to prevent blinking
-                    if (appContainerRef.current) {
-                        appContainerRef.current.style.display = 'none';
-                    }
-
-                    requestAnimationFrame(() => {
-                        closeApp(currentApp);
-                        setCurrentApp(null);
-                    });
-                }, 450);
+                    closeApp(targetApp);
+                    setCurrentApp(null);
+                }, 260);
             } else {
-                // Reset / Cancel Swipe
-                if (appContainerRef.current) {
-                    appContainerRef.current.style.transition =
-                        'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
-                    appContainerRef.current.style.transform = 'translate3d(0, 0, 0)';
-                }
+                // Cancel Swipe & Snap back to full screen
+                container.style.transition = 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease-out, border-radius 0.25s ease-out';
+                container.style.transform = 'translate3d(0, 0, 0) scale(1)';
+                container.style.opacity = '1';
+                container.style.borderRadius = '0px';
+
                 setTimeout(() => {
-                    setIsSwipingFromBottom(false);
-                    setIsDraggingSwipe(false);
-                    if (appContainerRef.current) {
-                        appContainerRef.current.style.transition = '';
-                        appContainerRef.current.style.transform = '';
+                    if (container) {
+                        container.style.transition = '';
+                        container.style.transform = '';
+                        container.style.opacity = '';
+                        container.style.borderRadius = '';
+                        container.style.willChange = '';
                     }
-                }, 300);
+                }, 260);
             }
         }
 
@@ -143,8 +132,5 @@ export function useHomeScreenGestures({
         handleTouchStart,
         handleTouchMove,
         handleTouchEnd,
-        isSwipingFromBottom,
-        isDraggingSwipe,
-        swipeUpPosition,
     };
 }

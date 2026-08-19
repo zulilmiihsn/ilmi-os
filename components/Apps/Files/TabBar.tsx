@@ -95,12 +95,7 @@ export default function TabBar({ activeTab, onTabChange, darkMode }: TabBarProps
                     </span>
                 </button>
             </div>
-            {/* Inline style for safe area padding if needed, or use util class */}
-            <style jsx>{`
-				.pb-safe {
-					padding-bottom: max(env(safe-area-inset-bottom), 20px);
-				}
-			`}</style>
         </div>
     );
 }
+

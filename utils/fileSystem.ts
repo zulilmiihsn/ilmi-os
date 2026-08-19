@@ -32,13 +32,46 @@ function getDefaultFileSystem(): FileSystemData {
 		lastModified: now,
 		items: [
 			{
+				id: 'folder-desktop',
+				name: 'Desktop',
+				type: 'folder',
+				parentId: null,
+				modified: now,
+				created: now,
+			},
+			{
+				id: 'folder-documents',
+				name: 'Documents',
+				type: 'folder',
+				parentId: null,
+				modified: now,
+				created: now,
+			},
+			{
 				id: 'folder-downloads',
 				name: 'Downloads',
 				type: 'folder',
 				parentId: null,
 				modified: now,
 				created: now,
-				icon: '⬇️',
+			},
+			{
+				id: 'folder-pictures',
+				name: 'Pictures',
+				type: 'folder',
+				parentId: null,
+				modified: now,
+				created: now,
+			},
+			{
+				id: 'file-welcome',
+				name: 'welcome.txt',
+				type: 'file',
+				parentId: 'folder-documents',
+				modified: now,
+				created: now,
+				content: 'Welcome to iLmi OS! A sleek web simulator built with Next.js.',
+				size: 62,
 			},
 		],
 	};
@@ -55,7 +88,10 @@ export function loadFileSystem(): FileSystemData {
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (stored) {
-			return JSON.parse(stored);
+			const parsed = JSON.parse(stored);
+			if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+				return parsed;
+			}
 		}
 	} catch {
 		// Silent fail, return default
@@ -66,6 +102,7 @@ export function loadFileSystem(): FileSystemData {
 	saveFileSystem(defaultData);
 	return defaultData;
 }
+
 
 /**
  * Save file system to localStorage
@@ -267,3 +304,69 @@ export function resetFileSystem(): void {
 	const defaultData = getDefaultFileSystem();
 	saveFileSystem(defaultData);
 }
+
+/**
+ * Update file text content
+ */
+export function updateFileContent(id: string, content: string): boolean {
+	const fs = loadFileSystem();
+	const item = fs.items.find((i) => i.id === id);
+	if (!item || item.type !== 'file') return false;
+
+	item.content = content;
+	item.size = new Blob([content]).size;
+	item.modified = new Date().toISOString();
+	saveFileSystem(fs);
+	return true;
+}
+
+/**
+ * Get breadcrumbs from root down to the specified folder
+ */
+export function getBreadcrumbs(folderId: string | null): FileItem[] {
+	if (!folderId) return [];
+	const fs = loadFileSystem();
+	const crumbs: FileItem[] = [];
+	let currentId: string | null = folderId;
+
+	while (currentId) {
+		const item = fs.items.find((i) => i.id === currentId);
+		if (!item) break;
+		crumbs.unshift(item);
+		currentId = item.parentId;
+	}
+
+	return crumbs;
+}
+
+/**
+ * Get folder ID by slash-separated path (e.g. "Documents" or "Documents/Projects")
+ */
+export function resolveFolderPath(pathStr: string): string | null {
+	const normalized = pathStr.trim().replace(/^\/+|\/+$/g, '');
+	if (!normalized || normalized === '~' || normalized === '.') return null;
+
+	const parts = normalized.split('/');
+	const fs = loadFileSystem();
+	let currentParentId: string | null = null;
+
+	for (const part of parts) {
+		if (part === '..') {
+			if (currentParentId) {
+				const parentItem = fs.items.find((i) => i.id === currentParentId);
+				currentParentId = parentItem?.parentId || null;
+			}
+			continue;
+		}
+		if (part === '.' || part === '~') continue;
+
+		const match = fs.items.find(
+			(i) => i.type === 'folder' && i.parentId === currentParentId && i.name.toLowerCase() === part.toLowerCase()
+		);
+		if (!match) return undefined as unknown as null; // Not found
+		currentParentId = match.id;
+	}
+
+	return currentParentId;
+}
+

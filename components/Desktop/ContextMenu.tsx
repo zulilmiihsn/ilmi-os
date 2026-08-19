@@ -59,29 +59,13 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 	return (
 		<div
 			ref={menuRef}
-			className={`fixed z-9999 min-w-[200px] py-1.5 rounded-lg
-                bg-white/80 dark:bg-[#1e1e1e]/80 
-                backdrop-blur-xl border border-white/20 dark:border-white/10
-                shadow-xl text-sm select-none`}
+			className="fixed z-[9999] min-w-[200px] py-1.5 rounded-lg bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl text-sm select-none animate-in fade-in zoom-in-95 duration-100"
 			style={{
 				left: x,
 				top: y,
-				opacity: 0, // Prepare for animation? Or just simple render.
-				animation: 'menu-pop 0.1s ease-out forwards',
 			}}
 		>
-			<style jsx>{`
-				@keyframes menu-pop {
-					from {
-						opacity: 0;
-						transform: scale(0.95);
-					}
-					to {
-						opacity: 1;
-						transform: scale(1);
-					}
-				}
-			`}</style>
+
 
 			{menuItems.map((item, index) => {
 				if (item.type === 'separator') {

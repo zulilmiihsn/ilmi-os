@@ -8,7 +8,29 @@
 
 .ios-icon {
 	border-radius: 22px;
+	-webkit-tap-highlight-color: transparent;
+	border: none;
+	background: transparent;
+	padding: 0;
 }
+
+.ios-app-box {
+	background: rgba(255, 255, 255, 0.15);
+	backdrop-filter: blur(20px) saturate(180%);
+	-webkit-backdrop-filter: blur(20px) saturate(180%);
+	border-radius: 20px;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.ios-tap-animation {
+	transition: transform 0.1s ease-out;
+}
+
+.ios-dragging {
+	transition: none;
+}
+
 
 /* iOS Status Bar */
 .ios-statusbar {
@@ -47,8 +69,31 @@
 	}
 }
 
+/* iOS App Open / Close Animations */
+@keyframes ios-app-open {
+	0% {
+		opacity: 0;
+		transform: scale(0.2);
+		border-radius: 40px;
+	}
+	40% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+		border-radius: 0px;
+	}
+}
+
+.ios-app-opening {
+	animation: ios-app-open 0.35s cubic-bezier(0.32, 0.72, 0, 1) both;
+	will-change: transform, opacity, border-radius;
+}
+
 .ios-tap-animation {
 	animation: ios-spring 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
 }
 
 /* iOS Wiggle Animation for Edit Mode */
@@ -73,6 +118,15 @@
 	border-radius: 20px;
 }
 
+.ios-widget-box {
+	background: rgba(255, 255, 255, 0.15);
+	backdrop-filter: blur(12px) saturate(150%);
+	-webkit-backdrop-filter: blur(12px) saturate(150%);
+	border-radius: 20px;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+
 /* iOS Search Bar */
 .ios-searchbar {
 	border-radius: 20px;
@@ -86,4 +140,40 @@
 .ios-app-grid-page .grid > div[style*="transform"] {
 	z-index: 1;
 }
+
+/* iOS Alarm Delete Animations */
+@keyframes slideOutDelete {
+	0% {
+		transform: translateX(0);
+		opacity: 1;
+		max-height: 100px;
+	}
+	100% {
+		transform: translateX(-100%);
+		opacity: 0;
+		max-height: 0;
+		padding: 0;
+		border: 0;
+	}
+}
+
+@keyframes slideInDeleteBtn {
+	from {
+		transform: translateX(10px);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+.deleting-alarm {
+	animation: slideOutDelete 0.3s ease-out forwards;
+}
+
+.delete-btn-enter {
+	animation: slideInDeleteBtn 0.2s ease-out forwards;
+}
+
 

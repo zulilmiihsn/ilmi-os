@@ -21,21 +21,20 @@ export default function MenuDropdown({ items, isOpen, onClose }: MenuDropdownPro
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        if (!isOpen) return;
+
         function handleClickOutside(event: MouseEvent) {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                // Don't close immediately if clicking the menu bar trigger, 
-                // but the MenuBar component should handle that logic. 
-                // Ideally we rely on the parent to handle outside clicks or use a global listener.
-                // For now, let's trust the parent's overlay or logic, usually.
-                // But to be safe for "active" menus:
+                onClose();
             }
         }
 
-        // document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('mousedown', handleClickOutside);
         return () => {
-            // document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [onClose]);
+    }, [isOpen, onClose]);
+
 
     if (!isOpen) return null;
 

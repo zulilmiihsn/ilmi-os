@@ -52,7 +52,7 @@ export default function Spotlight({ isOpen, onClose }: SpotlightProps) {
                         : 'opacity-0 scale-95 -translate-y-2 pointer-events-none invisible'}
                 `}
             >
-                <div className="spotlight-glass overflow-hidden flex flex-col">
+                <div className="bg-white/70 dark:bg-[#1E1E1E]/80 backdrop-blur-2xl rounded-2xl border border-white/20 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col">
                     <div className="flex items-center px-4 h-16 gap-3">
                         <svg className="w-5 h-5 text-gray-600 opactiy-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -77,29 +77,15 @@ export default function Spotlight({ isOpen, onClose }: SpotlightProps) {
                                     <i className="fas fa-search text-xs"></i>
                                 </div>
                                 <div>
-                                    <div className="text-[13px] font-medium text-gray-900 leading-tight">Search for "{query}"</div>
-                                    <div className="text-[11px] text-gray-500 leading-tight mt-0.5">Search in Files</div>
+                                    <div className="text-[13px] font-medium text-gray-900 dark:text-white leading-tight">Search for &quot;{query}&quot;</div>
+                                    <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight mt-0.5">Search in Files</div>
                                 </div>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
-
-            <style jsx>{`
-				.spotlight-glass {
-					background: rgba(255, 255, 255, 0.15);
-					backdrop-filter: blur(20px) saturate(180%);
-					-webkit-backdrop-filter: blur(20px) saturate(180%);
-					border-radius: 20px;
-					border: 1px solid rgba(255, 255, 255, 0.2);
-					box-shadow: 
-						0 20px 40px rgba(0,0,0,0.2), 
-						0 0 0 1px rgba(255,255,255,0.1),
-						inset 0 1px 2px rgba(255, 255, 255, 0.4), 
-						inset 0 -1px 2px rgba(0, 0, 0, 0.1);
-				}
-			`}</style>
         </>
     );
 }
+

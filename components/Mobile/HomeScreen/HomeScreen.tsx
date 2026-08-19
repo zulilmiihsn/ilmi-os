@@ -66,14 +66,6 @@ function HomeScreen() {
 	const allApps = useAppsStore(state => state.apps);
 	const { wallpaper, darkMode } = useSettingsStore();
 
-	useEffect(() => {
-		if (darkMode) {
-			document.documentElement.classList.add('dark');
-		} else {
-			document.documentElement.classList.remove('dark');
-		}
-	}, [darkMode]);
-
 	const iosAppPositions = useAppsStore(state => state.iosAppPositions);
 	const launchApp = useAppsStore(state => state.launchApp);
 	const closeApp = useAppsStore(state => state.closeApp);
@@ -138,9 +130,6 @@ function HomeScreen() {
 		handleTouchStart,
 		handleTouchMove,
 		handleTouchEnd,
-		isSwipingFromBottom,
-		isDraggingSwipe,
-		swipeUpPosition,
 	} = useHomeScreenGestures({
 		isDragging,
 		currentApp,
@@ -152,10 +141,10 @@ function HomeScreen() {
 		appContainerRef,
 	});
 
-	// --- App State ---
-	const [isSwiping, setIsSwiping] = useState(false);
 
-	const appOpenOriginRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+	// --- App State ---
+	const [isOpening, setIsOpening] = useState(false);
+	const [appOpenOrigin, setAppOpenOrigin] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 	const currentPageRef = useRef(0);
 	useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
 
@@ -172,11 +161,10 @@ function HomeScreen() {
 		reorderIosApps,
 	});
 
-
 	const statusBarColors = useMemo(() => {
+
 		const appId = currentApp || appToOpen;
 		if (!appId) return { backgroundColor: 'transparent', textColor: 'white' };
-		// Simplified color logic
 		const isDark = darkMode;
 		if (appId === 'terminal') return { backgroundColor: '#000000', textColor: '#ffffff' };
 		return {
@@ -186,45 +174,19 @@ function HomeScreen() {
 	}, [currentApp, appToOpen, darkMode]);
 
 	// --- Handlers ---
-
-	// --- Custom Collision Strategy ---
-	// Only detect collisions with items on the CURRENT PAGE.
-	// This fixes the issue where 'closestCenter' might pick an item from Page 0 while we are on Page 1.
 	const pageAwareCollisionDetection = useCallback<CollisionDetection>((args) => {
 		const { droppableContainers, ...rest } = args;
-		const activePage = currentPageRef.current;
-
-		// Filter containers to include:
-		// 1. Current Page Items
-		// 2. Dock Items
-		const validIds = activePage === 0 ? page0Items : page1Items;
-
-
-		// Get Dock IDs dynamically (pos >= 100)
-		// Use local state 'dockItemIds' to support collision with items moved there during drag
-		const allValidIds = [...validIds, ...dockItemIds];
-
+		const validPageIds = currentPage === 0 ? page0Items : page1Items;
+		const allValidIds = [...validPageIds, ...dockItemIds];
 		const filteredContainers = droppableContainers.filter(container => {
 			return allValidIds.includes(container.id as string);
 		});
-
-		// Optimize for "magnetic" feel: ClosestCenter is trusted more for imprecise dropping.
-		// RectIntersection is checking containment.
-
-		// If we are over the Dock, we want sticky behavior.
-		// If we are on Grid, Closest Center helps "snap" to nearest slot even if not fully over it.
-
-		// Let's try combining:
-		// 1. If we hit a valid rect, good.
-		// 2. If not, use closestCenter.
-		// User requested "tidak perlu presisi" (no need to be precise).
-		// closestCenter IS the less precise, more magnetic one.
 
 		return closestCenter({
 			...rest,
 			droppableContainers: filteredContainers
 		});
-	}, [page0Items, page1Items, dockItemIds]);
+	}, [page0Items, page1Items, dockItemIds, currentPage]);
 
 	const handleAppClick = useCallback((appId: string) => {
 		if (isDragging) return;
@@ -234,53 +196,25 @@ function HomeScreen() {
 		const iconElement = document.querySelector(`[data-app-id="${appId}"]`) as HTMLElement;
 		if (iconElement) {
 			const rect = iconElement.getBoundingClientRect();
-			appOpenOriginRef.current = {
+			setAppOpenOrigin({
 				x: rect.left,
 				y: rect.top,
 				width: rect.width,
 				height: rect.height,
-			};
+			});
+		} else {
+			setAppOpenOrigin(null);
 		}
 
 		setAppToOpen(appId);
-		setIsSwiping(true);
-
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => {
-				if (appContainerRef.current && appOpenOriginRef.current) {
-					const origin = appOpenOriginRef.current;
-					const windowWidth = window.innerWidth;
-					const windowHeight = window.innerHeight;
-					const scale = Math.min(origin.width / windowWidth, origin.height / windowHeight);
-					const translateX = (origin.x + origin.width / 2) - (windowWidth / 2);
-					const translateY = (origin.y + origin.height / 2) - (windowHeight / 2);
-
-					appContainerRef.current.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`;
-					appContainerRef.current.style.opacity = '0';
-					appContainerRef.current.style.borderRadius = `${origin.width / 4}px`;
-					appContainerRef.current.style.transition = 'none';
-
-					void appContainerRef.current.offsetHeight;
-
-					appContainerRef.current.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease-out, border-radius 0.4s ease-out';
-					appContainerRef.current.style.transform = 'translate3d(0, 0, 0) scale(1)';
-					appContainerRef.current.style.opacity = '1';
-					appContainerRef.current.style.borderRadius = '0px';
-				}
-			});
-		});
+		setIsOpening(true);
 
 		setTimeout(() => {
 			launchApp(appId);
 			setCurrentApp(appId);
-			setIsSwiping(false);
 			setAppToOpen(null);
-			if (appContainerRef.current) {
-				appContainerRef.current.style.transition = '';
-				appContainerRef.current.style.transform = '';
-				appContainerRef.current.style.borderRadius = '';
-			}
-		}, 450);
+			setIsOpening(false);
+		}, 340);
 	}, [isDragging, launchApp]);
 
 	// --- Render Helpers ---
@@ -410,27 +344,20 @@ function HomeScreen() {
 			<HomeScreenAppContainer
 				Component={Component}
 				appContainerRef={appContainerRef}
-				isSwipingFromBottom={isSwipingFromBottom}
-				swipeUpPosition={swipeUpPosition}
-				isSwiping={isSwiping}
-				isDraggingSwipe={isDraggingSwipe}
+				isOpening={isOpening}
 				currentApp={currentApp}
 				appToOpen={appToOpen}
+				appOpenOrigin={appOpenOrigin}
 				statusBarColors={statusBarColors}
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
 				onTouchEnd={handleTouchEnd}
 			/>
-
-			<style jsx>{`
-					.ios-homescreen {
-						font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont;
-						font-weight: 600;
-					}
-				`}</style>
-		</ErrorBoundary >
+		</ErrorBoundary>
 	);
 }
+
+
 
 export default HomeScreen;
 

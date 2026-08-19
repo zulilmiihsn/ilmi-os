@@ -117,41 +117,11 @@ function AppIcon({
 						)}
 					</>
 				)}
-				<style jsx>{`
-				.ios-icon {
-					-webkit-tap-highlight-color: transparent;
-					border: none;
-					background: transparent;
-					padding: 0;
-				}
-
-				.ios-app-box {
-					background: rgba(255, 255, 255, 0.15);
-					backdrop-filter: blur(20px) saturate(180%);
-					border-radius: 20px;
-					border: 1px solid rgba(255, 255, 255, 0.2);
-					box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
-				}
-
-				.ios-tap-animation {
-					transition: transform 0.1s ease-out;
-				}
-
-				.ios-dragging {
-					transition: none;
-				}
-
-				.ios-icon-dragging {
-					will-change: transform;
-					filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
-				}
-			`}</style>
 			</button>
-
-
 		</>
 	);
 }
 
 export default memo(AppIcon);
+
 

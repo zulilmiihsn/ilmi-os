@@ -26,8 +26,10 @@ export default function MenuBar() {
 		windows,
 		closeWindow,
 		minimizeWindow,
-		openWindow
+		openWindow,
+		updateWindow,
 	} = useWindowsStore();
+
 
 	const activeWindow = windows.find(w => w.isFocused && !w.isMinimized);
 	const activeAppName = activeWindow?.title || 'Finder';
@@ -138,8 +140,8 @@ export default function MenuBar() {
 		{ label: 'Preferences...', shortcut: '⌘,', action: () => openWindow({ appId: 'settings', title: 'Settings', x: 150, y: 150, width: 800, height: 600, isMaximized: false, isMinimized: false }) },
 		{ type: 'separator' },
 		{ label: `Hide ${activeAppName}`, shortcut: '⌘H', action: () => { if (activeWindow) minimizeWindow(activeWindow.id); } },
-		{ label: 'Hide Others', shortcut: '⌥⌘H', action: () => { windows.forEach(w => { if (w.id !== activeWindow?.id) minimizeWindow(w.id); }); } },
-		{ label: 'Show All', action: () => { windows.forEach(w => { if (w.isMinimized) openWindow({ ...w, isMinimized: false } as any); }); } }, // simplistic restore
+		{ label: 'Show All', action: () => { windows.forEach(w => { if (w.isMinimized) updateWindow(w.id, { isMinimized: false }); }); } },
+
 		{ type: 'separator' },
 		{
 			label: `Quit ${activeAppName}`,
@@ -332,16 +334,8 @@ export default function MenuBar() {
 
 			<ControlCenter />
 			<Spotlight isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} />
-
-			<style jsx>{`
-				.macos-menubar {
-					background: transparent;
-					backdrop-filter: none;
-					border-bottom: none;
-					box-shadow: none;
-				}
-			`}</style>
 		</>
 	);
 }
+
 

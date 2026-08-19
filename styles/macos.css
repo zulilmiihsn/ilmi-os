@@ -48,6 +48,18 @@
 	min-width: fit-content;
 }
 
+.dock-item {
+	transform-origin: bottom center;
+}
+
+.macos-dock:not(:hover) .dock-item {
+	transition:
+		width 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+		height 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+		margin-bottom 0.3s;
+}
+
+
 /* macOS Menu Bar */
 .macos-menubar {
 	background: transparent;
@@ -88,4 +100,26 @@
 .window-control-maximize:hover {
 	background: #34c759;
 }
+
+/* macOS Control Center */
+.control-center-glass {
+	background: rgba(255, 255, 255, 0.2);
+	backdrop-filter: blur(24px) saturate(190%);
+	-webkit-backdrop-filter: blur(24px) saturate(190%);
+	border-radius: 24px;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.control-center-card {
+	background: rgba(255, 255, 255, 0.12);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+	transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.control-center-card:hover {
+	background: rgba(255, 255, 255, 0.22);
+}
+
 

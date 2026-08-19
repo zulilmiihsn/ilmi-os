@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useCallback, useMemo, memo } from 'react';
-import { useSettingsStore } from '../../stores/settings';
 
 function Calculator() {
-	const { darkMode } = useSettingsStore();
-
 	const [display, setDisplay] = useState('0');
+
 	const [previousValue, setPreviousValue] = useState<number | null>(null);
 	const [operation, setOperation] = useState<string | null>(null);
 	const [waitingForNewValue, setWaitingForNewValue] = useState(false);
@@ -308,52 +306,9 @@ function Calculator() {
 					=
 				</button>
 			</div>
-
-			<style jsx>{`
-				.calc-button {
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					border: none;
-					outline: none;
-					cursor: pointer;
-					user-select: none;
-					-webkit-tap-highlight-color: transparent;
-				}
-
-				.calc-button:active {
-					transform: scale(0.95);
-				}
-
-				/* iOS-style smooth transitions */
-				.calc-button {
-					transition:
-						opacity 0.1s ease-out,
-						transform 0.1s ease-out,
-						background-color 0.3s;
-				}
-
-				/* Prevent text selection */
-				.calculator {
-					user-select: none;
-					-webkit-user-select: none;
-					touch-action: manipulation;
-				}
-
-				/* Smooth scrolling for display */
-				.display-area {
-					overflow-x: auto;
-					overflow-y: hidden;
-					scrollbar-width: none;
-					-ms-overflow-style: none;
-				}
-
-				.display-area::-webkit-scrollbar {
-					display: none;
-				}
-			`}</style>
 		</div>
 	);
 }
 
 export default memo(Calculator);
+

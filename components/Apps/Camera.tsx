@@ -11,6 +11,7 @@ export default function Camera() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [error, setError] = useState<string>('');
     const [mode, setMode] = useState<CameraMode>('PHOTO');
@@ -26,79 +27,67 @@ export default function Camera() {
     const [isRecording, setIsRecording] = useState(false);
 
     useEffect(() => {
-        startCamera();
-        return () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
+        let isMounted = true;
+
+        const initCamera = async () => {
+            // Stop previous active tracks
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
+            }
+
+            const constraints = [
+                {
+                    video: { facingMode: facingMode, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+                    audio: mode === 'VIDEO' || mode === 'SLO-MO'
+                },
+                {
+                    video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: mode === 'VIDEO' || mode === 'SLO-MO'
+                },
+                {
+                    video: { facingMode: facingMode },
+                    audio: mode === 'VIDEO' || mode === 'SLO-MO'
+                }
+            ];
+
+            for (const constraint of constraints) {
+                try {
+                    const mediaStream = await navigator.mediaDevices.getUserMedia(constraint);
+                    if (!isMounted) {
+                        mediaStream.getTracks().forEach(track => track.stop());
+                        return;
+                    }
+                    streamRef.current = mediaStream;
+                    setStream(mediaStream);
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = mediaStream;
+                    }
+                    setError('');
+                    return;
+                } catch {
+                    // Try next fallback
+                }
+            }
+
+            if (isMounted) {
+                setError('Could not start camera. Please check permissions and close other apps using the camera.');
             }
         };
-        // Lint warning explicitly mentions to include them or remove array.
-        // startCamera changes often? No, it's defined in component but doesn't use outside reactive scope except state.
-        // safe to suppress or add? Let's add facingMode as it was, and ignore others if they cause loops, IS BEST PRACTICE.
-        // But here startCamera depends on nothing external that changes except facingMode which is used inside.
-        // The implementation of startCamera uses state directly.
-        // Let's suppress to be safe from infinite loops if startCamera isn't memoized.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [facingMode]);
 
-    const startCamera = async () => {
-        const constraints = [
-            // Try 4K first
-            {
-                video: {
-                    facingMode: facingMode,
-                    width: { ideal: 3840 },
-                    height: { ideal: 2160 },
-                    frameRate: { ideal: 60 }
-                },
-                audio: mode === 'VIDEO' || mode === 'SLO-MO'
-            },
-            // Fallback to 1080p
-            {
-                video: {
-                    facingMode: facingMode,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
-                    frameRate: { ideal: 30 }
-                },
-                audio: mode === 'VIDEO' || mode === 'SLO-MO'
-            },
-            // Fallback to 720p
-            {
-                video: {
-                    facingMode: facingMode,
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                },
-                audio: mode === 'VIDEO' || mode === 'SLO-MO'
-            },
-            // Last resort: any resolution
-            {
-                video: { facingMode: facingMode },
-                audio: mode === 'VIDEO' || mode === 'SLO-MO'
+        initCamera();
+
+        return () => {
+            isMounted = false;
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
             }
-        ];
-
-        for (const constraint of constraints) {
-            try {
-                const mediaStream = await navigator.mediaDevices.getUserMedia(constraint);
-                setStream(mediaStream);
-                if (videoRef.current) {
-                    videoRef.current.srcObject = mediaStream;
-                }
-                setError('');
-                return; // Success, exit function
-            } catch (err) {
-                console.warn('Camera constraint failed:', constraint, err);
-                // Continue to next constraint
-            }
-        }
-
-        // If all fail
-        setError('Could not start camera. Please check permissions and close other apps using the camera.');
-    };
+        };
+    }, [facingMode, mode]);
 
     const takePhoto = () => {
+
         if (timerSeconds > 0) {
             startCountdown();
         } else {

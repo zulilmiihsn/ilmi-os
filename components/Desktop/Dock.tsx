@@ -182,28 +182,11 @@ function Dock() {
 					);
 				})}
 			</div>
-			{/* Invisble hover area below dock to prevent it from shrinking too fast if mouse slips slightly */}
-			<div className="absolute top-full left-0 w-full h-4"></div>
-
-			<style jsx>{`
-				/* We rely on inline styles for performance, but need some base reset */
-				.dock-item {
-					transform-origin: bottom center;
-					/* IMPORTANT: When not controlled by JS (like on load), use transition. 
-                       But JS updates should override or be fast enough.
-                       We will not set transition on width/height here to avoid conflict with RAF loop. */
-				}
-
-				/* Add a smooth transition for when mouse leaves and we reset styles */
-				.macos-dock:not(:hover) .dock-item {
-					transition:
-						width 0.3s cubic-bezier(0.25, 1, 0.5, 1),
-						height 0.3s cubic-bezier(0.25, 1, 0.5, 1),
-						margin-bottom 0.3s;
-				}
-			`}</style>
+			{/* Invisible hover area below dock */}
+			<div className="absolute top-full left-0 w-full h-4" />
 		</div>
 	);
 }
 
 export default memo(Dock);
+

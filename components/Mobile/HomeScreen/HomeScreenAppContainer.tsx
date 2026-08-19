@@ -8,15 +8,20 @@ interface StatusBarColors {
     textColor: string;
 }
 
+interface AppOrigin {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
 interface HomeScreenAppContainerProps {
     Component: ComponentType | null;
     appContainerRef: React.RefObject<HTMLDivElement>;
-    isSwipingFromBottom: boolean;
-    swipeUpPosition: number;
-    isSwiping: boolean;
-    isDraggingSwipe: boolean;
+    isOpening: boolean;
     currentApp: string | null;
     appToOpen: string | null;
+    appOpenOrigin: AppOrigin | null;
     statusBarColors: StatusBarColors;
     onTouchStart: (e: React.TouchEvent) => void;
     onTouchMove: (e: React.TouchEvent) => void;
@@ -26,12 +31,10 @@ interface HomeScreenAppContainerProps {
 function HomeScreenAppContainer({
     Component,
     appContainerRef,
-    isSwipingFromBottom,
-    swipeUpPosition,
-    isSwiping,
-    isDraggingSwipe,
+    isOpening,
     currentApp,
     appToOpen,
+    appOpenOrigin,
     statusBarColors,
     onTouchStart,
     onTouchMove,
@@ -41,34 +44,18 @@ function HomeScreenAppContainer({
         return null;
     }
 
-    const getTransition = () => {
-        // Disable transition during active drag for smooth following
-        if (isDraggingSwipe) return 'none';
-
-        // Enable transition when:
-        // 1. App is opening (swiping up from bottom)
-        if (isSwiping && appToOpen)
-            return 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        // 2. App is closing (swipe up completed or returning)
-        if (isSwipingFromBottom)
-            return 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        // 3. App is open and stable
-        if (currentApp && !isSwiping && !isSwipingFromBottom)
-            return 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        // Default: no transition
-        return 'none';
-    };
+    const transformOrigin = appOpenOrigin
+        ? `${appOpenOrigin.x + appOpenOrigin.width / 2}px ${appOpenOrigin.y + appOpenOrigin.height / 2}px`
+        : '50% 50%';
 
     return (
         <div
             ref={appContainerRef}
-            className="ios-app fixed inset-0 z-50 bg-white dark:bg-black"
+            className={`ios-app fixed inset-0 z-50 bg-white dark:bg-black overflow-hidden select-none ${
+                isOpening ? 'ios-app-opening' : ''
+            }`}
             style={{
-                transform: isSwipingFromBottom
-                    ? `translateY(-${swipeUpPosition}%)`
-                    : 'translateY(0)',
-                opacity: isSwipingFromBottom && swipeUpPosition > 80 ? 0 : 1,
-                transition: getTransition(),
+                transformOrigin,
             }}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
@@ -85,7 +72,7 @@ function HomeScreenAppContainer({
                 {Component && <Component />}
                 {/* iOS Bottom Bar Indicator */}
                 <div
-                    className="ios-bottom-bar absolute bottom-0 left-0 right-0 flex items-center justify-center safe-area-bottom"
+                    className="ios-bottom-bar absolute bottom-0 left-0 right-0 flex items-center justify-center safe-area-bottom pointer-events-auto cursor-pointer"
                     style={{
                         height: '44px',
                         paddingBottom: 'max(env(safe-area-inset-bottom), 12px)',
@@ -93,7 +80,7 @@ function HomeScreenAppContainer({
                     }}
                 >
                     <div
-                        className="ios-bottom-bar-handle w-40 h-1.5 rounded-full transition-colors duration-300"
+                        className="ios-bottom-bar-handle w-40 h-1.5 rounded-full transition-colors duration-300 pointer-events-none"
                         style={{ backgroundColor: statusBarColors.textColor }}
                     />
                 </div>

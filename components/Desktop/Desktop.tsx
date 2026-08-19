@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { ErrorBoundary } from '../ErrorBoundary';
 import MenuBar from './MenuBar';
@@ -14,17 +14,8 @@ import DesktopIcons from './DesktopIcons';
 
 function Desktop() {
 	const windows = useWindowsStore(state => state.windows);
-	const { wallpaper, darkMode } = useSettingsStore(); // Get settings
+	const { wallpaper } = useSettingsStore();
 	const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-
-	// Apply Dark Mode
-	useEffect(() => {
-		if (darkMode) {
-			document.documentElement.classList.add('dark');
-		} else {
-			document.documentElement.classList.remove('dark');
-		}
-	}, [darkMode]);
 
 	const handleContextMenu = (e: React.MouseEvent) => {
 		e.preventDefault();
@@ -38,29 +29,23 @@ function Desktop() {
 	return (
 		<ErrorBoundary>
 			<div
-				className="desktop w-screen h-screen overflow-hidden relative"
+				className="desktop w-screen h-screen overflow-hidden relative font-sans select-none"
 				onContextMenu={handleContextMenu}
-				onClick={() => {
-					closeContextMenu();
-					// Deselect icons if clicked on empty space (handled inside DesktopIcons internally or needs a signal?
-					// Ideally DesktopIcons listens to clicks outside.
-					// But for now, simple click on desktop closes context menu is fine.
-				}}
+				onClick={closeContextMenu}
 			>
 				{/* Wallpaper */}
-				<div key={wallpaper} className="wallpaper absolute inset-0 pointer-events-none">
-					{/* Check if wallpaper is an image path or css gradient/color */}
-					{wallpaper.startsWith('/') || wallpaper.startsWith('http') ? (
+				<div className="wallpaper absolute inset-0 z-0 select-none will-change-transform">
+					{wallpaper.startsWith('/') ? (
 						<Image
 							src={wallpaper}
-							alt="Desktop Wallpaper"
+							alt="Wallpaper"
 							fill
-							className="object-cover"
 							priority
+							className="object-cover pointer-events-none"
 							unoptimized
 						/>
 					) : (
-						<div className="w-full h-full" style={{ background: wallpaper }}></div>
+						<div className="w-full h-full" style={{ background: wallpaper }} />
 					)}
 				</div>
 
@@ -82,20 +67,6 @@ function Desktop() {
 				{contextMenu && (
 					<ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu} />
 				)}
-
-				<style jsx>{`
-					.desktop {
-						font-family:
-							'SF Pro Display',
-							-apple-system,
-							BlinkMacSystemFont;
-						font-weight: 600;
-					}
-
-					.wallpaper {
-						will-change: transform;
-					}
-				`}</style>
 			</div>
 		</ErrorBoundary>
 	);

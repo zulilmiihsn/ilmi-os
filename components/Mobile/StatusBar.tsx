@@ -162,12 +162,6 @@ function StatusBar({ backgroundColor, textColor }: StatusBarProps) {
 					</div>
 				</div>
 			</div>
-			<style jsx>{`
-				.ios-statusbar {
-					backdrop-filter: none !important;
-					-webkit-backdrop-filter: none !important;
-				}
-			`}</style>
 		</div>
 	);
 }

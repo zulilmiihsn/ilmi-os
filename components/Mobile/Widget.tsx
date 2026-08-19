@@ -77,23 +77,9 @@ function Widget({ type = 'battery' }: WidgetProps) {
 					<div className="text-sm text-gray-600">Sunny</div>
 				</div>
 			)}
-			<style jsx>{`
-				.ios-widget {
-					background: transparent;
-				}
-
-				.ios-widget-box {
-					background: rgba(255, 255, 255, 0.15);
-					/* Reduced blur from 20px to 10px for better performance */
-					backdrop-filter: blur(10px) saturate(150%);
-					border-radius: 20px;
-					border: 1px solid rgba(255, 255, 255, 0.2);
-					display: flex;
-					flex-direction: column;
-				}
-			`}</style>
 		</div>
 	);
 }
 
 export default memo(Widget);
+
