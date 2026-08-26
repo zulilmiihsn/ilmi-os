@@ -14,20 +14,25 @@ function MailboxItem({ item, isActive, onClick, darkMode }: MailboxItemProps) {
     return (
         <div
             onClick={onClick}
-            className={`flex items-center justify-between px-4 py-3 cursor-pointer select-none transition-colors border-b ${darkMode ? 'border-gray-800 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-100'
-                } ${isActive ? (darkMode ? 'bg-gray-800' : 'bg-blue-50') : ''}`}
+            className={`flex items-center justify-between px-4 py-3 cursor-pointer select-none transition-colors border-b last:border-b-0 ${
+                darkMode
+                    ? 'border-white/10 hover:bg-white/5 active:bg-white/10'
+                    : 'border-gray-100 hover:bg-gray-50 active:bg-gray-100'
+            } ${isActive ? (darkMode ? 'bg-white/10' : 'bg-blue-50') : ''}`}
         >
-            <div className="flex items-center gap-3">
-                <div className={`w-6 text-center ${item.type === 'smart' ? 'text-blue-500' : 'text-gray-400'}`}>
+            <div className="flex items-center gap-3.5">
+                <div className={`w-6 text-center text-base ${item.type === 'smart' ? 'text-[#007aff]' : 'text-gray-400'}`}>
                     <i className={`fas ${item.icon}`}></i>
                 </div>
-                <span className={`font-medium ${darkMode ? 'text-white' : 'text-black'}`}>{item.name}</span>
+                <span className={`text-base font-normal ${darkMode ? 'text-white' : 'text-black'}`}>
+                    {item.name}
+                </span>
             </div>
             <div className="flex items-center gap-2">
                 {item.count !== undefined && item.count > 0 && (
-                    <span className="text-gray-400 text-sm">{item.count}</span>
+                    <span className="text-gray-400 text-sm font-medium">{item.count}</span>
                 )}
-                <i className="fas fa-chevron-right text-gray-400 text-xs"></i>
+                <i className="fas fa-chevron-right text-gray-300 dark:text-gray-600 text-xs"></i>
             </div>
         </div>
     );

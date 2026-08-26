@@ -91,13 +91,12 @@ html.dark {
 
 	html,
 	body {
-		/* Use SF Pro Display only - no fallbacks */
+		/* Official Apple San Francisco (SF Pro Display) */
 		font-family:
 			'SF Pro Display',
 			-apple-system,
 			BlinkMacSystemFont;
-		font-weight: 600;
-		/* Semibold as default - thick weight */
+		font-weight: 400;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
 		font-feature-settings: 'kern' 1;

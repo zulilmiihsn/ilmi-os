@@ -13,9 +13,16 @@ import MobileClock from './MobileClock';
 interface StatusBarProps {
 	backgroundColor?: string;
 	textColor?: string;
+	onOpenNotificationCenter?: () => void;
+	onOpenControlCenter?: () => void;
 }
 
-function StatusBar({ backgroundColor, textColor }: StatusBarProps) {
+function StatusBar({
+	backgroundColor,
+	textColor,
+	onOpenNotificationCenter,
+	onOpenControlCenter,
+}: StatusBarProps) {
 	const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
 	const [batteryCharging, setBatteryCharging] = useState(false);
 	const [signalBars, setSignalBars] = useState(3);
@@ -104,7 +111,7 @@ function StatusBar({ backgroundColor, textColor }: StatusBarProps) {
 
 	return (
 		<div
-			className="ios-statusbar fixed top-0 left-0 right-0 z-60 flex items-center justify-between px-8 py-2 text-sm font-semibold"
+			className="ios-statusbar fixed top-0 left-0 right-0 z-60 flex items-center justify-between px-8 py-2 text-sm font-semibold select-none"
 			style={{
 				background: statusBgColor,
 				backgroundColor: statusBgColor,
@@ -112,10 +119,19 @@ function StatusBar({ backgroundColor, textColor }: StatusBarProps) {
 				backdropFilter: 'none',
 			}}
 		>
-			<div className="flex items-center gap-1" style={{ color: statusTextColor }}>
+			{/* Left Side: Clock */}
+			<div
+				className="flex items-center gap-1"
+				style={{ color: statusTextColor }}
+			>
 				<MobileClock textColor={statusTextColor} />
 			</div>
-			<div className="flex items-center gap-1.5" style={{ color: statusTextColor }}>
+
+			{/* Right Side: Battery / WiFi */}
+			<div
+				className="flex items-center gap-1.5"
+				style={{ color: statusTextColor }}
+			>
 				{/* Signal Strength */}
 				{!isWifi && (
 					<div className="flex items-end gap-0.5">

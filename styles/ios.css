@@ -9,10 +9,14 @@
 .ios-icon {
 	border-radius: 22px;
 	-webkit-tap-highlight-color: transparent;
+	touch-action: manipulation;
 	border: none;
 	background: transparent;
 	padding: 0;
+	user-select: none;
+	-webkit-user-select: none;
 }
+
 
 .ios-app-box {
 	background: rgba(255, 255, 255, 0.15);
@@ -175,5 +179,27 @@
 .delete-btn-enter {
 	animation: slideInDeleteBtn 0.2s ease-out forwards;
 }
+
+/* iOS Cover Sheet & Control Center Spring Animations */
+.ios-sheet-spring {
+	transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+	will-change: transform, opacity;
+}
+
+.ios-stagger-item {
+	animation: ios-stagger-reveal 0.35s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes ios-stagger-reveal {
+	from {
+		opacity: 0;
+		transform: translateY(16px) scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
 
 

@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSettingsStore } from '../../../stores/settings';
 import { TIMING } from '../../../constants';
 
-import { FileItem, FolderPath, loadFileSystem, saveFileSystem, getItemsInFolder, getItemCount } from './index';
+import type { FileItem, FolderPath } from './types';
+import { loadFileSystem, saveFileSystem, getItemsInFolder, getItemCount } from './utils';
 import {
 	CreateFolderDialog,
 	RenameDialog,
@@ -12,6 +13,7 @@ import {
 	ActionMenu,
 	ActionSheet
 } from './Modals';
+
 import TabBar from './TabBar';
 
 export default function Files() {

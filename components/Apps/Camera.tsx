@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { TIMING } from '../../constants';
+import { triggerHaptic } from '../../utils/haptic';
 
 type CameraMode = 'SLO-MO' | 'VIDEO' | 'PHOTO' | 'SQUARE' | 'PANO';
 type FilterType = 'none' | 'grayscale' | 'sepia' | 'vintage' | 'cool';
@@ -319,52 +320,61 @@ export default function Camera() {
 
     return (
         <div className="flex flex-col h-full w-full bg-black text-white overflow-hidden relative select-none">
-            {/* Top Controls */}
-            <div className="absolute top-0 left-0 right-0 z-20 pt-4 pb-4 px-5">
-                <div className="flex items-center justify-between">
-                    {/* Flash */}
+            {/* iOS 26 Liquid Glass Top Control Island */}
+            <div className="absolute top-12 left-4 right-4 z-20 flex justify-center pointer-events-none">
+                <div className="bg-black/40 backdrop-blur-2xl border border-white/15 px-4 py-2 rounded-full shadow-[0_8px_20px_-4px_rgba(0,0,0,0.3)] flex items-center gap-6 pointer-events-auto">
+                    {/* Flash Toggle */}
                     <button
-                        onClick={() => setFlashEnabled(!flashEnabled)}
-                        className="w-11 h-11 rounded-full flex items-center justify-center active:bg-white/10 transition-all"
+                        onClick={() => {
+                            triggerHaptic('light');
+                            toggleFlash();
+                        }}
+                        className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+                        aria-label={flashEnabled ? "Disable flash" : "Enable flash"}
                     >
-                        <i className={`fas fa-bolt text-lg ${flashEnabled ? 'text-yellow-400' : 'text-white'}`}></i>
+                        <i className={`fas fa-bolt text-sm ${flashEnabled ? 'text-[#ffcc00]' : 'text-white/80'}`}></i>
                     </button>
 
-                    {/* HDR */}
+                    {/* HDR Toggle */}
                     <button
-                        onClick={() => setHdrEnabled(!hdrEnabled)}
-                        className="w-11 h-11 rounded-full flex items-center justify-center active:bg-white/10 transition-all"
+                        onClick={() => {
+                            triggerHaptic('light');
+                            toggleHdr();
+                        }}
+                        className={`text-xs font-bold tracking-tight active:scale-90 transition-transform ${
+                            hdrEnabled ? 'text-[#ffcc00]' : 'text-white/80'
+                        }`}
+                        aria-label={hdrEnabled ? "Disable HDR" : "Enable HDR"}
                     >
-                        <span className={`text-ios-caption1 font-bold tracking-wider ${hdrEnabled ? 'text-ios-yellow' : 'text-white'}`}>HDR</span>
+                        HDR
                     </button>
 
-                    {/* Rotate Camera */}
+                    {/* Timer Toggle */}
                     <button
-                        onClick={rotateCamera}
-                        className="w-11 h-11 rounded-full flex items-center justify-center active:bg-white/10 transition-all"
+                        onClick={() => {
+                            triggerHaptic('light');
+                            toggleTimer();
+                        }}
+                        className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform relative"
                     >
-                        <i className="fas fa-sync-alt text-lg"></i>
-                    </button>
-
-                    {/* Timer */}
-                    <button
-                        onClick={toggleTimer}
-                        className="w-11 h-11 rounded-full flex items-center justify-center active:bg-white/10 transition-all relative"
-                    >
-                        <i className={`fas fa-clock text-lg ${timerSeconds > 0 ? 'text-ios-yellow' : 'text-white'}`}></i>
+                        <i className={`fas fa-clock text-sm ${timerSeconds > 0 ? 'text-[#ffcc00]' : 'text-white/80'}`}></i>
                         {timerSeconds > 0 && (
-                            <span className="absolute -bottom-1 text-[9px] font-bold text-ios-yellow">{timerSeconds}s</span>
+                            <span className="absolute -bottom-1 text-[8px] font-bold text-[#ffcc00]">{timerSeconds}s</span>
                         )}
                     </button>
 
                     {/* Filter */}
                     <button
-                        onClick={toggleFilter}
-                        className="w-11 h-11 rounded-full flex items-center justify-center active:bg-white/10 transition-all"
+                        onClick={() => {
+                            triggerHaptic('light');
+                            toggleFilter();
+                        }}
+                        className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
                     >
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${currentFilter !== 'none' ? 'bg-ios-yellow' : 'bg-ios-yellow'
-                            }`}>
-                            <span className="text-[10px] font-bold text-black">f</span>
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center border border-white/30 ${
+                            currentFilter !== 'none' ? 'bg-[#ffcc00]' : 'bg-white/20'
+                        }`}>
+                            <span className="text-[8px] font-bold text-black">f</span>
                         </div>
                     </button>
                 </div>
@@ -372,7 +382,7 @@ export default function Camera() {
 
             {/* Flash Effect Overlay */}
             {isFlashing && (
-                <div className="absolute inset-0 bg-white z-30 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-white z-30 pointer-events-none animate-out fade-out duration-200"></div>
             )}
 
             {/* Countdown Overlay */}
@@ -384,21 +394,19 @@ export default function Camera() {
 
             {/* Recording Indicator */}
             {isRecording && (
-                <div className="absolute top-20 left-5 z-30 flex items-center gap-2 bg-ios-red px-3 py-1.5 rounded-full">
-                    <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
-                    <span className="text-xs font-semibold">REC</span>
+                <div className="absolute top-24 left-5 z-30 flex items-center gap-2 bg-[#ff3b30] px-3 py-1 rounded-full shadow-lg">
+                    <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
+                    <span className="text-[11px] font-bold text-white tracking-wider">REC</span>
                 </div>
             )}
 
-            {/* SQUARE Mode - Black Bars Overlay for 4:3 Effect */}
-            {/* Top black bar */}
+            {/* SQUARE Mode - Black Bars Overlay */}
             <div
-                className="absolute top-0 left-0 right-0 bg-black z-10 pointer-events-none transition-all duration-500 ease-in-out"
+                className="absolute top-0 left-0 right-0 bg-black z-10 pointer-events-none transition-all duration-300 ease-out"
                 style={{ height: mode === 'SQUARE' ? '10%' : '0%' }}
             ></div>
-            {/* Bottom black bar */}
             <div
-                className="absolute bottom-0 left-0 right-0 bg-black z-10 pointer-events-none transition-all duration-500 ease-in-out"
+                className="absolute bottom-0 left-0 right-0 bg-black z-10 pointer-events-none transition-all duration-300 ease-out"
                 style={{ height: mode === 'SQUARE' ? '15%' : '0%' }}
             ></div>
 
@@ -423,15 +431,19 @@ export default function Camera() {
 
             <canvas ref={canvasRef} className="hidden" />
 
-            {/* Mode Selector */}
-            <div className="absolute bottom-36 left-0 right-0 z-20">
-                <div className="flex items-center justify-center gap-6">
+            {/* Mode Selector Pill Carousel */}
+            <div className="absolute bottom-32 left-0 right-0 z-20 flex justify-center">
+                <div className="flex items-center gap-5 px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
                     {modes.map((m) => (
                         <button
                             key={m}
-                            onClick={() => setMode(m)}
-                            className={`text-ios-caption1 tracking-wider transition-all ${mode === m ? 'text-ios-yellow font-semibold' : 'text-white/60'
-                                }`}
+                            onClick={() => {
+                                triggerHaptic('light');
+                                setMode(m);
+                            }}
+                            className={`text-xs tracking-wider transition-all duration-200 ${
+                                mode === m ? 'text-[#ffcc00] font-bold scale-105' : 'text-white/60 font-medium'
+                            }`}
                             aria-label={`Switch to ${m} mode`}
                             role="tab"
                             aria-selected={mode === m}
@@ -442,57 +454,57 @@ export default function Camera() {
                 </div>
             </div>
 
-            {/* Bottom Controls */}
+            {/* Bottom Controls Floating Area */}
             <div className="absolute bottom-0 left-0 right-0 z-20 pb-8 pt-4">
-                <div className="flex items-center justify-center gap-16">
+                <div className="flex items-center justify-center gap-14">
                     {/* Gallery Thumbnail */}
                     <button
-                        className="w-11 h-11 rounded-md border-2 border-white/50 overflow-hidden flex items-center justify-center bg-white/10 active:scale-95 transition-transform"
+                        className="w-12 h-12 rounded-xl border border-white/30 overflow-hidden flex items-center justify-center bg-white/10 backdrop-blur-md active:scale-90 transition-transform shadow-md"
                         aria-label="View recent photos"
                     >
                         {lastPhoto ? (
                             <Image
                                 src={lastPhoto}
                                 alt="Last photo"
-                                width={44}
-                                height={44}
+                                width={48}
+                                height={48}
                                 className="w-full h-full object-cover"
-                                unoptimized={true} // Since it's likely a data URL
+                                unoptimized={true}
                             />
                         ) : (
-                            <i className="fas fa-image text-white/50 text-sm"></i>
+                            <i className="fas fa-image text-white/60 text-base"></i>
                         )}
                     </button>
 
-                    {/* Shutter Button */}
+                    {/* Shutter Button with Liquid Glass Ring */}
                     <button
                         onClick={handleShutterClick}
-                        className={`w-[70px] h-[70px] rounded-full flex items-center justify-center active:scale-95 transition-all ${isRecording ? 'bg-ios-red/30' : 'bg-white/30'
-                            }`}
+                        className="w-[72px] h-[72px] rounded-full flex items-center justify-center active:scale-90 transition-transform duration-100 border-[3px] border-white/80 p-1 shadow-[0_0_20px_rgba(255,255,255,0.2)] bg-black/20 backdrop-blur-md"
                         aria-label={mode === 'VIDEO' || mode === 'SLO-MO' ? (isRecording ? "Stop recording" : "Start recording") : "Take photo"}
                     >
                         {mode === 'VIDEO' || mode === 'SLO-MO' ? (
                             isRecording ? (
-                                <div className="w-[30px] h-[30px] bg-ios-red rounded-sm"></div>
+                                <div className="w-[28px] h-[28px] bg-[#ff3b30] rounded-md transition-all"></div>
                             ) : (
-                                <div className="w-[60px] h-[60px] rounded-full bg-ios-red"></div>
+                                <div className="w-[56px] h-[56px] rounded-full bg-[#ff3b30] transition-all"></div>
                             )
                         ) : (
-                            <div className="w-[60px] h-[60px] rounded-full bg-white"></div>
+                            <div className="w-[56px] h-[56px] rounded-full bg-white transition-all shadow-inner"></div>
                         )}
                     </button>
 
                     {/* Flip Camera */}
                     <button
-                        onClick={flipCamera}
-                        className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
+                        onClick={() => {
+                            triggerHaptic('light');
+                            flipCamera();
+                        }}
+                        className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center active:scale-90 transition-transform shadow-md"
                         aria-label="Switch camera"
                     >
-                        <i className="fas fa-sync-alt text-white text-lg"></i>
+                        <i className="fas fa-sync-alt text-white text-base"></i>
                     </button>
                 </div>
-
-
             </div>
         </div>
     );

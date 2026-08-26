@@ -2,6 +2,7 @@
 
 import type { Note } from '../types';
 import NoteItem from './NoteItem';
+import { triggerHaptic } from '../../../../utils/haptic';
 
 interface NoteListProps {
 	notes: Note[];
@@ -31,53 +32,57 @@ export default function NoteList({
 	deleteSelectedNotes,
 }: NoteListProps) {
 	return (
-		<div className="flex flex-col h-full animate-in slide-in-from-left duration-300">
+		<div className="flex flex-col h-full select-none bg-[#f2f2f7] dark:bg-black text-black dark:text-white">
 			{/* Sticky Header */}
-			<div className="px-4 pt-6 pb-2 sticky top-0 z-10 bg-gray-100/90 dark:bg-black/90 backdrop-blur-md transition-colors">
-				<div className="flex justify-between items-end mb-3">
-					<h1 className="text-2xl font-bold tracking-tight text-black dark:text-white">
-						{selectionMode ? `${selectedCount} Selected` : 'Notes'}
-					</h1>
+			<div className="px-4 pt-10 pb-2 shrink-0 bg-[#f2f2f7] dark:bg-black">
+				<div className="flex justify-between items-center mb-2">
+					<div className="w-12"></div>
 					<button
-						onClick={toggleSelectionMode}
-						className="text-[#DCA326] font-semibold text-sm active:opacity-50 transition-opacity"
+						onClick={() => {
+							triggerHaptic('light');
+							toggleSelectionMode();
+						}}
+						className="text-[#e3a824] font-normal text-base active:opacity-50 transition-opacity"
 					>
 						{selectionMode ? 'Done' : 'Select'}
 					</button>
 				</div>
 
-				{/* Search Bar */}
+				{/* Large Title */}
+				<h1 className="text-3xl font-bold tracking-tight mb-3">
+					{selectionMode ? `${selectedCount} Selected` : 'Notes'}
+				</h1>
+
+				{/* Search Bar Capsule */}
 				<div className="relative mb-2">
-					<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-						<svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<div className="flex items-center rounded-xl px-3 py-2 border bg-[#e3e3e8]/70 dark:bg-[#1c1c1e] border-black/5 dark:border-white/10">
+						<svg className="h-4 w-4 text-gray-400 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 						</svg>
+						<input
+							type="text"
+							className="flex-1 bg-transparent border-none outline-none text-sm placeholder-gray-400"
+							placeholder="Search"
+							value={searchQuery}
+							onChange={e => setSearchQuery(e.target.value)}
+						/>
+						{searchQuery && (
+							<button
+								onClick={() => setSearchQuery('')}
+								className="text-gray-400 text-xs"
+							>
+								<i className="fas fa-times-circle"></i>
+							</button>
+						)}
 					</div>
-					<input
-						type="text"
-						className="block w-full pl-9 pr-8 py-2 border-none rounded-xl leading-5 focus:outline-none transition-colors text-sm bg-gray-200/80 dark:bg-white/10 text-black dark:text-white placeholder-gray-400"
-						placeholder="Search"
-						value={searchQuery}
-						onChange={e => setSearchQuery(e.target.value)}
-					/>
-					{searchQuery && (
-						<button
-							onClick={() => setSearchQuery('')}
-							className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-						>
-							<svg className="h-4 w-4 bg-gray-300 dark:bg-gray-600 text-white rounded-full p-0.5" viewBox="0 0 20 20" fill="currentColor">
-								<path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-							</svg>
-						</button>
-					)}
 				</div>
 			</div>
 
 			{/* Note List Items */}
-			<div className="flex-1 overflow-y-auto px-4 pb-20">
+			<div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
 				{notes.length === 0 ? (
 					<div className="flex flex-col items-center justify-center h-64 text-gray-400">
-						<svg className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<svg className="w-14 h-14 mb-3 text-gray-300 dark:text-gray-700 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
 						</svg>
 						<p className="text-sm font-medium">No Notes</p>
@@ -85,9 +90,9 @@ export default function NoteList({
 				) : (
 					<>
 						{todayNotes.length > 0 && (
-							<div className="mb-6">
-								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-2 ml-1 tracking-wider">Today</h2>
-								<div className="bg-white dark:bg-[#1C1C1E] rounded-xl overflow-hidden shadow-xs border border-black/5 dark:border-white/5 transition-colors">
+							<div>
+								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">Today</h2>
+								<div className="bg-white dark:bg-[#1C1C1E] rounded-xl overflow-hidden shadow-xs border border-black/5 dark:border-white/10 transition-colors">
 									{todayNotes.map((note, index) => (
 										<NoteItem
 											key={note.id}
@@ -102,9 +107,9 @@ export default function NoteList({
 						)}
 
 						{previousNotes.length > 0 && (
-							<div className="mb-6">
-								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-2 ml-1 tracking-wider">Previous</h2>
-								<div className="bg-white dark:bg-[#1C1C1E] rounded-xl overflow-hidden shadow-xs border border-black/5 dark:border-white/5 transition-colors">
+							<div>
+								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">Previous</h2>
+								<div className="bg-white dark:bg-[#1C1C1E] rounded-xl overflow-hidden shadow-xs border border-black/5 dark:border-white/10 transition-colors">
 									{previousNotes.map((note, index) => (
 										<NoteItem
 											key={note.id}
@@ -121,17 +126,20 @@ export default function NoteList({
 				)}
 			</div>
 
-			{/* Bottom Toolbar */}
-			<div className="border-t border-gray-200 dark:border-white/10 pb-safe z-10 sticky bottom-0 bg-gray-100/90 dark:bg-black/90 backdrop-blur-md">
-				<div className="flex justify-between items-center h-11 px-4">
+			{/* Floating Liquid Glass Toolbar */}
+			<div className="shrink-0 p-4 pb-8 flex items-center justify-center">
+				<div className="w-full max-w-[340px] px-5 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 transition-all">
 					{selectionMode ? (
 						<>
 							<span className="text-xs text-gray-400">Batch select</span>
 							<button
 								className={`text-sm font-medium transition-opacity ${
-									selectedCount > 0 ? 'text-red-500' : 'text-red-300 pointer-events-none'
+									selectedCount > 0 ? 'text-red-500 active:scale-95' : 'text-red-300 pointer-events-none'
 								}`}
-								onClick={deleteSelectedNotes}
+								onClick={() => {
+									triggerHaptic('medium');
+									deleteSelectedNotes();
+								}}
 								disabled={selectedCount === 0}
 							>
 								Delete ({selectedCount})
@@ -139,17 +147,18 @@ export default function NoteList({
 						</>
 					) : (
 						<>
-							<div className="w-10" />
+							<div className="w-8" />
 							<div className="text-xs text-gray-400 font-medium">{notes.length} Notes</div>
 							<button
 								type="button"
-								onClick={createNewNote}
-								className="w-9 h-9 flex items-center justify-center text-[#DCA326] hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
+								onClick={() => {
+									triggerHaptic('light');
+									createNewNote();
+								}}
+								className="text-[#e3a824] p-1 active:scale-95 transition-transform"
 								aria-label="New Note"
 							>
-								<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-								</svg>
+								<i className="far fa-edit text-lg"></i>
 							</button>
 						</>
 					)}

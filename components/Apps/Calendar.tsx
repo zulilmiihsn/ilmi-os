@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, memo } from 'react';
 import { useSettingsStore } from '../../stores/settings';
-import { TIMING } from '../../constants';
+import { triggerHaptic } from '../../utils/haptic';
 
 interface CalendarEvent {
 	date: string; // YYYY-MM-DD
@@ -10,7 +10,6 @@ interface CalendarEvent {
 	color?: string;
 }
 
-// Optimization: Helper functions outside component
 const getDaysInMonth = (year: number, month: number) => {
 	return new Date(year, month + 1, 0).getDate();
 };
@@ -39,7 +38,7 @@ const formatDateStr = (date: Date) => {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
-// Optimization: Memoized Day Component
+// Memoized Day Component
 const Day = memo(
 	({
 		date,
@@ -63,31 +62,43 @@ const Day = memo(
 		return (
 			<div
 				ref={isToday && setTodayRef ? setTodayRef : null}
-				className={`flex flex-col items-center justify-center relative cursor-pointer transition-colors ${darkMode ? 'active:bg-gray-800' : 'active:bg-gray-100'}`}
-				onClick={() => onClick(date)}
+				className="flex flex-col items-center justify-center relative cursor-pointer py-1 select-none"
+				onClick={() => {
+					triggerHaptic('light');
+					onClick(date);
+				}}
 				role="gridcell"
 				tabIndex={0}
 				aria-label={`${date.toLocaleDateString(undefined, { dateStyle: 'full' })}${hasEvent ? ', has events' : ''}`}
 				aria-selected={isSelected}
 			>
 				<div
-					className={`w-8 h-8 flex items-center justify-center rounded-full text-lg font-normal transition-all
-                ${isToday
-							? 'bg-red-500 text-white font-semibold shadow-sm'
-							: isSelected
-								? darkMode
-									? 'bg-white text-black'
-									: 'bg-black text-white'
-								: darkMode
-									? 'text-white'
-									: 'text-black'
-						}`}
+					className={`w-8 h-8 flex items-center justify-center rounded-full text-base font-normal transition-all active:scale-90
+                ${
+					isToday
+						? 'bg-[#ff3b30] text-white font-bold shadow-[0_2px_8px_rgba(255,59,48,0.4)]'
+						: isSelected
+						? darkMode
+							? 'bg-white text-black font-semibold'
+							: 'bg-black text-white font-semibold'
+						: darkMode
+						? 'text-white'
+						: 'text-black'
+				}`}
 				>
 					{date.getDate()}
 				</div>
 				{hasEvent && (
 					<div
-						className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isToday || isSelected ? (darkMode ? 'bg-black/50' : 'bg-white/50') : darkMode ? 'bg-gray-600' : 'bg-gray-300'}`}
+						className={`w-1 h-1 rounded-full mt-0.5 ${
+							isToday || isSelected
+								? darkMode
+									? 'bg-black/50'
+									: 'bg-white/50'
+								: darkMode
+								? 'bg-gray-500'
+								: 'bg-gray-400'
+						}`}
 					></div>
 				)}
 			</div>
@@ -98,15 +109,68 @@ const Day = memo(
 			prev.isToday === next.isToday &&
 			prev.isSelected === next.isSelected &&
 			prev.hasEvent === next.hasEvent &&
-			prev.date === next.date &&
 			prev.darkMode === next.darkMode
 		);
 	}
 );
-
 Day.displayName = 'Day';
 
-// Optimization: Memoized Month Component
+// Memoized Week Component
+const Week = memo(
+	({
+		weekDates,
+		today,
+		selectedDate,
+		events,
+		onDateClick,
+		setTodayRef,
+		darkMode,
+	}: {
+		weekDates: (Date | null)[];
+		today: Date;
+		selectedDate: Date;
+		events: CalendarEvent[];
+		onDateClick: (date: Date) => void;
+		setTodayRef: (el: HTMLDivElement | null) => void;
+		darkMode: boolean;
+	}) => {
+		const firstValidDate = weekDates.find(d => d !== null);
+		const weekNo = firstValidDate ? getWeekNumber(firstValidDate) : '';
+
+		return (
+			<div className="flex border-b border-gray-100 dark:border-white/5 py-1">
+				<div className="w-9 flex items-center justify-center text-[10px] text-gray-400 select-none">
+					{weekNo}
+				</div>
+				<div className="flex-1 grid grid-cols-7">
+					{weekDates.map((date, i) => {
+						if (!date) return <div key={`empty-${i}`} className="flex-1"></div>;
+						const dateStr = formatDateStr(date);
+						const isToday = isSameDay(date, today);
+						const isSelected = isSameDay(date, selectedDate);
+						const hasEvent = events.some(e => e.date === dateStr);
+
+						return (
+							<Day
+								key={date.toISOString()}
+								date={date}
+								isToday={isToday}
+								isSelected={isSelected}
+								hasEvent={hasEvent}
+								onClick={onDateClick}
+								setTodayRef={setTodayRef}
+								darkMode={darkMode}
+							/>
+						);
+					})}
+				</div>
+			</div>
+		);
+	}
+);
+Week.displayName = 'Week';
+
+// Memoized Month Component
 const Month = memo(
 	({
 		year,
@@ -127,230 +191,133 @@ const Month = memo(
 		setTodayRef: (el: HTMLDivElement | null) => void;
 		darkMode: boolean;
 	}) => {
-		// Memoize weeks calculation
+		const today = useMemo(() => new Date(), []);
+		const daysInMonth = useMemo(() => getDaysInMonth(year, month), [year, month]);
+		const firstDay = useMemo(() => getFirstDayOfMonth(year, month), [year, month]);
+
 		const weeks = useMemo(() => {
-			const daysInMonth = getDaysInMonth(year, month);
-			const firstDay = getFirstDayOfMonth(year, month);
+			const result: (Date | null)[][] = [];
+			let currentWeek: (Date | null)[] = [];
 
-			const weeksArr = [];
-			let currentWeek = [];
-
-			// Add initial padding
 			for (let i = 0; i < firstDay; i++) {
 				currentWeek.push(null);
 			}
 
-			for (let i = 1; i <= daysInMonth; i++) {
-				const date = new Date(year, month, i);
-				currentWeek.push(date);
-
+			for (let day = 1; day <= daysInMonth; day++) {
+				currentWeek.push(new Date(year, month, day));
 				if (currentWeek.length === 7) {
-					weeksArr.push(currentWeek);
+					result.push(currentWeek);
 					currentWeek = [];
 				}
 			}
 
-			// Fill remaining cells
 			if (currentWeek.length > 0) {
 				while (currentWeek.length < 7) {
 					currentWeek.push(null);
 				}
-				weeksArr.push(currentWeek);
+				result.push(currentWeek);
 			}
-			return weeksArr;
-		}, [year, month]);
 
-		const today = useMemo(() => new Date(), []); // Stable today reference for this render cycle (practically)
-
-		const theme = {
-			headerBg: darkMode ? 'bg-black/95 border-gray-800' : 'bg-white/95 border-transparent',
-			weekBorder: darkMode ? 'border-ios-dark-separator' : 'border-ios-gray3',
-			weekNumBg: darkMode ? 'bg-ios-dark-gray5/30 border-ios-dark-separator' : 'bg-ios-gray5/30 border-ios-gray5',
-		};
+			return result;
+		}, [year, month, daysInMonth, firstDay]);
 
 		return (
-			<div className="mb-4">
-				<div
-					className={`px-4 py-2 font-bold text-lg text-red-500 pl-14 sticky top-0 backdrop-blur-sm z-10 will-change-transform border-b transition-colors ${theme.headerBg}`}
-				>
-					{name} {year !== new Date().getFullYear() ? year : ''}
-				</div>
-				<div className="flex flex-col">
-					{weeks.map((week, wIndex) => {
-						const firstDateInWeek = week.find(d => d !== null);
-						const weekNum = firstDateInWeek ? getWeekNumber(firstDateInWeek) : '';
-
-						return (
-							<div
-								key={wIndex}
-								className={`flex items-stretch h-12 border-b last:border-0 transition-colors ${theme.weekBorder}`}
-							>
-								{/* Week Number */}
-								<div
-									className={`w-10 flex items-center justify-center text-ios-caption2 text-gray-400 font-medium border-r transition-colors ${theme.weekNumBg}`}
-								>
-									{weekNum}
-								</div>
-
-								{/* Days */}
-								<div className="flex-1 grid grid-cols-7">
-									{week.map((date, dIndex) => {
-										if (!date)
-											return (
-												<Day
-													key={dIndex}
-													date={null}
-													isToday={false}
-													isSelected={false}
-													hasEvent={false}
-													onClick={() => { }}
-													darkMode={darkMode}
-												/>
-											);
-
-										const dateStr = formatDateStr(date);
-										const isTodayVal = isSameDay(date, today);
-										const isSelectedVal = isSameDay(date, selectedDate);
-										const hasEventVal = events.some(e => e.date === dateStr);
-
-										return (
-											<Day
-												key={dIndex}
-												date={date}
-												isToday={isTodayVal}
-												isSelected={isSelectedVal}
-												hasEvent={hasEventVal}
-												onClick={onDateClick}
-												setTodayRef={isTodayVal ? setTodayRef : undefined}
-												darkMode={darkMode}
-											/>
-										);
-									})}
-								</div>
-							</div>
-						);
-					})}
+			<div className="mb-6 px-3">
+				<h2 className="text-xl font-bold px-3 py-2 text-[#ff3b30]">
+					{name} {year !== today.getFullYear() ? year : ''}
+				</h2>
+				<div className="rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 shadow-xs">
+					{weeks.map((weekDates, idx) => (
+						<Week
+							key={idx}
+							weekDates={weekDates}
+							today={today}
+							selectedDate={selectedDate}
+							events={events}
+							onDateClick={onDateClick}
+							setTodayRef={setTodayRef}
+							darkMode={darkMode}
+						/>
+					))}
 				</div>
 			</div>
 		);
-	},
-	(prev, next) => {
-		// Custom comparison for Month props to avoid unnecessary re-renders
-		// Only re-render if events changed or checks against selectedDate change
-		// This is tricky because selectedDate changes often.
-		// However, if we pass selectedDate, we MUST re-render.
-		// But we can rely on Day memoization to be fast.
-		return (
-			prev.year === next.year &&
-			prev.month === next.month &&
-			isSameDay(prev.selectedDate, next.selectedDate) &&
-			prev.events === next.events &&
-			prev.darkMode === next.darkMode
-		);
 	}
 );
-
 Month.displayName = 'Month';
 
-export default function Calendar() {
+function Calendar() {
 	const { darkMode } = useSettingsStore();
-	const [_currentDate, setCurrentDate] = useState(new Date());
-	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+	const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const todayRef = useRef<HTMLDivElement | null>(null);
 
-	// Generate months
-	const [months, setMonths] = useState<{ year: number; month: number; name: string }[]>([]);
+	const months = useMemo(() => {
+		const result = [];
+		const currentYear = new Date().getFullYear();
+		const monthNames = [
+			'January', 'February', 'March', 'April', 'May', 'June',
+			'July', 'August', 'September', 'October', 'November', 'December',
+		];
 
-	useEffect(() => {
-		const now = new Date();
-		const generatedMonths = [];
-		// Optimizing range
-		for (let i = -6; i <= 12; i++) {
-			const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-			generatedMonths.push({
-				year: d.getFullYear(),
-				month: d.getMonth(),
-				name: d.toLocaleString('default', { month: 'short' }),
-			});
+		for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+			for (let m = 0; m < 12; m++) {
+				result.push({
+					year: y,
+					month: m,
+					name: monthNames[m],
+				});
+			}
 		}
-		setMonths(generatedMonths);
+		return result;
 	}, []);
 
-	// Auto-scroll to today on mount
-	useLayoutEffect(() => {
-		// Debounce scroll to ensure layout is ready
-		const timer = setTimeout(() => {
-			if (todayRef.current) {
-				todayRef.current.scrollIntoView({ behavior: 'auto', block: 'center' });
-			}
-		}, TIMING.SCROLL_TO_TODAY_DELAY);
-		return () => clearTimeout(timer);
-	}, [months]);
-
 	const scrollToToday = () => {
-		const now = new Date();
-		setSelectedDate(now);
+		triggerHaptic('medium');
+		setSelectedDate(new Date());
 		if (todayRef.current) {
 			todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-		} else {
-			setCurrentDate(now);
 		}
 	};
 
-	const handleDateClick = (date: Date) => {
-		setSelectedDate(date);
-	};
+	useLayoutEffect(() => {
+		if (todayRef.current) {
+			todayRef.current.scrollIntoView({ behavior: 'auto', block: 'center' });
+		}
+	}, []);
 
 	const [events] = useState<CalendarEvent[]>([
-		{ date: '2025-11-24', title: 'Project Deadline' },
-		{ date: '2025-12-25', title: 'Christmas' },
-		{ date: '2026-01-01', title: 'New Year' },
+		{ date: '2026-08-25', title: 'iOS 26 Liquid Glass Launch' },
+		{ date: '2026-09-15', title: 'Apple Keynote' },
+		{ date: '2026-12-25', title: 'Christmas' },
+		{ date: '2027-01-01', title: 'New Year' },
 	]);
 
-	// Theme Objects
-	const theme = {
-		bg: darkMode ? 'bg-black' : 'bg-white',
-		text: darkMode ? 'text-white' : 'text-black',
-		headerBg: darkMode ? 'bg-black/95 border-ios-dark-separator' : 'bg-white/95 border-ios-separator',
-		subheaderBg: darkMode ? 'bg-ios-dark-gray6/80 border-ios-dark-separator' : 'bg-ios-gray6/80 border-ios-separator',
-		weekNumBg: darkMode ? 'bg-ios-dark-gray5/30 border-ios-dark-separator' : 'bg-ios-gray5/30 border-ios-gray5',
-		weekBorder: darkMode ? 'border-ios-dark-separator' : 'border-ios-gray3',
-		toolbarBg: darkMode ? 'bg-black/95 border-ios-dark-separator' : 'bg-white/95 border-ios-separator',
-		// homeIndicator: darkMode ? 'bg-gray-500/80' : 'bg-black/80', // Handled globally
-	};
-
 	return (
-		<div
-			className={`w-full h-full flex flex-col font-sans select-none transition-colors duration-300 ${theme.bg} ${theme.text}`}
-		>
-			{/* Header */}
-			<div
-				className={`px-4 pt-6 pb-2 flex justify-between items-center backdrop-blur-xl z-20 border-b sticky top-0 will-change-transform transition-colors ${theme.headerBg}`}
-			>
-				<button className="flex items-center text-red-500 gap-1 active:opacity-50 transition-opacity">
-					<i className="fas fa-chevron-left text-xl"></i>
-					<span className="text-ios-headline font-medium">{selectedDate.getFullYear()}</span>
+		<div className={`w-full h-full flex flex-col font-sans select-none ${darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'}`}>
+			{/* Top Header */}
+			<div className={`pt-10 px-4 pb-2 flex justify-between items-center z-20 shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
+				<button
+					onClick={scrollToToday}
+					className="flex items-center text-[#ff3b30] gap-1 active:opacity-50 transition-opacity"
+				>
+					<i className="fas fa-chevron-left text-lg"></i>
+					<span className="text-base font-semibold">{selectedDate.getFullYear()}</span>
 				</button>
 
-				<div className="flex items-center gap-5 text-red-500">
-					<button className="active:opacity-50 transition-opacity">
-						<i className="fas fa-list text-ios-headline"></i>
+				<div className="flex items-center gap-4 text-[#ff3b30]">
+					<button onClick={() => triggerHaptic('light')} className="p-1 active:scale-95 transition-transform" aria-label="Search Events">
+						<i className="fas fa-search text-base"></i>
 					</button>
-					<button className="active:opacity-50 transition-opacity">
-						<i className="fas fa-search text-ios-headline"></i>
-					</button>
-					<button className="active:opacity-50 transition-opacity">
-						<i className="fas fa-plus text-xl"></i>
+					<button onClick={() => triggerHaptic('light')} className="p-1 active:scale-95 transition-transform" aria-label="Add Event">
+						<i className="fas fa-plus text-lg"></i>
 					</button>
 				</div>
 			</div>
 
 			{/* Days Header */}
-			<div
-				className={`flex border-b backdrop-blur-md text-ios-caption2 font-semibold text-gray-400 py-1.5 sticky top-[64px] z-20 will-change-transform transition-colors ${theme.subheaderBg}`}
-			>
-				<div className="w-10"></div> {/* Spacer for week numbers */}
+			<div className={`flex text-[11px] font-bold text-gray-400 py-1.5 px-3 select-none ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
+				<div className="w-9 text-center">Wk</div>
 				<div className="flex-1 grid grid-cols-7 text-center">
 					<div>S</div>
 					<div>M</div>
@@ -362,8 +329,8 @@ export default function Calendar() {
 				</div>
 			</div>
 
-			{/* Scrollable Content */}
-			<div className="flex-1 overflow-y-auto pb-20" ref={scrollRef}>
+			{/* Scrollable Month List */}
+			<div className="flex-1 overflow-y-auto pb-24" ref={scrollRef}>
 				{months.map(m => (
 					<Month
 						key={`${m.year}-${m.month}`}
@@ -372,7 +339,7 @@ export default function Calendar() {
 						name={m.name}
 						selectedDate={selectedDate}
 						events={events}
-						onDateClick={handleDateClick}
+						onDateClick={date => setSelectedDate(date)}
 						setTodayRef={el => {
 							todayRef.current = el;
 						}}
@@ -381,25 +348,31 @@ export default function Calendar() {
 				))}
 			</div>
 
-			{/* Bottom Toolbar */}
-			<div
-				className={`border-t backdrop-blur-xl pb-6 pt-2 px-4 flex justify-between items-center text-red-500 z-20 absolute bottom-0 left-0 right-0 transition-colors ${theme.toolbarBg}`}
-			>
-				<button
-					onClick={scrollToToday}
-					className="font-medium text-ios-callout active:opacity-50 transition-opacity"
-				>
-					Today
-				</button>
-				<button className="font-semibold text-ios-callout active:opacity-50 transition-opacity">
-					Calendars
-				</button>
-				<button className="font-medium text-ios-callout active:opacity-50 transition-opacity">
-					Inbox
-				</button>
-
-
+			{/* iOS 26 Floating Liquid Glass Action Toolbar */}
+			<div className="absolute bottom-5 left-4 right-4 z-20 flex justify-center pointer-events-none">
+				<div className="w-full max-w-[340px] px-6 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 text-[#ff3b30] pointer-events-auto">
+					<button
+						onClick={scrollToToday}
+						className="font-semibold text-sm active:scale-95 transition-transform"
+					>
+						Today
+					</button>
+					<button
+						onClick={() => triggerHaptic('light')}
+						className="font-normal text-sm active:scale-95 transition-transform"
+					>
+						Calendars
+					</button>
+					<button
+						onClick={() => triggerHaptic('light')}
+						className="font-normal text-sm active:scale-95 transition-transform"
+					>
+						Inbox
+					</button>
+				</div>
 			</div>
 		</div>
 	);
 }
+
+export default memo(Calendar);

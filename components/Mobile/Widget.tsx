@@ -82,4 +82,3 @@ function Widget({ type = 'battery' }: WidgetProps) {
 }
 
 export default memo(Widget);
-

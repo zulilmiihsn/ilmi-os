@@ -26,7 +26,6 @@ function SortableAppIcon({ app, id, onClick, disabled, isEmpty, isDock, classNam
         isDragging,
     } = useSortable({ id, disabled });
 
-    // Memoize click handler to prevent unnecessary re-renders
     const handleClick = useCallback(() => {
         if (!isDragging) onClick(app.id);
     }, [isDragging, onClick, app.id]);

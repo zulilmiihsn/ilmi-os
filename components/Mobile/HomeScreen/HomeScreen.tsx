@@ -31,6 +31,8 @@ import { getAppComponent } from '../../../utils/appComponents';
 import { triggerHaptic } from '../../../utils/haptic';
 import HomeScreenDock from './HomeScreenDock';
 import HomeScreenAppContainer from './HomeScreenAppContainer';
+import NotificationCenter from '../NotificationCenter/NotificationCenter';
+import MobileControlCenter from '../ControlCenter/MobileControlCenter';
 import { DragAutoScroller } from './DragAutoScroller';
 import { useDragHandlers } from './useDragHandlers';
 import { useHomeScreenGestures } from './useHomeScreenGestures';
@@ -119,17 +121,40 @@ function HomeScreen() {
 	);
 
 	// --- App / Swipe State ---
-	// --- App / Swipe State ---
 	const [currentApp, setCurrentApp] = useState<string | null>(null);
 	const [appToOpen, setAppToOpen] = useState<string | null>(null);
 	const appContainerRef = useRef<HTMLDivElement>(null);
 	const [currentPage, setCurrentPage] = useState(0);
+
+	// --- Notification Center & Control Center Panels ---
+	const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+	const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
+	const notificationCenterRef = useRef<HTMLDivElement>(null);
+	const controlCenterRef = useRef<HTMLDivElement>(null);
+
+	const handleOpenNotificationCenter = useCallback(() => {
+		triggerHaptic('light');
+		setIsNotificationCenterOpen(true);
+		setIsControlCenterOpen(false);
+	}, []);
+
+	const handleOpenControlCenter = useCallback(() => {
+		triggerHaptic('light');
+		setIsControlCenterOpen(true);
+		setIsNotificationCenterOpen(false);
+	}, []);
 
 	// --- App / Swipe State Handled by Custom Hook ---
 	const {
 		handleTouchStart,
 		handleTouchMove,
 		handleTouchEnd,
+		handleBottomPointerDown,
+		handleBottomPointerMove,
+		handleBottomPointerUp,
+		handleBottomPointerCancel,
+		triggerCloseApp,
+		cancelPendingClose,
 	} = useHomeScreenGestures({
 		isDragging,
 		currentApp,
@@ -139,6 +164,12 @@ function HomeScreen() {
 		closeApp,
 		setCurrentApp,
 		appContainerRef,
+		notificationCenterRef,
+		controlCenterRef,
+		setIsNotificationCenterOpen,
+		setIsControlCenterOpen,
+		onOpenNotificationCenter: handleOpenNotificationCenter,
+		onOpenControlCenter: handleOpenControlCenter,
 	});
 
 
@@ -188,8 +219,13 @@ function HomeScreen() {
 		});
 	}, [page0Items, page1Items, dockItemIds, currentPage]);
 
+	const openTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 	const handleAppClick = useCallback((appId: string) => {
 		if (isDragging) return;
+
+		// SYNCHRONOUSLY kill any pending close timeout to prevent race condition
+		cancelPendingClose();
 
 		triggerHaptic('light');
 
@@ -206,16 +242,23 @@ function HomeScreen() {
 			setAppOpenOrigin(null);
 		}
 
+		if (openTimeoutRef.current) {
+			clearTimeout(openTimeoutRef.current);
+			openTimeoutRef.current = null;
+		}
+
+		// Instant App Activation
+		launchApp(appId);
+		setCurrentApp(appId);
 		setAppToOpen(appId);
 		setIsOpening(true);
 
-		setTimeout(() => {
-			launchApp(appId);
-			setCurrentApp(appId);
+		openTimeoutRef.current = setTimeout(() => {
 			setAppToOpen(null);
 			setIsOpening(false);
-		}, 340);
-	}, [isDragging, launchApp]);
+			openTimeoutRef.current = null;
+		}, 260);
+	}, [isDragging, launchApp, cancelPendingClose, currentApp]);
 
 	// --- Render Helpers ---
 	const renderGridItem = (id: string, _index: number) => {
@@ -275,7 +318,14 @@ function HomeScreen() {
 					)}
 				</div>
 
-				{!currentApp && !appToOpen && <StatusBar backgroundColor="transparent" textColor="white" />}
+				{!currentApp && !appToOpen && (
+					<StatusBar
+						backgroundColor="transparent"
+						textColor="white"
+						onOpenNotificationCenter={handleOpenNotificationCenter}
+						onOpenControlCenter={handleOpenControlCenter}
+					/>
+				)}
 
 				<DndContext
 					sensors={sensors}
@@ -352,12 +402,33 @@ function HomeScreen() {
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
 				onTouchEnd={handleTouchEnd}
+				onBottomPointerDown={handleBottomPointerDown}
+				onBottomPointerMove={handleBottomPointerMove}
+				onBottomPointerUp={handleBottomPointerUp}
+				onBottomPointerCancel={handleBottomPointerCancel}
+				onCloseApp={triggerCloseApp}
+				onOpenNotificationCenter={handleOpenNotificationCenter}
+				onOpenControlCenter={handleOpenControlCenter}
+			/>
+
+			{/* iOS Notification Center / Cover Sheet Overlay */}
+			<NotificationCenter
+				ref={notificationCenterRef}
+				isOpen={isNotificationCenterOpen}
+				onClose={() => setIsNotificationCenterOpen(false)}
+				onOpenApp={handleAppClick}
+			/>
+
+			{/* iOS Mobile Control Center Overlay */}
+			<MobileControlCenter
+				ref={controlCenterRef}
+				isOpen={isControlCenterOpen}
+				onClose={() => setIsControlCenterOpen(false)}
+				onOpenApp={handleAppClick}
 			/>
 		</ErrorBoundary>
 	);
 }
-
-
 
 export default HomeScreen;
 

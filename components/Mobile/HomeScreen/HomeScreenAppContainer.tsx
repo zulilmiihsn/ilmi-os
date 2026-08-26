@@ -26,6 +26,13 @@ interface HomeScreenAppContainerProps {
     onTouchStart: (e: React.TouchEvent) => void;
     onTouchMove: (e: React.TouchEvent) => void;
     onTouchEnd: (e: React.TouchEvent) => void;
+    onBottomPointerDown?: (e: React.PointerEvent) => void;
+    onBottomPointerMove?: (e: React.PointerEvent) => void;
+    onBottomPointerUp?: (e: React.PointerEvent) => void;
+    onBottomPointerCancel?: (e: React.PointerEvent) => void;
+    onCloseApp?: () => void;
+    onOpenNotificationCenter?: () => void;
+    onOpenControlCenter?: () => void;
 }
 
 function HomeScreenAppContainer({
@@ -39,6 +46,13 @@ function HomeScreenAppContainer({
     onTouchStart,
     onTouchMove,
     onTouchEnd,
+    onBottomPointerDown,
+    onBottomPointerMove,
+    onBottomPointerUp,
+    onBottomPointerCancel,
+    onCloseApp,
+    onOpenNotificationCenter,
+    onOpenControlCenter,
 }: HomeScreenAppContainerProps) {
     if (!((currentApp && Component) || (appToOpen && Component))) {
         return null;
@@ -50,6 +64,7 @@ function HomeScreenAppContainer({
 
     return (
         <div
+            key={currentApp || appToOpen || 'app-container'}
             ref={appContainerRef}
             className={`ios-app fixed inset-0 z-50 bg-white dark:bg-black overflow-hidden select-none ${
                 isOpening ? 'ios-app-opening' : ''
@@ -61,32 +76,45 @@ function HomeScreenAppContainer({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
         >
-            {/* Status Bar inside app - always visible */}
-            <div className="fixed top-0 left-0 right-0 z-60 pointer-events-none">
+
+            {/* Status Bar inside app - interactive trigger zones */}
+            <div className="fixed top-0 left-0 right-0 z-60">
                 <StatusBar
                     backgroundColor={statusBarColors.backgroundColor}
                     textColor={statusBarColors.textColor}
+                    onOpenNotificationCenter={onOpenNotificationCenter}
+                    onOpenControlCenter={onOpenControlCenter}
                 />
             </div>
+
+            {/* App Content */}
             <div className="w-full h-full relative overflow-hidden pt-safe-top">
                 {Component && <Component />}
-                {/* iOS Bottom Bar Indicator */}
+            </div>
+
+            {/* iOS Bottom Bar Indicator - floating on top of all child content with high hit area and pointer capture */}
+            <div
+                className="ios-bottom-bar fixed bottom-0 left-0 right-0 z-70 flex items-center justify-center cursor-pointer touch-none select-none"
+                style={{
+                    height: '56px',
+                    paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
+                    paddingTop: '8px',
+                }}
+                onPointerDown={onBottomPointerDown}
+                onPointerMove={onBottomPointerMove}
+                onPointerUp={onBottomPointerUp}
+                onPointerCancel={onBottomPointerCancel}
+                onClick={onCloseApp}
+            >
                 <div
-                    className="ios-bottom-bar absolute bottom-0 left-0 right-0 flex items-center justify-center safe-area-bottom pointer-events-auto cursor-pointer"
-                    style={{
-                        height: '44px',
-                        paddingBottom: 'max(env(safe-area-inset-bottom), 12px)',
-                        paddingTop: '12px',
-                    }}
-                >
-                    <div
-                        className="ios-bottom-bar-handle w-40 h-1.5 rounded-full transition-colors duration-300 pointer-events-none"
-                        style={{ backgroundColor: statusBarColors.textColor }}
-                    />
-                </div>
+                    className="ios-bottom-bar-handle w-36 h-1.5 rounded-full transition-colors duration-300 pointer-events-none"
+                    style={{ backgroundColor: statusBarColors.textColor }}
+                />
             </div>
         </div>
     );
 }
 
 export default memo(HomeScreenAppContainer);
+
+

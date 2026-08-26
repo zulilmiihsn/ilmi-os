@@ -21,8 +21,7 @@ export type AppComponentName =
 	| 'Mail'
 	| 'Maps';
 
-// Loading component untuk dynamic imports
-// Loading component untuk dynamic imports (Clean native-like splash)
+// Loading component for dynamic imports (Clean native-like splash)
 const LoadingComponent = () => (
 	<div className="w-full h-full bg-white dark:bg-black" />
 );
@@ -33,7 +32,7 @@ const Calculator = dynamic(() => import('../components/Apps/Calculator'), {
 	ssr: false,
 });
 
-const Notes = dynamic(() => import('../components/Apps/Notes'), {
+const Notes = dynamic(() => import('../components/Apps/Notes/Notes'), {
 	loading: () => <LoadingComponent />,
 	ssr: false,
 });
@@ -43,7 +42,7 @@ const Finder = dynamic(() => import('../components/Apps/Finder'), {
 	ssr: false,
 });
 
-const Files = dynamic(() => import('../components/Apps/Files'), {
+const Files = dynamic(() => import('../components/Apps/Files/Files'), {
 	loading: () => <LoadingComponent />,
 	ssr: false,
 });
@@ -58,14 +57,14 @@ const Settings = dynamic(() => import('../components/Apps/Settings'), {
 	ssr: false,
 });
 
-const Photos = dynamic(() => import('../components/Apps/Photos'), {
+const Photos = dynamic(() => import('../components/Apps/Photos/Photos'), {
 	loading: () => <LoadingComponent />,
 	ssr: false,
 });
 
-const Clock = dynamic(() => import('../components/Apps/Clock'), {
+const Clock = dynamic(() => import('../components/Apps/Clock/Clock'), {
 	loading: () => <LoadingComponent />,
-	ssr: false, // Prevent SSR issues with chunk loading
+	ssr: false,
 });
 
 const Camera = dynamic(() => import('../components/Apps/Camera'), {
@@ -78,7 +77,7 @@ const Calendar = dynamic(() => import('../components/Apps/Calendar'), {
 	ssr: false,
 });
 
-const Mail = dynamic(() => import('../components/Apps/Mail'), {
+const Mail = dynamic(() => import('../components/Apps/Mail/Mail'), {
 	loading: () => <LoadingComponent />,
 	ssr: false,
 });
@@ -87,6 +86,7 @@ const Maps = dynamic(() => import('../components/Apps/Maps'), {
 	loading: () => <LoadingComponent />,
 	ssr: false,
 });
+
 
 export const APP_COMPONENT_MAP: Record<AppComponentName, ComponentType> = {
 	Calculator,

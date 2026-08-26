@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo } from 'react';
+import { useState, useRef, memo } from 'react';
 import Image from 'next/image';
 import type { AppMetadata } from '../../types';
 
@@ -27,19 +27,16 @@ function AppIcon({
 }: AppIconProps) {
 	const [isPressed, setIsPressed] = useState(false);
 	const isSvgIcon = app.icon.startsWith('/');
+	const touchStartRef = useRef<{ time: number; x: number; y: number; moved: boolean } | null>(null);
 
-	const _iconStyle = isDragging && dragPosition
-		? {
-			position: 'fixed' as const,
-			left: `${dragPosition.x}px`,
-			top: `${dragPosition.y}px`,
-			transform: 'translate(-50%, -50%) scale(1.15)',
-			zIndex: 1000,
-			pointerEvents: 'none' as const,
-			opacity: 0.9,
-			transition: 'none',
-		}
-		: {};
+	const lastTriggerTimeRef = useRef<number>(0);
+
+	const triggerAppLaunch = () => {
+		const now = Date.now();
+		if (now - lastTriggerTimeRef.current < 400) return;
+		lastTriggerTimeRef.current = now;
+		if (onClick) onClick();
+	};
 
 	return (
 		<>
@@ -47,11 +44,17 @@ function AppIcon({
 				data-app-id={app.id}
 				className={`ios-icon w-full flex flex-col items-center justify-center transition-all ${isPressed && !isDragging ? 'ios-tap-animation scale-90' : ''
 					} ${isDragging ? 'ios-dragging' : ''} ${!isDragging ? 'ios-icon-swapping' : ''}`}
-				onClick={onClick}
+				onClick={() => {
+					triggerAppLaunch();
+				}}
 				onMouseDown={() => !isDragging && setIsPressed(true)}
 				onMouseUp={() => setIsPressed(false)}
 				onMouseLeave={() => setIsPressed(false)}
 				onTouchStart={(e) => {
+					const t = e.touches && e.touches[0];
+					if (t) {
+						touchStartRef.current = { time: Date.now(), x: t.clientX, y: t.clientY, moved: false };
+					}
 					if (onTouchStart) {
 						onTouchStart(e);
 					} else {
@@ -59,15 +62,32 @@ function AppIcon({
 					}
 				}}
 				onTouchMove={(e) => {
+					if (touchStartRef.current && e.touches[0]) {
+						const dx = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
+						const dy = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+						if (dx > 10 || dy > 10) {
+							touchStartRef.current.moved = true;
+						}
+					}
 					if (onTouchMove) {
 						onTouchMove(e);
 					}
 				}}
 				onTouchEnd={(e) => {
+					setIsPressed(false);
+					const record = touchStartRef.current;
+					const elapsed = record ? Date.now() - record.time : 999;
+					const wasCleanTap = record && !record.moved && elapsed < 400;
+					touchStartRef.current = null;
+
 					if (onTouchEnd) {
 						onTouchEnd(e);
 					}
-					setIsPressed(false);
+
+					// Direct Instant Tap Launch (bypasses browser synthetic click delay/suppression)
+					if (wasCleanTap && !isDragging) {
+						triggerAppLaunch();
+					}
 				}}
 				aria-label={app.name}
 				style={isDragging && dragPosition ? { opacity: 0.4 } : {}}
