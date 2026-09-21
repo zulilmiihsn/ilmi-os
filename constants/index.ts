@@ -50,6 +50,19 @@ export const HOME_SCREEN = {
 	MIN_FLICK_DISTANCE: 20,
 } as const;
 
+/**
+ * Shared iOS icon-position encoding. Positions below DOCK_BASE live on pages
+ * (page 0: 0..PAGE0_SIZE, page 1: PAGE1_BASE..); positions at/above DOCK_BASE
+ * live in the dock. HomeScreen, the drag handlers, and the apps store must
+ * all agree on this encoding.
+ */
+export const IOS_LAYOUT = {
+	PAGE0_SIZE: 24,
+	PAGE1_SIZE: 28,
+	PAGE1_BASE: 24,
+	DOCK_BASE: 100,
+} as const;
+
 export const TIMING = {
 	// Camera
 	FLASH_DURATION: 100,
@@ -92,4 +105,3 @@ export const LAYOUT = {
 	// Touch detection
 	SWIPE_FROM_TOP_THRESHOLD: 100,
 } as const;
-

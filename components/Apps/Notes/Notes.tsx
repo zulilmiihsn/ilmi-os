@@ -8,6 +8,7 @@ import DeleteAlert from './components/DeleteAlert';
 export default function Notes() {
 	const {
 		mounted,
+		saveFailed,
 		notes,
 		view,
 		currentNote,
@@ -33,6 +34,14 @@ export default function Notes() {
 
 	return (
 		<div className="notes-app w-full h-full overflow-hidden font-sans transition-colors duration-300 bg-gray-100 dark:bg-black text-black dark:text-white">
+			{saveFailed && (
+				<div
+					role="alert"
+					className="mx-4 mt-2 px-3 py-2 text-xs rounded-lg bg-red-500/15 text-red-600 dark:text-red-400"
+				>
+					Could not save notes. Storage may be unavailable — changes will be lost on reload.
+				</div>
+			)}
 			{view === 'list' ? (
 				<NoteList
 					notes={notes}

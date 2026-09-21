@@ -3,6 +3,7 @@
 import { memo, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useAppsStore } from '../../stores/apps';
+import { isMacosApp } from '../../types';
 import { useWindowsStore } from '../../stores/windows';
 import type { WindowState } from '../../types';
 import { WINDOW } from '../../constants';
@@ -14,13 +15,7 @@ const INFLUENCE_RADIUS = 150; // Distance of effect in px
 
 function Dock() {
 	const allApps = useAppsStore(state => state.apps);
-	const apps = useMemo(
-		() =>
-			allApps.filter(
-				app => (app.platform === 'macos' || app.platform === 'both') && app.showInDock
-			),
-		[allApps]
-	);
+	const apps = useMemo(() => allApps.filter(app => isMacosApp(app) && app.showInDock), [allApps]);
 
 	const isAppRunning = useAppsStore(state => state.isAppRunning);
 	const launchApp = useAppsStore(state => state.launchApp);

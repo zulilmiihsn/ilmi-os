@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSettingsStore } from '../../../stores/settings';
+import { generateId } from '../../../utils/id';
 import { triggerHaptic } from '../../../utils/haptic';
 import {
 	Email,
@@ -14,6 +15,7 @@ import {
 	ComposeModal,
 	EmailDetail,
 } from './index';
+import { filterDisplayEmails, getMailboxCounts } from './mailSelectors';
 
 // --- Main App Component ---
 
@@ -40,6 +42,15 @@ export default function Mail() {
 	const [currentView, setCurrentView] = useState<ViewState>('mailboxes');
 	const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 	const [navCount, setNavCount] = useState(0);
+	const [persistError, setPersistError] = useState(false);
+
+	// Persist emails and surface storage failures instead of silently dropping them.
+	const commitEmails = (updated: Email[]): boolean => {
+		setEmails(updated);
+		const saved = saveEmails(updated);
+		setPersistError(!saved);
+		return saved;
+	};
 
 	// Load data on mount
 	useEffect(() => {
@@ -54,53 +65,21 @@ export default function Mail() {
 	}, [currentView, selectedMailbox]);
 
 	// Derived State: Dynamic Mailboxes with Counts
-	const mailboxesWithCounts = useMemo(() => {
-		return MOCK_MAILBOXES_STATIC.map(box => {
-			if (box.id === 'all_inboxes') {
-				return { ...box, count: emails.filter(e => e.mailbox === 'inbox' && !e.read).length };
-			}
-			if (box.id === 'vip') {
-				return { ...box, count: emails.filter(e => e.isVip && !e.read).length };
-			}
-			if (box.type === 'account') {
-				return { ...box, count: 0 };
-			}
-			return box;
-		});
-	}, [emails]);
+	const mailboxesWithCounts = useMemo(
+		() => getMailboxCounts(MOCK_MAILBOXES_STATIC, emails),
+		[emails]
+	);
 
 	// Filtered Emails for List View
-	const displayEmails = useMemo(() => {
-		let filtered = emails;
-
-		// 1. Filter by Mailbox
-		if (selectedMailbox === 'all_inboxes') {
-			filtered = emails.filter(e => e.mailbox === 'inbox');
-		} else if (selectedMailbox === 'vip') {
-			filtered = emails.filter(e => e.isVip);
-		} else {
-			filtered = emails.filter(e => e.mailbox === selectedMailbox);
-		}
-
-		// 2. Filter by Search
-		if (searchQuery) {
-			const q = searchQuery.toLowerCase();
-			filtered = filtered.filter(
-				e =>
-					e.from.toLowerCase().includes(q) ||
-					e.subject.toLowerCase().includes(q) ||
-					e.preview.toLowerCase().includes(q)
-			);
-		}
-
-		// 3. Filter by Unread Toggle
-		if (isUnreadFilterActive) {
-			filtered = filtered.filter(e => !e.read);
-		}
-
-		// 4. Sort by Date (desc)
-		return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-	}, [emails, selectedMailbox, searchQuery, isUnreadFilterActive]);
+	const displayEmails = useMemo(
+		() =>
+			filterDisplayEmails(emails, {
+				mailboxId: selectedMailbox,
+				searchQuery,
+				unreadOnly: isUnreadFilterActive,
+			}),
+		[emails, selectedMailbox, searchQuery, isUnreadFilterActive]
+	);
 
 	// Actions
 	const toggleAccount = (id: string) => {
@@ -136,8 +115,7 @@ export default function Mail() {
 		setCurrentView('detail');
 
 		const updatedEmails = emails.map(e => (e.id === emailId ? { ...e, read: true } : e));
-		setEmails(updatedEmails);
-		saveEmails(updatedEmails);
+		commitEmails(updatedEmails);
 	};
 
 	const handleBack = () => {
@@ -153,15 +131,19 @@ export default function Mail() {
 		}
 	};
 
-	const handleSendEmail = (to: string, subject: string, body: string) => {
+	const handleSendEmail = (to: string, subject: string, body: string): boolean => {
 		triggerHaptic('medium');
 		const newEmail: Email = {
-			id: Date.now().toString(),
+			id: generateId('email'),
 			from: 'Me',
 			to: to,
 			subject: subject,
 			preview: body,
-			date: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }),
+			date: new Date().toLocaleDateString('en-US', {
+				month: 'numeric',
+				day: 'numeric',
+				year: '2-digit',
+			}),
 			read: true,
 			mailbox: 'sent',
 		};
@@ -170,7 +152,7 @@ export default function Mail() {
 		if (to.toLowerCase().includes('me') || to.toLowerCase().includes('icloud')) {
 			const inboxCopy: Email = {
 				...newEmail,
-				id: Date.now().toString() + '_inbox',
+				id: generateId('email'),
 				from: 'Me',
 				mailbox: 'inbox',
 				read: false,
@@ -178,9 +160,9 @@ export default function Mail() {
 			updatedEmails = [inboxCopy, ...updatedEmails];
 		}
 
-		setEmails(updatedEmails);
-		saveEmails(updatedEmails);
+		if (!commitEmails(updatedEmails)) return false;
 		setIsComposeOpen(false);
+		return true;
 	};
 
 	const handleDeleteEmail = (id: string) => {
@@ -193,16 +175,14 @@ export default function Mail() {
 		} else {
 			updatedEmails = emails.map(e => (e.id === id ? { ...e, mailbox: 'trash' } : e));
 		}
-		setEmails(updatedEmails);
-		saveEmails(updatedEmails);
+		commitEmails(updatedEmails);
 
 		if (currentView === 'detail') handleBack();
 	};
 
 	const handleArchiveEmail = (id: string) => {
 		const updatedEmails = emails.map(e => (e.id === id ? { ...e, mailbox: 'archive' } : e));
-		setEmails(updatedEmails);
-		saveEmails(updatedEmails);
+		commitEmails(updatedEmails);
 		if (currentView === 'detail') handleBack();
 	};
 
@@ -223,8 +203,7 @@ export default function Mail() {
 			}
 		});
 
-		setEmails(updatedEmails);
-		saveEmails(updatedEmails);
+		commitEmails(updatedEmails);
 		setIsEditing(false);
 		setSelectedForAction(new Set());
 	};
@@ -236,8 +215,7 @@ export default function Mail() {
 		const updatedEmails = emails.map(e =>
 			selectedForAction.has(e.id) ? { ...e, mailbox: 'archive' } : e
 		);
-		setEmails(updatedEmails);
-		saveEmails(updatedEmails);
+		commitEmails(updatedEmails);
 		setIsEditing(false);
 		setSelectedForAction(new Set());
 	};
@@ -271,293 +249,320 @@ export default function Mail() {
 	const mailboxTitle = selectedMailboxObj?.name || 'All Inboxes';
 
 	return (
-		<div className={`w-full h-full flex overflow-hidden font-sans ${darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'}`}>
-			{/* 1. Mailboxes Screen */}
-			<div
-				className={`
+		<div
+			className={`w-full h-full flex flex-col overflow-hidden font-sans ${darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'}`}
+		>
+			{persistError && (
+				<div
+					role="alert"
+					className="shrink-0 mx-4 mt-2 px-3 py-2 text-xs rounded-lg bg-red-500/15 text-red-600 dark:text-red-400"
+				>
+					Could not save mailbox changes. Storage may be unavailable — changes will be lost on
+					reload.
+				</div>
+			)}
+			<div className="flex flex-1 overflow-hidden">
+				{/* 1. Mailboxes Screen */}
+				<div
+					className={`
 					flex flex-col
 					w-full md:w-[300px] md:shrink-0 md:border-r ${darkMode ? 'md:border-white/10' : 'md:border-gray-200'}
 					${currentView === 'mailboxes' ? `flex ${animationClass}` : 'hidden md:flex'}
 				`}
-			>
-				{/* Mailboxes Navigation Bar */}
-				<div className={`pt-10 px-4 pb-2 flex items-center justify-between shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
-					<div className="w-12"></div>
-					<div className="text-sm font-semibold tracking-tight opacity-0">Mailboxes</div>
-					<button
-						onClick={toggleEditMode}
-						className="text-[#007aff] text-base font-normal active:opacity-50 transition-opacity"
+				>
+					{/* Mailboxes Navigation Bar */}
+					<div
+						className={`pt-10 px-4 pb-2 flex items-center justify-between shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}
 					>
-						{isEditing ? 'Done' : 'Edit'}
-					</button>
-				</div>
+						<div className="w-12"></div>
+						<div className="text-sm font-semibold tracking-tight opacity-0">Mailboxes</div>
+						<button
+							onClick={toggleEditMode}
+							className="text-[#007aff] text-base font-normal active:opacity-50 transition-opacity"
+						>
+							{isEditing ? 'Done' : 'Edit'}
+						</button>
+					</div>
 
-				{/* Mailboxes Large Title */}
-				<div className={`px-4 pb-3 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
-					<h1 className="text-3xl font-bold tracking-tight">Mailboxes</h1>
-				</div>
+					{/* Mailboxes Large Title */}
+					<div className={`px-4 pb-3 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
+						<h1 className="text-3xl font-bold tracking-tight">Mailboxes</h1>
+					</div>
 
-				{/* Mailboxes Grouped Content */}
-				<div className="flex-1 overflow-y-auto pb-4 space-y-4">
-					{/* Smart Mailboxes Card */}
-					<div className={`mx-4 rounded-xl overflow-hidden shadow-xs border ${darkMode ? 'bg-[#1c1c1e] border-white/10' : 'bg-white border-black/5'}`}>
+					{/* Mailboxes Grouped Content */}
+					<div className="flex-1 overflow-y-auto pb-4 space-y-4">
+						{/* Smart Mailboxes Card */}
+						<div
+							className={`mx-4 rounded-xl overflow-hidden shadow-xs border ${darkMode ? 'bg-[#1c1c1e] border-white/10' : 'bg-white border-black/5'}`}
+						>
+							{mailboxesWithCounts
+								.filter(m => m.type !== 'account')
+								.map(mailbox => (
+									<MailboxItem
+										key={mailbox.id}
+										item={mailbox}
+										isActive={
+											selectedMailbox === mailbox.id &&
+											typeof window !== 'undefined' &&
+											window.innerWidth >= 768
+										}
+										onClick={() => !isEditing && navigateToMailbox(mailbox.id)}
+										darkMode={darkMode}
+									/>
+								))}
+						</div>
+
+						{/* Accounts Section */}
 						{mailboxesWithCounts
-							.filter(m => m.type !== 'account')
-							.map(mailbox => (
-								<MailboxItem
-									key={mailbox.id}
-									item={mailbox}
-									isActive={
-										selectedMailbox === mailbox.id &&
-										typeof window !== 'undefined' &&
-										window.innerWidth >= 768
-									}
-									onClick={() => !isEditing && navigateToMailbox(mailbox.id)}
-									darkMode={darkMode}
-								/>
+							.filter(m => m.type === 'account')
+							.map(account => (
+								<div key={account.id} className="space-y-1.5">
+									<div
+										className="flex items-center justify-between px-6 cursor-pointer select-none"
+										onClick={() => toggleAccount(account.id)}
+									>
+										<span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+											{account.name}
+										</span>
+										<i
+											className={`fas fa-chevron-right text-[10px] text-gray-400 transition-transform duration-200 ${
+												expandedAccounts.has(account.id) ? 'rotate-90' : ''
+											}`}
+										></i>
+									</div>
+
+									{expandedAccounts.has(account.id) && (
+										<div
+											className={`mx-4 rounded-xl overflow-hidden shadow-xs border ${darkMode ? 'bg-[#1c1c1e] border-white/10' : 'bg-white border-black/5'}`}
+										>
+											{ACCOUNT_FOLDERS.map(folder => (
+												<MailboxItem
+													key={`${account.id}-${folder.id}`}
+													item={{
+														...folder,
+														count: emails.filter(e => e.mailbox === folder.id && !e.read).length,
+													}}
+													isActive={
+														selectedMailbox === folder.id &&
+														typeof window !== 'undefined' &&
+														window.innerWidth >= 768
+													}
+													onClick={() => !isEditing && navigateToMailbox(folder.id)}
+													darkMode={darkMode}
+												/>
+											))}
+										</div>
+									)}
+								</div>
 							))}
 					</div>
 
-					{/* Accounts Section */}
-					{mailboxesWithCounts
-						.filter(m => m.type === 'account')
-						.map(account => (
-							<div key={account.id} className="space-y-1.5">
-								<div
-									className="flex items-center justify-between px-6 cursor-pointer select-none"
-									onClick={() => toggleAccount(account.id)}
-								>
-									<span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-										{account.name}
-									</span>
-									<i
-										className={`fas fa-chevron-right text-[10px] text-gray-400 transition-transform duration-200 ${
-											expandedAccounts.has(account.id) ? 'rotate-90' : ''
-										}`}
-									></i>
-								</div>
-
-								{expandedAccounts.has(account.id) && (
-									<div className={`mx-4 rounded-xl overflow-hidden shadow-xs border ${darkMode ? 'bg-[#1c1c1e] border-white/10' : 'bg-white border-black/5'}`}>
-										{ACCOUNT_FOLDERS.map(folder => (
-											<MailboxItem
-												key={`${account.id}-${folder.id}`}
-												item={{
-													...folder,
-													count: emails.filter(e => e.mailbox === folder.id && !e.read).length,
-												}}
-												isActive={
-													selectedMailbox === folder.id &&
-													typeof window !== 'undefined' &&
-													window.innerWidth >= 768
-												}
-												onClick={() => !isEditing && navigateToMailbox(folder.id)}
-												darkMode={darkMode}
-											/>
-										))}
-									</div>
-								)}
-							</div>
-						))}
-				</div>
-
-				{/* Mailboxes Floating Liquid Glass Toolbar */}
-				<div className="shrink-0 p-4 pb-8 flex items-center justify-center">
-					<div
-						className={`w-full max-w-[340px] px-5 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] transition-all ${
-							darkMode
-								? 'bg-[#1c1c1e]/80 border-white/15 text-white'
-								: 'bg-white/80 border-black/5 text-black'
-						}`}
-					>
-						<div className="w-8"></div>
-						<div className="text-xs text-gray-400 font-medium">Updated Just Now</div>
-						<button
-							onClick={() => {
-								triggerHaptic('light');
-								setIsComposeOpen(true);
-							}}
-							className="text-[#007aff] text-base p-1 active:scale-95 transition-transform"
-							aria-label="Compose Email"
+					{/* Mailboxes Floating Liquid Glass Toolbar */}
+					<div className="shrink-0 p-4 pb-8 flex items-center justify-center">
+						<div
+							className={`w-full max-w-[340px] px-5 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] transition-all ${
+								darkMode
+									? 'bg-[#1c1c1e]/80 border-white/15 text-white'
+									: 'bg-white/80 border-black/5 text-black'
+							}`}
 						>
-							<i className="far fa-edit"></i>
-						</button>
+							<div className="w-8"></div>
+							<div className="text-xs text-gray-400 font-medium">Updated Just Now</div>
+							<button
+								onClick={() => {
+									triggerHaptic('light');
+									setIsComposeOpen(true);
+								}}
+								className="text-[#007aff] text-base p-1 active:scale-95 transition-transform"
+								aria-label="Compose Email"
+							>
+								<i className="far fa-edit"></i>
+							</button>
+						</div>
 					</div>
 				</div>
-			</div>
 
-			{/* 2. Email List (Inbox) View */}
-			<div
-				className={`
+				{/* 2. Email List (Inbox) View */}
+				<div
+					className={`
 					flex flex-col
 					w-full md:w-[340px] md:shrink-0 md:border-r ${darkMode ? 'md:border-white/10 bg-black' : 'md:border-gray-200 bg-white'}
 					${currentView === 'list' ? `flex ${animationClass}` : 'hidden md:flex'}
 				`}
-			>
-				{/* List Navigation Bar */}
-				<div className={`pt-10 px-4 pb-2 flex items-center justify-between shrink-0 ${darkMode ? 'bg-black' : 'bg-white'}`}>
-					<button
-						onClick={handleBack}
-						className="flex items-center text-[#007aff] text-base font-normal md:hidden active:opacity-50 transition-opacity"
-					>
-						<i className="fas fa-chevron-left text-lg mr-1.5"></i>
-						<span>Mailboxes</span>
-					</button>
-					<div className="hidden md:block w-8"></div>
-
-					<button
-						onClick={toggleEditMode}
-						className="text-[#007aff] text-base font-normal active:opacity-50 transition-opacity"
-					>
-						{isEditing ? 'Done' : 'Edit'}
-					</button>
-				</div>
-
-				{/* Large Title */}
-				<div className={`px-4 pb-2 ${darkMode ? 'bg-black' : 'bg-white'}`}>
-					<h1 className="text-3xl font-bold tracking-tight capitalize">
-						{mailboxTitle}
-					</h1>
-				</div>
-
-				{/* Search Bar */}
-				<div className={`px-4 pb-3 ${darkMode ? 'bg-black' : 'bg-white'}`}>
-					<div className={`flex items-center rounded-xl px-3 py-2 border ${
-						darkMode ? 'bg-[#1c1c1e] border-white/10' : 'bg-[#e3e3e8]/70 border-black/5'
-					}`}>
-						<i className="fas fa-search text-gray-400 mr-2 text-xs"></i>
-						<input
-							type="text"
-							placeholder="Search"
-							value={searchQuery}
-							onChange={e => setSearchQuery(e.target.value)}
-							className="flex-1 bg-transparent border-none outline-none text-sm placeholder-gray-400"
-						/>
-						{searchQuery && (
-							<button onClick={() => setSearchQuery('')} className="text-gray-400 text-xs">
-								<i className="fas fa-times-circle"></i>
-							</button>
-						)}
-					</div>
-				</div>
-
-				{/* Email Item Rows */}
-				<div className="flex-1 overflow-y-auto pb-4">
-					{displayEmails.length === 0 ? (
-						<div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
-							<i className="fas fa-inbox text-4xl mb-2 opacity-40"></i>
-							<p className="text-sm font-medium">{isUnreadFilterActive ? 'No Unread Mail' : 'No Mail'}</p>
-						</div>
-					) : (
-						displayEmails.map(email => (
-							<SwipeableEmailItem
-								key={email.id}
-								email={email}
-								isSelected={selectedEmailId === email.id}
-								isEditing={isEditing}
-								isChecked={selectedForAction.has(email.id)}
-								onClick={() => navigateToEmail(email.id)}
-								onDelete={() => handleDeleteEmail(email.id)}
-								onArchive={() => handleArchiveEmail(email.id)}
-								darkMode={darkMode}
-							/>
-						))
-					)}
-				</div>
-
-				{/* List Floating Liquid Glass Toolbar */}
-				<div className="shrink-0 p-4 pb-8 flex items-center justify-center">
+				>
+					{/* List Navigation Bar */}
 					<div
-						className={`w-full max-w-[340px] px-5 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] transition-all ${
-							darkMode
-								? 'bg-[#1c1c1e]/80 border-white/15 text-white'
-								: 'bg-white/80 border-black/5 text-black'
-						}`}
+						className={`pt-10 px-4 pb-2 flex items-center justify-between shrink-0 ${darkMode ? 'bg-black' : 'bg-white'}`}
 					>
-						{isEditing ? (
-							<>
-								<button
-									onClick={handleBatchArchive}
-									disabled={selectedForAction.size === 0}
-									className={`text-sm font-medium ${selectedForAction.size > 0 ? 'text-[#007aff]' : 'text-gray-400'}`}
-								>
-									Archive
+						<button
+							onClick={handleBack}
+							className="flex items-center text-[#007aff] text-base font-normal md:hidden active:opacity-50 transition-opacity"
+						>
+							<i className="fas fa-chevron-left text-lg mr-1.5"></i>
+							<span>Mailboxes</span>
+						</button>
+						<div className="hidden md:block w-8"></div>
+
+						<button
+							onClick={toggleEditMode}
+							className="text-[#007aff] text-base font-normal active:opacity-50 transition-opacity"
+						>
+							{isEditing ? 'Done' : 'Edit'}
+						</button>
+					</div>
+
+					{/* Large Title */}
+					<div className={`px-4 pb-2 ${darkMode ? 'bg-black' : 'bg-white'}`}>
+						<h1 className="text-3xl font-bold tracking-tight capitalize">{mailboxTitle}</h1>
+					</div>
+
+					{/* Search Bar */}
+					<div className={`px-4 pb-3 ${darkMode ? 'bg-black' : 'bg-white'}`}>
+						<div
+							className={`flex items-center rounded-xl px-3 py-2 border ${
+								darkMode ? 'bg-[#1c1c1e] border-white/10' : 'bg-[#e3e3e8]/70 border-black/5'
+							}`}
+						>
+							<i className="fas fa-search text-gray-400 mr-2 text-xs"></i>
+							<input
+								type="text"
+								placeholder="Search"
+								value={searchQuery}
+								onChange={e => setSearchQuery(e.target.value)}
+								className="flex-1 bg-transparent border-none outline-none text-sm placeholder-gray-400"
+							/>
+							{searchQuery && (
+								<button onClick={() => setSearchQuery('')} className="text-gray-400 text-xs">
+									<i className="fas fa-times-circle"></i>
 								</button>
-								<div className="text-xs text-gray-400 font-medium">
-									{selectedForAction.size > 0 ? `${selectedForAction.size} Selected` : 'Select Messages'}
-								</div>
-								<button
-									onClick={handleBatchDelete}
-									disabled={selectedForAction.size === 0}
-									className={`text-sm font-medium ${selectedForAction.size > 0 ? 'text-[#ff3b30]' : 'text-gray-400'}`}
-								>
-									Delete
-								</button>
-							</>
+							)}
+						</div>
+					</div>
+
+					{/* Email Item Rows */}
+					<div className="flex-1 overflow-y-auto pb-4">
+						{displayEmails.length === 0 ? (
+							<div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
+								<i className="fas fa-inbox text-4xl mb-2 opacity-40"></i>
+								<p className="text-sm font-medium">
+									{isUnreadFilterActive ? 'No Unread Mail' : 'No Mail'}
+								</p>
+							</div>
 						) : (
-							<>
-								<button
-									onClick={() => {
-										triggerHaptic('light');
-										setIsUnreadFilterActive(!isUnreadFilterActive);
-									}}
-									className={`w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-										isUnreadFilterActive ? 'bg-[#007aff] text-white shadow-xs' : 'text-[#007aff]'
-									}`}
-									aria-label="Filter Unread"
-								>
-									<i className="fas fa-filter text-xs"></i>
-								</button>
-
-								<div className="text-xs text-gray-400 font-medium">
-									{isUnreadFilterActive
-										? 'Filtered by: Unread'
-										: displayEmails.filter(e => !e.read).length > 0
-										? `${displayEmails.filter(e => !e.read).length} Unread`
-										: 'Updated Just Now'}
-								</div>
-
-								<button
-									onClick={() => {
-										triggerHaptic('light');
-										setIsComposeOpen(true);
-									}}
-									className="text-[#007aff] text-base p-1 active:scale-95 transition-transform"
-									aria-label="Compose Email"
-								>
-									<i className="far fa-edit"></i>
-								</button>
-							</>
+							displayEmails.map(email => (
+								<SwipeableEmailItem
+									key={email.id}
+									email={email}
+									isSelected={selectedEmailId === email.id}
+									isEditing={isEditing}
+									isChecked={selectedForAction.has(email.id)}
+									onClick={() => navigateToEmail(email.id)}
+									onDelete={() => handleDeleteEmail(email.id)}
+									onArchive={() => handleArchiveEmail(email.id)}
+									darkMode={darkMode}
+								/>
+							))
 						)}
 					</div>
-				</div>
-			</div>
 
-			{/* 3. Email Detail Reading Pane */}
-			<div
-				className={`
+					{/* List Floating Liquid Glass Toolbar */}
+					<div className="shrink-0 p-4 pb-8 flex items-center justify-center">
+						<div
+							className={`w-full max-w-[340px] px-5 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] transition-all ${
+								darkMode
+									? 'bg-[#1c1c1e]/80 border-white/15 text-white'
+									: 'bg-white/80 border-black/5 text-black'
+							}`}
+						>
+							{isEditing ? (
+								<>
+									<button
+										onClick={handleBatchArchive}
+										disabled={selectedForAction.size === 0}
+										className={`text-sm font-medium ${selectedForAction.size > 0 ? 'text-[#007aff]' : 'text-gray-400'}`}
+									>
+										Archive
+									</button>
+									<div className="text-xs text-gray-400 font-medium">
+										{selectedForAction.size > 0
+											? `${selectedForAction.size} Selected`
+											: 'Select Messages'}
+									</div>
+									<button
+										onClick={handleBatchDelete}
+										disabled={selectedForAction.size === 0}
+										className={`text-sm font-medium ${selectedForAction.size > 0 ? 'text-[#ff3b30]' : 'text-gray-400'}`}
+									>
+										Delete
+									</button>
+								</>
+							) : (
+								<>
+									<button
+										onClick={() => {
+											triggerHaptic('light');
+											setIsUnreadFilterActive(!isUnreadFilterActive);
+										}}
+										className={`w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+											isUnreadFilterActive ? 'bg-[#007aff] text-white shadow-xs' : 'text-[#007aff]'
+										}`}
+										aria-label="Filter Unread"
+									>
+										<i className="fas fa-filter text-xs"></i>
+									</button>
+
+									<div className="text-xs text-gray-400 font-medium">
+										{isUnreadFilterActive
+											? 'Filtered by: Unread'
+											: displayEmails.filter(e => !e.read).length > 0
+												? `${displayEmails.filter(e => !e.read).length} Unread`
+												: 'Updated Just Now'}
+									</div>
+
+									<button
+										onClick={() => {
+											triggerHaptic('light');
+											setIsComposeOpen(true);
+										}}
+										className="text-[#007aff] text-base p-1 active:scale-95 transition-transform"
+										aria-label="Compose Email"
+									>
+										<i className="far fa-edit"></i>
+									</button>
+								</>
+							)}
+						</div>
+					</div>
+				</div>
+
+				{/* 3. Email Detail Reading Pane */}
+				<div
+					className={`
 					flex-col flex-1
 					${currentView === 'detail' ? `flex ${animationClass}` : 'hidden md:flex'}
 				`}
-			>
-				{selectedEmail ? (
-					<EmailDetail
-						email={selectedEmail}
-						mailboxName={mailboxTitle}
-						onBack={handleBack}
-						onReply={handleReply}
-						onDelete={handleDeleteEmail}
-						onArchive={handleArchiveEmail}
-						darkMode={darkMode}
-					/>
-				) : (
-					<div className={`flex-1 flex items-center justify-center ${darkMode ? 'bg-black text-gray-500' : 'bg-white text-gray-400'}`}>
-						<div className="text-center">
-							<i className="fas fa-envelope-open text-5xl mb-3 opacity-30"></i>
-							<p className="text-base font-medium">No Message Selected</p>
+				>
+					{selectedEmail ? (
+						<EmailDetail
+							email={selectedEmail}
+							mailboxName={mailboxTitle}
+							onBack={handleBack}
+							onReply={handleReply}
+							onDelete={handleDeleteEmail}
+							onArchive={handleArchiveEmail}
+							darkMode={darkMode}
+						/>
+					) : (
+						<div
+							className={`flex-1 flex items-center justify-center ${darkMode ? 'bg-black text-gray-500' : 'bg-white text-gray-400'}`}
+						>
+							<div className="text-center">
+								<i className="fas fa-envelope-open text-5xl mb-3 opacity-30"></i>
+								<p className="text-base font-medium">No Message Selected</p>
+							</div>
 						</div>
-					</div>
-				)}
+					)}
+				</div>
 			</div>
 
 			{/* Compose Modal */}

@@ -39,7 +39,7 @@ const VerticalSlider = ({ value, onChange, icon, label }: VerticalSliderProps) =
 		e.stopPropagation();
 		try {
 			(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-		} catch (_) {}
+		} catch {}
 		setIsDragging(true);
 		updateFromEvent(e.clientY);
 	};
@@ -55,7 +55,7 @@ const VerticalSlider = ({ value, onChange, icon, label }: VerticalSliderProps) =
 		e.stopPropagation();
 		try {
 			(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-		} catch (_) {}
+		} catch {}
 		setIsDragging(false);
 	};
 
@@ -64,17 +64,46 @@ const VerticalSlider = ({ value, onChange, icon, label }: VerticalSliderProps) =
 		setIsDragging(false);
 	};
 
+	const handleSliderKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+		const step = 5;
+		if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+			e.preventDefault();
+			e.stopPropagation();
+			onChange(Math.min(100, Math.round(value + step)));
+		} else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+			e.preventDefault();
+			e.stopPropagation();
+			onChange(Math.max(0, Math.round(value - step)));
+		} else if (e.key === 'Home') {
+			e.preventDefault();
+			e.stopPropagation();
+			onChange(0);
+		} else if (e.key === 'End') {
+			e.preventDefault();
+			e.stopPropagation();
+			onChange(100);
+		}
+	};
+
 	return (
 		<div
 			ref={sliderRef}
-			className="ios-vertical-slider relative w-full h-[156px] bg-white/10 rounded-full overflow-hidden cursor-pointer touch-none select-none border border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),inset_0_-1px_1px_rgba(0,0,0,0.3),0_6px_20px_rgba(0,0,0,0.25)] flex flex-col justify-end active:scale-[0.97] transition-transform"
+			role="slider"
+			tabIndex={0}
+			aria-label={label}
+			aria-orientation="vertical"
+			aria-valuemin={0}
+			aria-valuemax={100}
+			aria-valuenow={Math.round(value)}
+			className="ios-vertical-slider relative w-full h-[156px] bg-white/10 rounded-full overflow-hidden cursor-pointer touch-none select-none border border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),inset_0_-1px_1px_rgba(0,0,0,0.3),0_6px_20px_rgba(0,0,0,0.25)] flex flex-col justify-end active:scale-[0.97] transition-transform focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
 			onPointerDown={handlePointerDown}
 			onPointerMove={handlePointerMove}
 			onPointerUp={handlePointerUp}
 			onPointerCancel={handlePointerCancel}
-			onTouchStart={(e) => e.stopPropagation()}
-			onTouchMove={(e) => e.stopPropagation()}
-			onTouchEnd={(e) => e.stopPropagation()}
+			onTouchStart={e => e.stopPropagation()}
+			onTouchMove={e => e.stopPropagation()}
+			onTouchEnd={e => e.stopPropagation()}
+			onKeyDown={handleSliderKeyDown}
 		>
 			{/* Liquid Fill Level */}
 			<div
@@ -93,7 +122,12 @@ const VerticalSlider = ({ value, onChange, icon, label }: VerticalSliderProps) =
 						className={`transition-colors drop-shadow-sm ${value > 45 ? 'text-[#ffcc00]' : 'text-white'}`}
 					>
 						<circle cx="12" cy="12" r="4.5" />
-						<path d="M12 1.5v2.5M12 20v2.5M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M1.5 12H4M20 12h2.5M6.3 17.7l-1.8 1.8M19.5 4.5l-1.8 1.8" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+						<path
+							d="M12 1.5v2.5M12 20v2.5M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M1.5 12H4M20 12h2.5M6.3 17.7l-1.8 1.8M19.5 4.5l-1.8 1.8"
+							stroke="currentColor"
+							strokeWidth="2.6"
+							strokeLinecap="round"
+						/>
 					</svg>
 				) : (
 					<svg
@@ -136,19 +170,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 		const {
 			wifi,
 			bluetooth,
-			cellular,
 			airdrop,
 			airplaneMode,
 			flashlight,
 			orientationLock,
 			silentMode,
-			focusMode,
 			activeFocus,
 			brightness,
 			volume,
 			toggleWifi,
 			toggleBluetooth,
-			toggleCellular,
 			toggleAirdrop,
 			toggleAirplaneMode,
 			toggleFlashlight,
@@ -191,7 +222,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 		// 3D Flip Focus Cycle
 		const handleFocusCycle = () => {
 			triggerHaptic('medium');
-			setFlipDegree((prev) => prev + 360);
+			setFlipDegree(prev => prev + 360);
 
 			if (!activeFocus) {
 				setActiveFocus('Do Not Disturb');
@@ -257,7 +288,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 		return (
 			<div
 				ref={internalRef}
-				onClick={(e) => {
+				onClick={e => {
 					if (e.target === e.currentTarget) {
 						triggerHaptic('light');
 						onClose();
@@ -279,7 +310,6 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 
 				<div className="w-full max-w-[375px] mx-auto space-y-3.5 pb-6">
 					{/* Top Header: + Add Control | Active Status Pill | Power Button */}
-
 
 					{/* Row 1: 2x2 Connectivity Bento + 2x2 Now Playing Bento */}
 					<div className="grid grid-cols-2 gap-3.5">
@@ -328,7 +358,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}`}
 									aria-label="AirDrop"
 								>
-									<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+									<svg
+										width="32"
+										height="32"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2.8"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									>
 										<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
 										<path d="M8.46 15.54a5 5 0 1 1 7.08 0" />
 										<path d="M5.99 18.01a8.5 8.5 0 1 1 12.02 0" />
@@ -348,7 +387,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}`}
 									aria-label="Wi-Fi"
 								>
-									<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+									<svg
+										width="32"
+										height="32"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2.8"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									>
 										<path d="M5 12.55a11 11 0 0 1 14.08 0" />
 										<path d="M1.42 9a16 16 0 0 1 21.16 0" />
 										<path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
@@ -369,7 +417,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}`}
 									aria-label="Bluetooth"
 								>
-									<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+									<svg
+										width="32"
+										height="32"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2.6"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									>
 										<polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5" />
 									</svg>
 								</button>
@@ -389,7 +446,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)] active:scale-90 transition-transform"
 									aria-label="AirPlay"
 								>
-									<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+									<svg
+										width="22"
+										height="22"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2.4"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									>
 										<path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1" />
 										<polygon points="12 15 17 21 7 21 12 15" fill="currentColor" />
 									</svg>
@@ -398,7 +464,9 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 
 							{/* Title: Not Playing */}
 							<div className="px-1">
-								<div className="text-[13px] font-semibold text-white/95 tracking-tight drop-shadow-sm">Not Playing</div>
+								<div className="text-[13px] font-semibold text-white/95 tracking-tight drop-shadow-sm">
+									Not Playing
+								</div>
 							</div>
 
 							{/* Player controls: Fixed Bounding Boxes (Zero Layout Shift) & Big Bold Glyphs */}
@@ -470,11 +538,32 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}`}
 									aria-label="Orientation Lock"
 								>
-									<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+									<svg
+										width="34"
+										height="34"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2.6"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									>
 										<path d="M21.5 12a9.5 9.5 0 1 1-2.78-6.72L21.5 8" />
 										<polyline points="21.5 3 21.5 8 16.5 8" />
-										<rect x="9.5" y="11.5" width="5" height="4.5" rx="1" fill="currentColor" stroke="none" />
-										<path d="M10.5 11.5V9.5a1.5 1.5 0 0 1 3 0v2" stroke="currentColor" strokeWidth="2" />
+										<rect
+											x="9.5"
+											y="11.5"
+											width="5"
+											height="4.5"
+											rx="1"
+											fill="currentColor"
+											stroke="none"
+										/>
+										<path
+											d="M10.5 11.5V9.5a1.5 1.5 0 0 1 3 0v2"
+											stroke="currentColor"
+											strokeWidth="2"
+										/>
 									</svg>
 								</button>
 
@@ -492,13 +581,31 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									aria-label="Silent Mode"
 								>
 									{silentMode ? (
-										<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+										<svg
+											width="34"
+											height="34"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2.6"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+										>
 											<path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5M17 17H3s3-2 3-9a6 6 0 0 1 .4-2.1" />
 											<path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
 											<line x1="2" y1="2" x2="22" y2="22" strokeWidth="2.8" />
 										</svg>
 									) : (
-										<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+										<svg
+											width="34"
+											height="34"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2.6"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+										>
 											<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
 											<path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
 										</svg>
@@ -512,7 +619,8 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									onClick={handleFocusCycle}
 									style={{
 										transform: `perspective(600px) rotateX(${flipDegree}deg)`,
-										transition: 'transform 0.42s cubic-bezier(0.34, 1.45, 0.64, 1), background-color 0.3s ease',
+										transition:
+											'transform 0.42s cubic-bezier(0.34, 1.45, 0.64, 1), background-color 0.3s ease',
 									}}
 									className={`w-full h-[72px] rounded-full border shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-between px-4 select-none ${focusInfo.bg} ${focusInfo.border} ${focusInfo.shadow} text-white active:scale-95`}
 									aria-label="Cycle Focus Mode"
@@ -534,7 +642,17 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 											</span>
 										</div>
 									</div>
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60 flex-shrink-0 ml-1.5">
+									<svg
+										width="14"
+										height="14"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2.5"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										className="text-white/60 flex-shrink-0 ml-1.5"
+									>
 										<polyline points="7 15 12 20 17 15" />
 										<polyline points="7 9 12 4 17 9" />
 									</svg>
@@ -544,12 +662,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 
 						{/* Right Column: Volume & Brightness Vertical Liquid Sliders */}
 						<div className="grid grid-cols-2 gap-2.5">
-							<VerticalSlider
-								value={volume}
-								onChange={setVolume}
-								icon="speaker"
-								label="Volume"
-							/>
+							<VerticalSlider value={volume} onChange={setVolume} icon="speaker" label="Volume" />
 							<VerticalSlider
 								value={brightness}
 								onChange={setBrightness}
@@ -571,11 +684,23 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 							className="w-full aspect-square rounded-full bg-white/10 text-white flex items-center justify-center shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.4),0_4px_16px_rgba(0,0,0,0.25)] border border-white/20 active:scale-88 transition-transform"
 							aria-label="Open Calculator"
 						>
-							<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+							<svg
+								width="32"
+								height="32"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2.4"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							>
 								<rect x="4" y="2" width="16" height="20" rx="4" />
 								<line x1="8" y1="6" x2="16" y2="6" strokeWidth="2.6" />
 								<line x1="16" y1="14" x2="16" y2="18" strokeWidth="2.6" />
-								<path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01" strokeWidth="3.2" />
+								<path
+									d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"
+									strokeWidth="3.2"
+								/>
 							</svg>
 						</button>
 
@@ -610,7 +735,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 							}`}
 							aria-label="Low Power Mode"
 						>
-							<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+							<svg
+								width="32"
+								height="32"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2.4"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							>
 								<rect x="2" y="6" width="18" height="12" rx="3.5" />
 								<line x1="22" y1="10" x2="22" y2="14" strokeWidth="2.8" />
 								<rect x="5" y="9" width="7" height="6" rx="1" fill="currentColor" stroke="none" />
@@ -627,7 +761,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 							className="w-full aspect-square rounded-full bg-white/10 border border-white/20 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.4),0_4px_16px_rgba(0,0,0,0.25)] text-white flex items-center justify-center active:scale-88 transition-transform"
 							aria-label="Open Clock"
 						>
-							<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+							<svg
+								width="32"
+								height="32"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2.6"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							>
 								<circle cx="12" cy="13" r="8" />
 								<line x1="12" y1="9" x2="12" y2="13" />
 								<line x1="12" y1="13" x2="15.5" y2="13" />
@@ -664,7 +807,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 							className="w-full aspect-square rounded-full bg-white/10 border border-white/20 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.4),0_4px_16px_rgba(0,0,0,0.25)] text-white flex items-center justify-center active:scale-88 transition-transform"
 							aria-label="Open Notes"
 						>
-							<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+							<svg
+								width="32"
+								height="32"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2.4"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							>
 								<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
 								<polyline points="14 2 14 8 20 8" />
 								<line x1="16" y1="13" x2="8" y2="13" strokeWidth="2.6" />
@@ -683,7 +835,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 							className="w-full aspect-square rounded-full bg-white/10 border border-white/20 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.4),0_4px_16px_rgba(0,0,0,0.25)] text-white flex items-center justify-center active:scale-88 transition-transform"
 							aria-label="Open Photos"
 						>
-							<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+							<svg
+								width="32"
+								height="32"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2.4"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							>
 								<rect x="3" y="3" width="18" height="18" rx="4" />
 								<circle cx="8.5" cy="8.5" r="1.8" fill="currentColor" stroke="none" />
 								<polyline points="21 15 16 10 5 21" strokeWidth="2.6" />
@@ -700,7 +861,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 							className="w-full aspect-square rounded-full bg-white/10 border border-white/20 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.4),0_4px_16px_rgba(0,0,0,0.25)] text-white flex items-center justify-center active:scale-88 transition-transform"
 							aria-label="Open Camera"
 						>
-							<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+							<svg
+								width="32"
+								height="32"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2.4"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							>
 								<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
 								<circle cx="12" cy="13" r="4.2" strokeWidth="2.6" />
 							</svg>

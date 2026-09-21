@@ -9,6 +9,8 @@ import {
 	getBreadcrumbs,
 	formatFileSize,
 } from '../../utils/fileSystem';
+import { parseTerminalInput } from './Terminal/terminalInput';
+import { generateId } from '../../utils/id';
 
 interface OutputLine {
 	id: string;
@@ -55,7 +57,7 @@ export default function Terminal() {
 	}, []);
 
 	const addOutput = useCallback((text: string, type: OutputLine['type'] = 'output') => {
-		setOutputs(prev => [...prev, { id: `${Date.now()}-${Math.random()}`, text, type }]);
+		setOutputs(prev => [...prev, { id: generateId('line'), text, type }]);
 	}, []);
 
 	const executeCommand = useCallback(
@@ -71,7 +73,9 @@ export default function Terminal() {
 			setHistoryIdx(-1);
 			setCurrentCommand('');
 
-			const [command, ...args] = cmd.split(' ').filter(Boolean);
+			const parsed = parseTerminalInput(cmd);
+			if (!parsed) return;
+			const { command, args } = parsed;
 			const fs = loadFileSystem();
 			const currentItems = fs.items.filter(i => i.parentId === currentFolderId);
 
@@ -101,7 +105,11 @@ export default function Terminal() {
 						break;
 					}
 					const formattedList = currentItems
-						.map(i => (i.type === 'folder' ? `📁 ${i.name}/` : `📄 ${i.name} (${formatFileSize(i.size || 0)})`))
+						.map(i =>
+							i.type === 'folder'
+								? `📁 ${i.name}/`
+								: `📄 ${i.name} (${formatFileSize(i.size || 0)})`
+						)
 						.join('    ');
 					addOutput(formattedList, 'success');
 					break;
@@ -109,7 +117,8 @@ export default function Terminal() {
 
 				case 'pwd': {
 					const crumbs = getBreadcrumbs(currentFolderId);
-					const fullPath = '/Users/user' + (crumbs.length > 0 ? '/' + crumbs.map(c => c.name).join('/') : '');
+					const fullPath =
+						'/Users/user' + (crumbs.length > 0 ? '/' + crumbs.map(c => c.name).join('/') : '');
 					addOutput(fullPath, 'output');
 					break;
 				}
@@ -146,7 +155,13 @@ export default function Terminal() {
 						addOutput(`mkdir: cannot create directory '${folderName}': File exists`, 'error');
 						break;
 					}
-					fsCreateFolder(folderName, currentFolderId);
+					if (!fsCreateFolder(folderName, currentFolderId)) {
+						addOutput(
+							`mkdir: cannot create directory '${folderName}': storage unavailable`,
+							'error'
+						);
+						break;
+					}
 					addOutput(`Created directory: ${folderName}`, 'success');
 					break;
 				}
@@ -157,7 +172,10 @@ export default function Terminal() {
 						addOutput('usage: touch <file_name>', 'error');
 						break;
 					}
-					fsCreateFile(fileName, currentFolderId, '');
+					if (!fsCreateFile(fileName, currentFolderId, '')) {
+						addOutput(`touch: cannot create file '${fileName}': storage unavailable`, 'error');
+						break;
+					}
 					addOutput(`Created file: ${fileName}`, 'success');
 					break;
 				}
@@ -185,11 +203,12 @@ export default function Terminal() {
 						addOutput('usage: rm <name>', 'error');
 						break;
 					}
-					const match = currentItems.find(
-						i => i.name.toLowerCase() === targetName.toLowerCase()
-					);
+					const match = currentItems.find(i => i.name.toLowerCase() === targetName.toLowerCase());
 					if (match) {
-						fsDeleteItem(match.id);
+						if (!fsDeleteItem(match.id)) {
+							addOutput(`rm: cannot remove '${targetName}': storage unavailable`, 'error');
+							break;
+						}
 						addOutput(`Removed '${targetName}'`, 'success');
 					} else {
 						addOutput(`rm: ${targetName}: No such file or directory`, 'error');
@@ -276,9 +295,7 @@ export default function Terminal() {
 			</div>
 
 			<div className="input-line flex items-center gap-2 pt-2 border-t border-white/10 shrink-0">
-				<span className="text-cyan-400 font-semibold select-none">
-					user@ilmi:{currentPathStr}$
-				</span>
+				<span className="text-cyan-400 font-semibold select-none">user@ilmi:{currentPathStr}$</span>
 				<input
 					ref={inputRef}
 					type="text"
@@ -294,5 +311,3 @@ export default function Terminal() {
 		</div>
 	);
 }
-
-

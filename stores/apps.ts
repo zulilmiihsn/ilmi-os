@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 import type { AppMetadata } from '../types';
+import { isIosApp, isMacosApp } from '../types';
+import { IOS_LAYOUT } from '../constants';
+
+export const DOCK_START_POSITION = IOS_LAYOUT.DOCK_BASE;
+const DEFAULT_DOCK_IDS = ['safari', 'music', 'messages', 'phone'];
 
 const defaultApps: AppMetadata[] = [
 	// --- Dock Apps (Standard macOS Order) ---
@@ -15,8 +20,8 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'safari',
 		name: 'Safari',
-		icon: '/media/Safari.svg',
-		component: 'Safari',
+		icon: '/media/Safari.webp',
+		component: 'placeholder',
 		platform: 'both',
 		showInDock: true,
 		showOnDesktop: false,
@@ -24,8 +29,8 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'messages',
 		name: 'Messages',
-		icon: '/media/Message.svg',
-		component: 'Messages',
+		icon: '/media/Message.webp',
+		component: 'placeholder',
 		platform: 'both',
 		showInDock: true,
 		showOnDesktop: false,
@@ -33,7 +38,7 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'mail',
 		name: 'Mail',
-		icon: '/media/Mail.svg',
+		icon: '/media/Mail.webp',
 		component: 'Mail',
 		platform: 'both',
 		showInDock: true,
@@ -42,7 +47,7 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'maps',
 		name: 'Maps',
-		icon: '/media/Maps.svg',
+		icon: '/media/Maps.webp',
 		component: 'Maps',
 		platform: 'both',
 		showInDock: true,
@@ -51,7 +56,7 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'photos',
 		name: 'Photos',
-		icon: '/media/Gallery.svg',
+		icon: '/media/Gallery.webp',
 		component: 'Photos',
 		platform: 'both',
 		showInDock: true,
@@ -60,7 +65,7 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'calendar',
 		name: 'Calendar',
-		icon: '/media/Calendar.svg',
+		icon: '/media/Calendar.webp',
 		component: 'Calendar',
 		platform: 'both',
 		showInDock: true,
@@ -69,7 +74,7 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'notes',
 		name: 'Notes',
-		icon: '/media/Note.svg',
+		icon: '/media/Note.webp',
 		component: 'Notes',
 		platform: 'both',
 		showInDock: true,
@@ -78,8 +83,8 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'music',
 		name: 'Music',
-		icon: '/media/Music.svg',
-		component: 'Music',
+		icon: '/media/Music.webp',
+		component: 'placeholder',
 		platform: 'both',
 		showInDock: true,
 		showOnDesktop: false,
@@ -87,7 +92,7 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'settings',
 		name: 'Settings',
-		icon: '/media/Settings.svg',
+		icon: '/media/Settings.webp',
 		component: 'Settings',
 		platform: 'both',
 		showInDock: true,
@@ -107,7 +112,7 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'clock',
 		name: 'Clock',
-		icon: '/media/Clock.svg',
+		icon: '/media/Clock.webp',
 		component: 'Clock',
 		platform: 'both',
 		showInDock: false,
@@ -116,7 +121,7 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'camera',
 		name: 'Camera',
-		icon: '/media/Camera.svg',
+		icon: '/media/Camera.webp',
 		component: 'Camera',
 		platform: 'both',
 		showInDock: false,
@@ -125,7 +130,7 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'files',
 		name: 'Files',
-		icon: '/media/Files.svg',
+		icon: '/media/Files.webp',
 		component: 'Files',
 		platform: 'both',
 		showInDock: false,
@@ -134,8 +139,8 @@ const defaultApps: AppMetadata[] = [
 	{
 		id: 'phone',
 		name: 'Phone',
-		icon: '/media/Call.svg',
-		component: 'Phone',
+		icon: '/media/Call.webp',
+		component: 'placeholder',
 		platform: 'both',
 		showInDock: false,
 		showOnDesktop: true,
@@ -151,10 +156,27 @@ const defaultApps: AppMetadata[] = [
 	},
 ];
 
+function buildInitialPositions(apps: AppMetadata[]): Record<string, number> {
+	const positions: Record<string, number> = {};
+	let gridIndex = 0;
+	for (const app of apps) {
+		if (!isIosApp(app)) continue;
+		const dockIndex = DEFAULT_DOCK_IDS.indexOf(app.id);
+		if (dockIndex !== -1) {
+			positions[app.id] = DOCK_START_POSITION + dockIndex;
+		} else {
+			positions[app.id] = gridIndex++;
+		}
+	}
+	return positions;
+}
+
 interface AppsStore {
 	apps: AppMetadata[];
-	runningApps: Set<string>;
-	iosAppPositions: Map<string, number>; // Map appId to grid position (0-19)
+	/** Serializable list of running app ids (was Set). */
+	runningApps: string[];
+	/** Serializable appId -> grid position map (was Map). Single source of truth for layout. */
+	iosAppPositions: Record<string, number>;
 	getAppById: (id: string) => AppMetadata | undefined;
 	launchApp: (id: string) => void;
 	closeApp: (id: string) => void;
@@ -162,111 +184,47 @@ interface AppsStore {
 	reorderIosApps: (fromIndex: number, toIndex: number) => void;
 }
 
-// Initialize iosAppPositions - assign sequential positions to ios apps
-// Home apps: positions 0-19, Dock apps: positions 100-103 (separate from home)
-const initialIosApps = defaultApps.filter(app => app.platform === 'ios' || app.platform === 'both');
-const initialIosPositions = new Map<string, number>();
-const DOCK_START_POSITION = 100;
-
-// Default Dock Apps (User requested: Safari, Music, Messages, Call)
-const DEFAULT_DOCK_IDS = ['safari', 'music', 'messages', 'phone'];
-
-let gridIndex = 0;
-
-initialIosApps.forEach((app) => {
-	const dockIndex = DEFAULT_DOCK_IDS.indexOf(app.id);
-	if (dockIndex !== -1) {
-		// Assign to specific dock slot based on checking order
-		initialIosPositions.set(app.id, DOCK_START_POSITION + dockIndex);
-	} else {
-		// Assign to next available grid slot
-		initialIosPositions.set(app.id, gridIndex);
-		gridIndex++;
-	}
-});
-
 export const useAppsStore = create<AppsStore>((set, get) => ({
 	apps: defaultApps,
-	runningApps: new Set(),
-	iosAppPositions: initialIosPositions,
+	runningApps: [],
+	iosAppPositions: buildInitialPositions(defaultApps),
 	getAppById: (id: string) => {
 		return get().apps.find(app => app.id === id);
 	},
 	launchApp: (id: string) => {
-		set(state => ({
-			runningApps: new Set([...state.runningApps, id]),
-		}));
+		set(state =>
+			state.runningApps.includes(id) ? state : { runningApps: [...state.runningApps, id] }
+		);
 	},
 	closeApp: (id: string) => {
-		set(state => {
-			const newRunning = new Set(state.runningApps);
-			newRunning.delete(id);
-			return { runningApps: newRunning };
-		});
+		set(state => ({ runningApps: state.runningApps.filter(appId => appId !== id) }));
 	},
 	isAppRunning: (id: string) => {
-		return get().runningApps.has(id);
+		return get().runningApps.includes(id);
 	},
 	reorderIosApps: (fromIndex: number, toIndex: number) => {
-
+		if (fromIndex === toIndex) return;
 		set(state => {
-			// Get current iosApps
-			const currentIosApps = state.apps.filter(
-				app => app.platform === 'ios' || app.platform === 'both'
-			);
+			const entries = Object.entries(state.iosAppPositions);
+			const fromEntry = entries.find(([, pos]) => pos === fromIndex);
+			if (!fromEntry) return state;
+			const [movingAppId] = fromEntry;
+			const toEntry = entries.find(([, pos]) => pos === toIndex);
 
-			// Find app at fromIndex
-			const appAtFromIndex = currentIosApps.find(app => {
-				const pos = state.iosAppPositions.get(app.id);
-				return pos === fromIndex;
-			});
-
-			if (!appAtFromIndex) {
-				return state;
-			}
-
-			const movingAppId = appAtFromIndex.id;
-
-			// Create new positions Map - simple approach: just update the moved app's position
-			const newPositions = new Map(state.iosAppPositions);
-
-			// Check if toIndex is occupied
-			const appAtToIndex = currentIosApps.find(app => {
-				const pos = newPositions.get(app.id);
-				return pos === toIndex;
-			});
-
-			if (appAtToIndex) {
-				// Swap positions
-				newPositions.set(movingAppId, toIndex);
-				newPositions.set(appAtToIndex.id, fromIndex);
+			const newPositions: Record<string, number> = { ...state.iosAppPositions };
+			if (toEntry) {
+				const [otherAppId] = toEntry;
+				newPositions[movingAppId] = toIndex;
+				newPositions[otherAppId] = fromIndex;
 			} else {
-				// Just move to empty slot
-				newPositions.set(movingAppId, toIndex);
+				newPositions[movingAppId] = toIndex;
 			}
-
-			// Reorder apps array by position
-			const sortedIosApps = [...currentIosApps].sort((a, b) => {
-				const posA = newPositions.get(a.id) ?? Infinity;
-				const posB = newPositions.get(b.id) ?? Infinity;
-				return posA - posB;
-			});
-
-			const otherApps = state.apps.filter(
-				app => !(app.platform === 'ios' || app.platform === 'both')
-			);
-
-			return {
-				apps: [...sortedIosApps, ...otherApps],
-				iosAppPositions: newPositions,
-			};
+			return { iosAppPositions: newPositions };
 		});
 	},
 }));
 
 // Selector functions for computed values
-export const selectIosApps = (state: AppsStore) =>
-	state.apps.filter(app => app.platform === 'ios' || app.platform === 'both');
+export const selectIosApps = (state: AppsStore) => state.apps.filter(isIosApp);
 
-export const selectMacosApps = (state: AppsStore) =>
-	state.apps.filter(app => app.platform === 'macos' || app.platform === 'both');
+export const selectMacosApps = (state: AppsStore) => state.apps.filter(isMacosApp);

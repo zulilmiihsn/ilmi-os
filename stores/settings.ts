@@ -12,7 +12,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
 	persist(
 		set => ({
-			wallpaper: '/media/Wallpaper-desktop-1.jpg',
+			wallpaper: '/media/Wallpaper-desktop-1.webp',
 			darkMode: false,
 			setWallpaper: wallpaper => set({ wallpaper }),
 			toggleDarkMode: () => set(state => ({ darkMode: !state.darkMode })),

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
+import { generateId } from '../../../utils/id';
 import { TIMING } from '../../../constants';
 import { useTheme } from '../../../utils/hooks';
 import ClockWorldTab from './ClockWorldTab';
@@ -63,29 +64,38 @@ function Clock() {
 		return () => clearInterval(interval);
 	}, []);
 
+	// Elapsed-time sources: intervals only refresh the display, so background
+	// throttling cannot silently lose time.
+	const stopwatchAnchorRef = useRef(0);
+	const timerDeadlineRef = useRef(0);
+
 	// Stopwatch effect
 	useEffect(() => {
-		let interval: NodeJS.Timeout;
+		let interval: ReturnType<typeof setInterval> | undefined;
 		if (stopwatchRunning) {
+			stopwatchAnchorRef.current = Date.now() - stopwatchTime;
 			interval = setInterval(() => {
-				setStopwatchTime(prev => prev + TIMING.STOPWATCH_INTERVAL);
+				setStopwatchTime(Date.now() - stopwatchAnchorRef.current);
 			}, TIMING.STOPWATCH_INTERVAL);
 		}
 		return () => clearInterval(interval);
+		// stopwatchTime is intentionally read once per run to anchor elapsed time.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [stopwatchRunning]);
 
 	// Timer effect
 	useEffect(() => {
-		let interval: NodeJS.Timeout;
+		let interval: ReturnType<typeof setInterval> | undefined;
 		if (timerRunning && timerRemaining > 0) {
+			timerDeadlineRef.current = Date.now() + timerRemaining;
 			interval = setInterval(() => {
-				setTimerRemaining(prev => {
-					if (prev <= TIMING.TIMER_INTERVAL) {
-						setTimerRunning(false);
-						return 0;
-					}
-					return prev - TIMING.TIMER_INTERVAL;
-				});
+				const remaining = timerDeadlineRef.current - Date.now();
+				if (remaining <= 0) {
+					setTimerRemaining(0);
+					setTimerRunning(false);
+				} else {
+					setTimerRemaining(remaining);
+				}
 			}, TIMING.TIMER_INTERVAL);
 		}
 		return () => clearInterval(interval);
@@ -217,7 +227,7 @@ function Clock() {
 		const now = new Date();
 		const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 		const newAlarm: Alarm = {
-			id: Date.now().toString(),
+			id: generateId('alarm'),
 			time: timeString,
 			enabled: true,
 			label: 'Alarm',
@@ -241,7 +251,16 @@ function Clock() {
 
 	// Delete interaction state
 	const [deletableAlarmId, setDeletableAlarmId] = useState<string | null>(null);
-	const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+	const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		return () => {
+			if (longPressTimer.current) {
+				clearTimeout(longPressTimer.current);
+				longPressTimer.current = null;
+			}
+		};
+	}, []);
 
 	const handlePressStart = useCallback((id: string) => {
 		longPressTimer.current = setTimeout(() => {
@@ -273,24 +292,29 @@ function Clock() {
 	}, []);
 
 	// Clock-specific theme (extends baseTheme with Clock-specific properties)
-	const theme = useMemo(() => ({
-		// Base theme properties
-		bg: baseTheme.bg,
-		text: baseTheme.text,
-		textSecondary: baseTheme.textSecondary,
-		border: baseTheme.border,
-		activeItem: baseTheme.activeItem,
-		// Clock-specific extensions
-		header: darkMode ? 'bg-black/80 border-ios-dark-separator' : 'bg-white/95 border-ios-separator',
-		tabBar: `${baseTheme.tabBarBg} ${baseTheme.border}`,
-		input: darkMode
-			? 'bg-ios-dark-gray6 border-ios-dark-separator text-white'
-			: 'bg-ios-gray6 border-ios-gray4 text-black',
-		resetBtn: darkMode ? 'bg-ios-dark-gray5 text-white' : 'bg-ios-gray5 text-black',
-		disabledBtn: darkMode ? 'bg-ios-dark-gray6 text-gray-600' : 'bg-ios-gray6 text-gray-400',
-		tabText: baseTheme.tabActive,
-		tabTextInactive: baseTheme.tabInactive,
-	}), [baseTheme, darkMode]);
+	const theme = useMemo(
+		() => ({
+			// Base theme properties
+			bg: baseTheme.bg,
+			text: baseTheme.text,
+			textSecondary: baseTheme.textSecondary,
+			border: baseTheme.border,
+			activeItem: baseTheme.activeItem,
+			// Clock-specific extensions
+			header: darkMode
+				? 'bg-black/80 border-ios-dark-separator'
+				: 'bg-white/95 border-ios-separator',
+			tabBar: `${baseTheme.tabBarBg} ${baseTheme.border}`,
+			input: darkMode
+				? 'bg-ios-dark-gray6 border-ios-dark-separator text-white'
+				: 'bg-ios-gray6 border-ios-gray4 text-black',
+			resetBtn: darkMode ? 'bg-ios-dark-gray5 text-white' : 'bg-ios-gray5 text-black',
+			disabledBtn: darkMode ? 'bg-ios-dark-gray6 text-gray-600' : 'bg-ios-gray6 text-gray-400',
+			tabText: baseTheme.tabActive,
+			tabTextInactive: baseTheme.tabInactive,
+		}),
+		[baseTheme, darkMode]
+	);
 
 	return (
 		<div
@@ -307,11 +331,18 @@ function Clock() {
 			>
 				{activeTab === 'world' && (
 					<>
-						<button className={`${theme.tabText} text-base font-medium`} aria-label="Edit cities">Edit</button>
+						<button className={`${theme.tabText} text-base font-medium`} aria-label="Edit cities">
+							Edit
+						</button>
 						<h1 className={`${theme.text} text-2xl font-semibold animate-slide-bottom`}>
 							World Clock
 						</h1>
-						<button className={`${theme.tabText} text-2xl font-light leading-none`} aria-label="Add city">+</button>
+						<button
+							className={`${theme.tabText} text-2xl font-light leading-none`}
+							aria-label="Add city"
+						>
+							+
+						</button>
 					</>
 				)}
 				{activeTab === 'alarms' && (
@@ -362,11 +393,7 @@ function Clock() {
 				onScroll={() => setDeletableAlarmId(null)}
 			>
 				{activeTab === 'world' && (
-					<ClockWorldTab
-						cityTimes={cityTimes}
-						direction={direction}
-						theme={theme}
-					/>
+					<ClockWorldTab cityTimes={cityTimes} direction={direction} theme={theme} />
 				)}
 
 				{activeTab === 'alarms' && (
@@ -418,14 +445,9 @@ function Clock() {
 			</div>
 
 			{/* Bottom Tab Bar */}
-			<ClockTabBar
-				activeTab={activeTab}
-				onTabChange={handleTabChange}
-				theme={theme}
-			/>
+			<ClockTabBar activeTab={activeTab} onTabChange={handleTabChange} theme={theme} />
 		</div>
 	);
 }
 
 export default memo(Clock);
-

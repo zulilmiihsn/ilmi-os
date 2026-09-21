@@ -6,25 +6,14 @@
 
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
+import type { AppComponentName } from '../types';
+import { isValidComponentName } from './componentNames';
 
-export type AppComponentName =
-	| 'Calculator'
-	| 'Notes'
-	| 'Finder'
-	| 'Files'
-	| 'Terminal'
-	| 'Settings'
-	| 'Photos'
-	| 'Clock'
-	| 'Camera'
-	| 'Calendar'
-	| 'Mail'
-	| 'Maps';
+export type { AppComponentName };
+export { isValidComponentName };
 
 // Loading component for dynamic imports (Clean native-like splash)
-const LoadingComponent = () => (
-	<div className="w-full h-full bg-white dark:bg-black" />
-);
+const LoadingComponent = () => <div className="w-full h-full bg-white dark:bg-black" />;
 
 // Dynamic imports untuk code splitting
 const Calculator = dynamic(() => import('../components/Apps/Calculator'), {
@@ -87,8 +76,7 @@ const Maps = dynamic(() => import('../components/Apps/Maps'), {
 	ssr: false,
 });
 
-
-export const APP_COMPONENT_MAP: Record<AppComponentName, ComponentType> = {
+export const APP_COMPONENT_MAP: Record<Exclude<AppComponentName, 'placeholder'>, ComponentType> = {
 	Calculator,
 	Notes,
 	Finder,
@@ -105,17 +93,9 @@ export const APP_COMPONENT_MAP: Record<AppComponentName, ComponentType> = {
 
 /**
  * Get component by name with dynamic loading
- * @param componentName - Name of the component
- * @returns Component or null if not found
+ * Type-safe: unknown / placeholder names return null instead of crashing.
  */
-export function getAppComponent(componentName: string): ComponentType | null {
-	const component = APP_COMPONENT_MAP[componentName as AppComponentName];
-	return component || null;
-}
-
-/**
- * Check if component name is valid
- */
-export function isValidComponentName(name: string): name is AppComponentName {
-	return name in APP_COMPONENT_MAP;
+export function getAppComponent(componentName: AppComponentName | string): ComponentType | null {
+	if (!isValidComponentName(componentName)) return null;
+	return APP_COMPONENT_MAP[componentName];
 }

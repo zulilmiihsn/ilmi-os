@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, memo } from 'react';
+import React, { useState, useRef, useLayoutEffect, useMemo, memo } from 'react';
 import { useSettingsStore } from '../../stores/settings';
 import { triggerHaptic } from '../../utils/haptic';
 

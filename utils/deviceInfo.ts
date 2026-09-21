@@ -14,9 +14,9 @@ export interface NetworkInfo {
 }
 
 export async function getBatteryInfo(): Promise<BatteryInfo | null> {
-	if (typeof window !== 'undefined' && 'getBattery' in navigator) {
+	if (typeof window !== 'undefined' && typeof navigator.getBattery === 'function') {
 		try {
-			const battery = await (navigator as any).getBattery();
+			const battery = await navigator.getBattery();
 			return {
 				level: battery.level,
 				charging: battery.charging,
@@ -33,11 +33,8 @@ export async function getBatteryInfo(): Promise<BatteryInfo | null> {
 
 export function getNetworkInfo(): NetworkInfo | null {
 	if (typeof window === 'undefined') return null;
-	
-	const connection =
-		(navigator as any).connection ||
-		(navigator as any).mozConnection ||
-		(navigator as any).webkitConnection;
+
+	const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 
 	if (connection) {
 		return {
@@ -73,4 +70,3 @@ export function isWifiConnected(networkInfo: NetworkInfo | null): boolean {
 	if (!networkInfo) return true; // Assume connected if no info
 	return networkInfo.type === 'wifi' || networkInfo.type === 'ethernet';
 }
-

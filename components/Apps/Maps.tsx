@@ -17,7 +17,7 @@ export default function Maps() {
 			{/* Map Background */}
 			<div className="absolute inset-0 z-0">
 				<Image
-					src="/media/apple_maps_dark_3d_background.png"
+					src="/media/apple_maps_dark_3d_background.webp"
 					alt="Map Background"
 					fill
 					className="object-cover scale-110"

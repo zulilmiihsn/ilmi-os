@@ -28,14 +28,27 @@ export function usePhotos() {
 	const loadLocalPhotos = useCallback(() => {
 		try {
 			const stored = localStorage.getItem('camera_photos');
-			if (stored) {
-				const parsed: LocalPhoto[] = JSON.parse(stored);
-				if (Array.isArray(parsed)) {
-					setLocalPhotos(parsed.map(p => p.url));
-				}
+			if (!stored) {
+				setLocalPhotos([]);
+				return;
 			}
-		} catch {
-			// Silent fail
+			const parsed: unknown = JSON.parse(stored);
+			if (!Array.isArray(parsed)) {
+				console.warn('[Photos] stored data failed validation, showing no local photos');
+				setLocalPhotos([]);
+				return;
+			}
+			const urls = parsed.filter(
+				(p): p is LocalPhoto =>
+					typeof p === 'object' && p !== null && typeof (p as { url?: unknown }).url === 'string'
+			);
+			if (urls.length !== parsed.length) {
+				console.warn('[Photos] some stored photo records were invalid and skipped');
+			}
+			setLocalPhotos(urls.map(p => p.url));
+		} catch (error) {
+			console.warn('[Photos] failed to read stored photos', error);
+			setLocalPhotos([]);
 		}
 	}, []);
 

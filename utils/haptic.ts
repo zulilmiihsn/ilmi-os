@@ -62,7 +62,7 @@ export function triggerHaptic(type: HapticType = 'medium'): boolean {
 		// This will be blocked if not in user gesture context
 		const result = navigator.vibrate(pattern);
 		return result === true;
-	} catch (error) {
+	} catch {
 		// Silently fail if vibration is not supported or blocked
 		// Don't log to avoid console spam
 		return false;

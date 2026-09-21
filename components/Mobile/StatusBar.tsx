@@ -68,12 +68,14 @@ function StatusBar({
 		updateNetwork();
 
 		// Listen for battery changes using event-based updates (no polling)
+		let disposed = false;
 		let batteryRef: { removeEventListener: (type: string, listener: () => void) => void } | null =
 			null;
 		if (typeof window !== 'undefined' && navigator.getBattery) {
 			navigator
 				.getBattery()
 				.then(battery => {
+					if (disposed) return;
 					batteryRef = battery;
 					battery.addEventListener('chargingchange', updateBattery);
 					battery.addEventListener('levelchange', updateBattery);
@@ -95,6 +97,7 @@ function StatusBar({
 		const networkInterval = !connection ? setInterval(updateNetwork, 30000) : null;
 
 		return () => {
+			disposed = true;
 			if (networkInterval) clearInterval(networkInterval);
 			if (batteryRef) {
 				batteryRef.removeEventListener('chargingchange', updateBattery);
@@ -120,17 +123,25 @@ function StatusBar({
 			}}
 		>
 			{/* Left Side: Clock */}
-			<div
-				className="flex items-center gap-1"
+			<button
+				type="button"
+				className="flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 rounded"
 				style={{ color: statusTextColor }}
+				onClick={onOpenNotificationCenter}
+				aria-label="Open Notification Center"
+				aria-haspopup="dialog"
 			>
 				<MobileClock textColor={statusTextColor} />
-			</div>
+			</button>
 
 			{/* Right Side: Battery / WiFi */}
-			<div
-				className="flex items-center gap-1.5"
+			<button
+				type="button"
+				className="flex items-center gap-1.5 cursor-pointer bg-transparent border-0 p-0 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 rounded"
 				style={{ color: statusTextColor }}
+				onClick={onOpenControlCenter}
+				aria-label="Open Control Center"
+				aria-haspopup="dialog"
 			>
 				{/* Signal Strength */}
 				{!isWifi && (
@@ -177,7 +188,7 @@ function StatusBar({
 						></div>
 					</div>
 				</div>
-			</div>
+			</button>
 		</div>
 	);
 }

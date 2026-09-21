@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useAppsStore } from '../../stores/apps';
+import { isMacosApp } from '../../types';
 import { useWindowsStore } from '../../stores/windows';
 import { WINDOW } from '../../constants';
 import type { WindowState } from '../../types';
@@ -10,10 +11,7 @@ import type { WindowState } from '../../types';
 export default function DesktopIcons() {
 	const allApps = useAppsStore(state => state.apps);
 	const apps = useMemo(
-		() =>
-			allApps.filter(
-				app => (app.platform === 'macos' || app.platform === 'both') && app.showOnDesktop
-			),
+		() => allApps.filter(app => isMacosApp(app) && app.showOnDesktop),
 		[allApps]
 	);
 
@@ -57,12 +55,16 @@ export default function DesktopIcons() {
 				return (
 					<div
 						key={app.id}
+						role="button"
+						tabIndex={0}
+						aria-label={`Open ${app.name}`}
 						className={`
 							pointer-events-auto
 							w-[84px] h-[92px] 
 							flex flex-col items-center justify-start gap-1 
 							group cursor-default rounded-[4px]
 							border border-transparent
+							focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80
 							${isSelected ? 'bg-white/20 border-white/10 backdrop-blur-sm' : 'hover:bg-white/10'}
 						`}
 						onClick={e => {
@@ -72,6 +74,13 @@ export default function DesktopIcons() {
 						onDoubleClick={e => {
 							e.stopPropagation();
 							handleDoubleClick(app);
+						}}
+						onKeyDown={e => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								e.stopPropagation();
+								handleDoubleClick(app);
+							}
 						}}
 					>
 						<div className="relative w-[54px] h-[54px] mt-2 filter drop-shadow-lg transition-transform duration-200 group-active:scale-95">

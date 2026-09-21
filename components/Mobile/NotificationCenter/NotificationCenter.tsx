@@ -18,13 +18,13 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 		const internalRef = useRef<HTMLDivElement>(null);
 		useImperativeHandle(ref, () => internalRef.current as HTMLDivElement);
 
-		const notifications = useNotificationsStore((state) => state.notifications);
-		const dismissNotification = useNotificationsStore((state) => state.dismissNotification);
-		const clearAllNotifications = useNotificationsStore((state) => state.clearAllNotifications);
+		const notifications = useNotificationsStore(state => state.notifications);
+		const dismissNotification = useNotificationsStore(state => state.dismissNotification);
+		const clearAllNotifications = useNotificationsStore(state => state.clearAllNotifications);
 
-		const flashlight = useControlCenterStore((state) => state.flashlight);
-		const toggleFlashlight = useControlCenterStore((state) => state.toggleFlashlight);
-		const wallpaper = useSettingsStore((state) => state.wallpaper);
+		const flashlight = useControlCenterStore(state => state.flashlight);
+		const toggleFlashlight = useControlCenterStore(state => state.toggleFlashlight);
+		const wallpaper = useSettingsStore(state => state.wallpaper);
 
 		const [timeString, setTimeString] = useState('');
 		const [dateString, setDateString] = useState('');
@@ -35,8 +35,12 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 		useEffect(() => {
 			const updateTime = () => {
 				const now = new Date();
-				setTimeString(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
-				setDateString(now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
+				setTimeString(
+					`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+				);
+				setDateString(
+					now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+				);
 			};
 			updateTime();
 			const timer = setInterval(updateTime, 1000);
@@ -82,7 +86,12 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 					transform: isOpen ? 'translate3d(0, 0%, 0)' : 'translate3d(0, -100%, 0)',
 					opacity: isOpen ? 1 : 0,
 					pointerEvents: isOpen ? 'auto' : 'none',
-					transition: 'transform 0.38s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease',
+					// Keep the exit animation, then remove the closed panel from
+					// keyboard focus and assistive tech via delayed visibility.
+					visibility: isOpen ? 'visible' : 'hidden',
+					transition:
+						'transform 0.38s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease, visibility 0s linear ' +
+						(isOpen ? '0s' : '0.38s'),
 					willChange: 'transform, opacity',
 				}}
 				onTouchStart={handleTouchStart}
@@ -92,7 +101,7 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 				{/* Authentic iOS Lockscreen Wallpaper Background */}
 				<div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
 					<Image
-						src={wallpaper || '/media/Wallpaper-desktop-1.jpg'}
+						src={wallpaper || '/media/Wallpaper-desktop-1.webp'}
 						alt="Lockscreen Wallpaper"
 						fill
 						className="object-cover"
@@ -131,7 +140,9 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 									opacity: isOpen ? 1 : 0,
 								}}
 							>
-								<span className="text-white/90 text-sm font-semibold tracking-wide drop-shadow-md">Notification Center</span>
+								<span className="text-white/90 text-sm font-semibold tracking-wide drop-shadow-md">
+									Notification Center
+								</span>
 								<button
 									onClick={() => {
 										triggerHaptic('light');
@@ -146,6 +157,9 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 							{notifications.map((item, idx) => (
 								<div
 									key={item.id}
+									role="button"
+									tabIndex={0}
+									aria-label={`Open ${item.appName}: ${item.title}`}
 									onClick={() => {
 										triggerHaptic('light');
 										if (onOpenApp && item.appId) {
@@ -153,9 +167,19 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 											onOpenApp(item.appId);
 										}
 									}}
-									className="relative group bg-white/25 dark:bg-black/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl p-3.5 shadow-lg active:scale-[0.98] transition-transform cursor-pointer will-change-transform"
+									onKeyDown={e => {
+										if (e.key !== 'Enter' && e.key !== ' ') return;
+										e.preventDefault();
+										triggerHaptic('light');
+										if (onOpenApp && item.appId) {
+											onClose();
+											onOpenApp(item.appId);
+										}
+									}}
+									className="relative group bg-white/25 dark:bg-black/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl p-3.5 shadow-lg active:scale-[0.98] transition-transform cursor-pointer will-change-transform focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80"
 									style={{
-										transition: 'transform 0.42s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.35s ease',
+										transition:
+											'transform 0.42s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.35s ease',
 										transitionDelay: isOpen ? `${Math.min(180, 40 + idx * 35)}ms` : '0ms',
 										transform: isOpen ? 'translateY(0) scale(1)' : 'translateY(-18px) scale(0.95)',
 										opacity: isOpen ? 1 : 0,
@@ -165,17 +189,26 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 										<div className="flex items-center gap-2">
 											<div className="w-5 h-5 relative rounded-md overflow-hidden bg-white/20 flex items-center justify-center">
 												{item.appIcon.startsWith('/') ? (
-													<Image src={item.appIcon} alt={item.appName} width={20} height={20} className="w-full h-full object-cover" unoptimized />
+													<Image
+														src={item.appIcon}
+														alt={item.appName}
+														width={20}
+														height={20}
+														className="w-full h-full object-cover"
+														unoptimized
+													/>
 												) : (
 													<i className={`fas ${item.appIcon} text-xs text-white`}></i>
 												)}
 											</div>
-											<span className="text-xs font-semibold text-white/90 uppercase tracking-wide">{item.appName}</span>
+											<span className="text-xs font-semibold text-white/90 uppercase tracking-wide">
+												{item.appName}
+											</span>
 										</div>
 										<div className="flex items-center gap-2">
 											<span className="text-[11px] text-white/60 font-medium">{item.time}</span>
 											<button
-												onClick={(e) => {
+												onClick={e => {
 													e.stopPropagation();
 													triggerHaptic('light');
 													dismissNotification(item.id);
@@ -187,8 +220,12 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 											</button>
 										</div>
 									</div>
-									<div className="text-sm font-semibold text-white tracking-tight mb-0.5">{item.title}</div>
-									<div className="text-xs text-white/80 leading-relaxed line-clamp-2">{item.message}</div>
+									<div className="text-sm font-semibold text-white tracking-tight mb-0.5">
+										{item.title}
+									</div>
+									<div className="text-xs text-white/80 leading-relaxed line-clamp-2">
+										{item.message}
+									</div>
 								</div>
 							))}
 						</>
@@ -200,7 +237,10 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 					<div className="w-full flex items-center justify-between mb-3 px-2">
 						{/* Flashlight Shortcut Pod */}
 						<button
-							onClick={() => { triggerHaptic('medium'); toggleFlashlight(); }}
+							onClick={() => {
+								triggerHaptic('medium');
+								toggleFlashlight();
+							}}
 							className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-2xl border active:scale-90 transition-all duration-150 ${
 								flashlight
 									? 'bg-white text-black border-white shadow-[0_0_25px_rgba(255,255,255,0.8)]'
@@ -208,18 +248,38 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 							}`}
 							aria-label="Toggle Flashlight"
 						>
-							<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+							<svg
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="currentColor"
+								className="w-6 h-6"
+							>
 								<path d="M7 2v3l2 3v14h6V8l2-3V2H7zm5 11c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z" />
 							</svg>
 						</button>
 
 						{/* Camera Shortcut Pod */}
 						<button
-							onClick={() => { triggerHaptic('medium'); onClose(); if (onOpenApp) onOpenApp('camera'); }}
+							onClick={() => {
+								triggerHaptic('medium');
+								onClose();
+								if (onOpenApp) onOpenApp('camera');
+							}}
 							className="w-14 h-14 rounded-full bg-black/35 text-white border border-white/20 flex items-center justify-center backdrop-blur-2xl shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:bg-black/45 active:scale-90 transition-all duration-150"
 							aria-label="Open Camera"
 						>
-							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+							<svg
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								className="w-6 h-6"
+							>
 								<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
 								<circle cx="12" cy="13" r="3" />
 							</svg>
@@ -228,7 +288,10 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 
 					{/* Home Indicator Pill */}
 					<div
-						onClick={() => { triggerHaptic('light'); onClose(); }}
+						onClick={() => {
+							triggerHaptic('light');
+							onClose();
+						}}
 						className="w-36 h-1 bg-white/70 rounded-full cursor-pointer hover:bg-white active:scale-95 transition-all"
 					/>
 				</div>

@@ -207,8 +207,8 @@ export default function Settings() {
 	const [searchQuery, setSearchQuery] = useState('');
 
 	const wallpapers = [
-		{ src: '/media/Wallpaper-desktop-1.jpg', label: 'Big Sur' },
-		{ src: '/media/Wallpaper-1.png', label: 'Dark Stream' },
+					{ src: '/media/Wallpaper-desktop-1.webp', label: 'Big Sur' },
+					{ src: '/media/Wallpaper-1.webp', label: 'Dark Stream' },
 		{ src: 'linear-gradient(to right, #ff7e5f, #feb47b)', label: 'Sunset' },
 		{ src: 'linear-gradient(to right, #4facfe, #00f2fe)', label: 'Ocean' },
 		{ src: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', label: 'Plum' },

@@ -1,22 +1,7 @@
 @import 'tailwindcss';
 
-/* San Francisco UI Display Font Face Definitions */
-@font-face {
-	font-family: 'SF Pro Display';
-	src: url('/fonts/SFUIDisplay-Thin.otf') format('opentype');
-	font-weight: 100;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'SF Pro Display';
-	src: url('/fonts/SFUIDisplay-Ultralight.otf') format('opentype');
-	font-weight: 200;
-	font-style: normal;
-	font-display: swap;
-}
-
+/* San Francisco UI Display Font Face Definitions.
+   Only weights actually referenced by the UI (300-700) are declared. */
 @font-face {
 	font-family: 'SF Pro Display';
 	src: url('/fonts/SFUIDisplay-Light.ttf') format('truetype');
@@ -57,22 +42,6 @@
 	font-display: swap;
 }
 
-@font-face {
-	font-family: 'SF Pro Display';
-	src: url('/fonts/SFUIDisplay-Heavy.otf') format('opentype');
-	font-weight: 800;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'SF Pro Display';
-	src: url('/fonts/SFUIDisplay-Black.otf') format('opentype');
-	font-weight: 900;
-	font-style: normal;
-	font-display: swap;
-}
-
 :root {
 	--bg-primary: #f2f2f7;
 	--bg-secondary: #ffffff;
@@ -88,7 +57,6 @@ html.dark {
 }
 
 @layer base {
-
 	html,
 	body {
 		/* Official Apple San Francisco (SF Pro Display) */

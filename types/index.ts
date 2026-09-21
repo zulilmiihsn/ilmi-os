@@ -1,4 +1,21 @@
 export type Platform = 'ios' | 'macos';
+export type SupportedPlatform = Platform | 'both';
+
+/** Registry of real, implemented app components. Placeholder apps use 'placeholder'. */
+export type AppComponentName =
+	| 'Calculator'
+	| 'Notes'
+	| 'Finder'
+	| 'Files'
+	| 'Terminal'
+	| 'Settings'
+	| 'Photos'
+	| 'Clock'
+	| 'Camera'
+	| 'Calendar'
+	| 'Mail'
+	| 'Maps'
+	| 'placeholder';
 
 export interface DeviceInfo {
 	platform: Platform;
@@ -47,8 +64,16 @@ export interface AppMetadata {
 	id: string;
 	name: string;
 	icon: string;
-	component: string;
-	platform: Platform | 'both';
+	component: AppComponentName;
+	platform: SupportedPlatform;
 	showInDock?: boolean;
 	showOnDesktop?: boolean;
+}
+
+export function isIosApp(app: AppMetadata): boolean {
+	return app.platform === 'ios' || app.platform === 'both';
+}
+
+export function isMacosApp(app: AppMetadata): boolean {
+	return app.platform === 'macos' || app.platform === 'both';
 }

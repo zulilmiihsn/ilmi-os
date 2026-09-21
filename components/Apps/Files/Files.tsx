@@ -3,15 +3,24 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSettingsStore } from '../../../stores/settings';
 import { TIMING } from '../../../constants';
+import {
+	createFolder,
+	deleteItem,
+	renameItem,
+	formatFileSize,
+	getItemCount,
+	getItemsInFolder,
+	loadFileSystem,
+} from '../../../utils/fileSystem';
 
 import type { FileItem, FolderPath } from './types';
-import { loadFileSystem, saveFileSystem, getItemsInFolder, getItemCount } from './utils';
+import { migrateLegacyFilesStorage } from './utils';
 import {
 	CreateFolderDialog,
 	RenameDialog,
 	DeleteConfirmDialog,
 	ActionMenu,
-	ActionSheet
+	ActionSheet,
 } from './Modals';
 
 import TabBar from './TabBar';
@@ -34,16 +43,30 @@ export default function Files() {
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [showRenameDialog, setShowRenameDialog] = useState(false);
 	const [renameValue, setRenameValue] = useState('');
+	const [persistError, setPersistError] = useState<string | null>(null);
 
 	// Long press state
-	const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+	const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		const timer = longPressTimer;
+		return () => {
+			if (timer) clearTimeout(timer);
+		};
+	}, [longPressTimer]);
 
 	// Navigation animation state
 	const [navigationDirection, setNavigationDirection] = useState<'forward' | 'back' | null>(null);
 	const [isAnimating, setIsAnimating] = useState(false);
 
-	// Set mounted state to prevent hydration errors
+	// Migrate the legacy flat store once, then mount to prevent hydration errors
 	useEffect(() => {
+		const result = migrateLegacyFilesStorage();
+		if (result === 'persist-failed') {
+			setPersistError('Could not migrate previous Files data. Storage may be unavailable.');
+		} else if (result === 'shared-invalid' || result === 'legacy-invalid') {
+			setPersistError('Previous Files data could not be read and was left untouched.');
+		}
 		setMounted(true);
 	}, []);
 
@@ -106,7 +129,7 @@ export default function Files() {
 			if (item.type === 'folder') {
 				return {
 					...item,
-					itemCount: getItemCount(item.id),
+					itemCount: `${getItemCount(item.id)} items`,
 				};
 			}
 			return item;
@@ -161,15 +184,11 @@ export default function Files() {
 	function handleCreateFolder() {
 		if (!newFolderName.trim()) return;
 
-		const newItem: FileItem = {
-			id: Date.now().toString(),
-			name: newFolderName.trim(),
-			type: 'folder',
-			modified: new Date().toISOString(),
-		};
-
-		const currentItems = loadFileSystem().items;
-		saveFileSystem([...currentItems, newItem]);
+		if (!createFolder(newFolderName.trim(), currentFolderId)) {
+			setPersistError('Could not save the new folder. Storage may be unavailable or full.');
+			return;
+		}
+		setPersistError(null);
 
 		setNewFolderName('');
 		setShowCreateDialog(false);
@@ -179,9 +198,11 @@ export default function Files() {
 	function handleDelete() {
 		if (!selectedItemId) return;
 
-		const currentItems = loadFileSystem().items;
-		const newItems = currentItems.filter((item: FileItem) => item.id !== selectedItemId);
-		saveFileSystem(newItems);
+		if (!deleteItem(selectedItemId)) {
+			setPersistError('Could not delete the item. Storage may be unavailable.');
+			return;
+		}
+		setPersistError(null);
 
 		setShowDeleteConfirm(false);
 		setShowActionSheet(false);
@@ -192,13 +213,11 @@ export default function Files() {
 	function handleRename() {
 		if (!selectedItemId || !renameValue.trim()) return;
 
-		const currentItems = loadFileSystem().items;
-		const newItems = currentItems.map((item: FileItem) =>
-			item.id === selectedItemId
-				? { ...item, name: renameValue.trim(), modified: new Date().toISOString() }
-				: item
-		);
-		saveFileSystem(newItems);
+		if (!renameItem(selectedItemId, renameValue.trim())) {
+			setPersistError('Could not rename the item. Storage may be unavailable.');
+			return;
+		}
+		setPersistError(null);
 
 		setShowRenameDialog(false);
 		setShowActionSheet(false);
@@ -242,6 +261,14 @@ export default function Files() {
 		<div
 			className={`files-app w-full h-full flex flex-col overflow-hidden font-sans transition-colors duration-300 ${theme.bg} ${theme.text}`}
 		>
+			{persistError && (
+				<div
+					role="alert"
+					className="shrink-0 mx-4 mt-2 px-3 py-2 text-xs rounded-lg bg-red-500/15 text-red-600 dark:text-red-400"
+				>
+					{persistError}
+				</div>
+			)}
 			{/* Header */}
 			<div className={`shrink-0 border-b transition-colors ${theme.headerBg}`}>
 				{/* Top Navigation */}
@@ -330,12 +357,13 @@ export default function Files() {
 			<div className="flex-1 relative overflow-hidden">
 				{/* Animation Container */}
 				<div
-					className={`absolute inset-0 w-full h-full overflow-y-auto overflow-x-hidden transition-transform duration-250 ease-in-out ${isAnimating
-						? navigationDirection === 'forward'
-							? 'animate-slide-out-left'
-							: 'animate-slide-out-right'
-						: 'animate-slide-in'
-						}`}
+					className={`absolute inset-0 w-full h-full overflow-y-auto overflow-x-hidden transition-transform duration-250 ease-in-out ${
+						isAnimating
+							? navigationDirection === 'forward'
+								? 'animate-slide-out-left'
+								: 'animate-slide-out-right'
+							: 'animate-slide-in'
+					}`}
 				>
 					{/* Empty States */}
 					{activeTab === 'shared' && enrichedItems.length === 0 && (
@@ -419,6 +447,12 @@ export default function Files() {
 										const timer = setTimeout(() => handleLongPress(item), TIMING.LONG_PRESS_FILES);
 										setLongPressTimer(timer);
 									}}
+									onTouchMove={() => {
+										if (longPressTimer) {
+											clearTimeout(longPressTimer);
+											setLongPressTimer(null);
+										}
+									}}
 									onTouchEnd={() => {
 										if (longPressTimer) clearTimeout(longPressTimer);
 									}}
@@ -450,7 +484,11 @@ export default function Files() {
 										{item.name}
 									</span>
 									<span className={`text-[10px] ${theme.textMuted}`}>
-										{item.type === 'folder' ? item.itemCount : item.size}
+										{item.type === 'folder'
+											? item.itemCount
+											: typeof item.size === 'number'
+												? formatFileSize(item.size)
+												: item.size}
 									</span>
 								</div>
 							))}
@@ -520,4 +558,3 @@ export default function Files() {
 		</div>
 	);
 }
-

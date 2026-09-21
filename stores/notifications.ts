@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { generateId } from '../utils/id';
 
 export interface NotificationItem {
 	id: string;
@@ -23,7 +24,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 		id: 'notif-1',
 		appId: 'mail',
 		appName: 'Mail',
-		appIcon: '/media/Mail.svg',
+		appIcon: '/media/Mail.webp',
 		title: 'GitHub Notifications',
 		message: '[zulilmiihsn/iLmi] Build #482 completed successfully on main branch.',
 		time: '5m ago',
@@ -33,7 +34,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 		id: 'notif-2',
 		appId: 'calendar',
 		appName: 'Calendar',
-		appIcon: '/media/Calendar.svg',
+		appIcon: '/media/Calendar.webp',
 		title: 'Project Review & Architecture Sync',
 		message: 'Meeting with Dev Team starts in 15 minutes via Google Meet.',
 		time: '20m ago',
@@ -43,7 +44,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 		id: 'notif-3',
 		appId: 'notes',
 		appName: 'Notes',
-		appIcon: '/media/Note.svg',
+		appIcon: '/media/Note.webp',
 		title: 'Recent Note',
 		message: 'iOS Design System checklist & fluid spring physics parameters updated.',
 		time: '1h ago',
@@ -53,7 +54,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 		id: 'notif-4',
 		appId: 'photos',
 		appName: 'Photos',
-		appIcon: '/media/Gallery.svg',
+		appIcon: '/media/Gallery.webp',
 		title: 'Memories',
 		message: 'Rediscover your favorite moments from this day last year.',
 		time: '3h ago',
@@ -76,7 +77,7 @@ export const useNotificationsStore = create<NotificationsState>((set) => ({
 			notifications: [
 				{
 					...notif,
-					id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+					id: generateId('notif'),
 				},
 				...state.notifications,
 			],

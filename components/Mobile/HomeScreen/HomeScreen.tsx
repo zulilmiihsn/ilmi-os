@@ -26,9 +26,11 @@ import AppIcon from '../AppIcon';
 import SortableAppIcon from './SortableAppIcon';
 import Widget from '../Widget';
 import { useAppsStore } from '../../../stores/apps';
+import { isIosApp } from '../../../types';
 import { useSettingsStore } from '../../../stores/settings';
 import { getAppComponent } from '../../../utils/appComponents';
 import { triggerHaptic } from '../../../utils/haptic';
+import { IOS_LAYOUT } from '../../../constants';
 import HomeScreenDock from './HomeScreenDock';
 import HomeScreenAppContainer from './HomeScreenAppContainer';
 import NotificationCenter from '../NotificationCenter/NotificationCenter';
@@ -41,25 +43,30 @@ import { useHomeScreenGestures } from './useHomeScreenGestures';
 const getEmptySlotId = (page: number, index: number) => `empty-${page}-${index}`;
 
 // Helper to generate page items (pure function, no hooks)
-const computePageItems = (pageIndex: number, positions: Map<string, number>, appsList: { id: string }[]) => {
+const computePageItems = (
+	pageIndex: number,
+	positions: Record<string, number>,
+	appsList: { id: string }[]
+) => {
 	const items: string[] = [];
-	const PAGE_SIZE = pageIndex === 0 ? 24 : 28;
-	const offset = pageIndex === 0 ? 0 : 24 + (pageIndex - 1) * 28;
+	const PAGE_SIZE = pageIndex === 0 ? IOS_LAYOUT.PAGE0_SIZE : IOS_LAYOUT.PAGE1_SIZE;
+	const offset =
+		pageIndex === 0 ? 0 : IOS_LAYOUT.PAGE1_BASE + (pageIndex - 1) * IOS_LAYOUT.PAGE1_SIZE;
 
 	for (let i = 0; i < PAGE_SIZE; i++) {
 		const absoluteIndex = offset + i;
-		const app = appsList.find(a => positions.get(a.id) === absoluteIndex);
+		const app = appsList.find(a => positions[a.id] === absoluteIndex);
 		items.push(app ? app.id : getEmptySlotId(pageIndex, i));
 	}
 	return items;
 };
 
 // Helper to compute dock items
-const computeDockItems = (positions: Map<string, number>) => {
+const computeDockItems = (positions: Record<string, number>) => {
 	const dock: { id: string; pos: number }[] = [];
-	positions.forEach((pos, id) => {
-		if (pos >= 100) dock.push({ id, pos });
-	});
+	for (const [id, pos] of Object.entries(positions)) {
+		if (pos >= IOS_LAYOUT.DOCK_BASE) dock.push({ id, pos });
+	}
 	dock.sort((a, b) => a.pos - b.pos);
 	return dock.map(d => d.id);
 };
@@ -73,10 +80,7 @@ function HomeScreen() {
 	const closeApp = useAppsStore(state => state.closeApp);
 	const reorderIosApps = useAppsStore(state => state.reorderIosApps);
 
-	const apps = useMemo(
-		() => allApps.filter(app => app.platform === 'ios' || app.platform === 'both'),
-		[allApps]
-	);
+	const apps = useMemo(() => allApps.filter(isIosApp), [allApps]);
 
 	// O(1) lookup map for render functions only (doesn't affect state sync)
 	const appsMap = useMemo(() => new Map(apps.map(app => [app.id, app])), [apps]);
@@ -86,8 +90,12 @@ function HomeScreen() {
 	const isDragging = activeId !== null;
 
 	// Lazy initial state (computed once on mount)
-	const [page0Items, setPage0Items] = useState<string[]>(() => computePageItems(0, iosAppPositions, apps));
-	const [page1Items, setPage1Items] = useState<string[]>(() => computePageItems(1, iosAppPositions, apps));
+	const [page0Items, setPage0Items] = useState<string[]>(() =>
+		computePageItems(0, iosAppPositions, apps)
+	);
+	const [page1Items, setPage1Items] = useState<string[]>(() =>
+		computePageItems(1, iosAppPositions, apps)
+	);
 	const [dockItemIds, setDockItemIds] = useState<string[]>(() => computeDockItems(iosAppPositions));
 
 	// Refs to avoid stale closures and prevent infinite loops
@@ -105,9 +113,9 @@ function HomeScreen() {
 		const newPage1 = computePageItems(1, iosAppPositions, currentApps);
 		const newDock = computeDockItems(iosAppPositions);
 
-		setPage0Items(prev => JSON.stringify(prev) === JSON.stringify(newPage0) ? prev : newPage0);
-		setPage1Items(prev => JSON.stringify(prev) === JSON.stringify(newPage1) ? prev : newPage1);
-		setDockItemIds(prev => JSON.stringify(prev) === JSON.stringify(newDock) ? prev : newDock);
+		setPage0Items(prev => (JSON.stringify(prev) === JSON.stringify(newPage0) ? prev : newPage0));
+		setPage1Items(prev => (JSON.stringify(prev) === JSON.stringify(newPage1) ? prev : newPage1));
+		setDockItemIds(prev => (JSON.stringify(prev) === JSON.stringify(newDock) ? prev : newDock));
 	}, [iosAppPositions, isDragging]); // Removed apps from dependencies
 
 	// --- Sensors ---
@@ -144,11 +152,16 @@ function HomeScreen() {
 		setIsNotificationCenterOpen(false);
 	}, []);
 
+	const handleCloseApp = useCallback(() => {
+		if (currentApp) closeApp(currentApp);
+	}, [closeApp, currentApp]);
+
 	// --- App / Swipe State Handled by Custom Hook ---
 	const {
 		handleTouchStart,
 		handleTouchMove,
 		handleTouchEnd,
+		handleTouchCancel,
 		handleBottomPointerDown,
 		handleBottomPointerMove,
 		handleBottomPointerUp,
@@ -161,7 +174,7 @@ function HomeScreen() {
 		appToOpen,
 		currentPage,
 		setCurrentPage,
-		closeApp,
+		closeApp: handleCloseApp,
 		setCurrentApp,
 		appContainerRef,
 		notificationCenterRef,
@@ -172,15 +185,21 @@ function HomeScreen() {
 		onOpenControlCenter: handleOpenControlCenter,
 	});
 
-
 	// --- App State ---
 	const [isOpening, setIsOpening] = useState(false);
-	const [appOpenOrigin, setAppOpenOrigin] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+	const [appOpenOrigin, setAppOpenOrigin] = useState<{
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	} | null>(null);
 	const currentPageRef = useRef(0);
-	useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
+	useEffect(() => {
+		currentPageRef.current = currentPage;
+	}, [currentPage]);
 
 	// Drag handlers with cross-container support
-	const { handleDragStart, handleDragOver, handleDragEnd } = useDragHandlers({
+	const { handleDragStart, handleDragOver, handleDragEnd, handleDragCancel } = useDragHandlers({
 		iosAppPositions,
 		page0Items,
 		page1Items,
@@ -193,7 +212,6 @@ function HomeScreen() {
 	});
 
 	const statusBarColors = useMemo(() => {
-
 		const appId = currentApp || appToOpen;
 		if (!appId) return { backgroundColor: 'transparent', textColor: 'white' };
 		const isDark = darkMode;
@@ -205,60 +223,76 @@ function HomeScreen() {
 	}, [currentApp, appToOpen, darkMode]);
 
 	// --- Handlers ---
-	const pageAwareCollisionDetection = useCallback<CollisionDetection>((args) => {
-		const { droppableContainers, ...rest } = args;
-		const validPageIds = currentPage === 0 ? page0Items : page1Items;
-		const allValidIds = [...validPageIds, ...dockItemIds];
-		const filteredContainers = droppableContainers.filter(container => {
-			return allValidIds.includes(container.id as string);
-		});
-
-		return closestCenter({
-			...rest,
-			droppableContainers: filteredContainers
-		});
-	}, [page0Items, page1Items, dockItemIds, currentPage]);
-
-	const openTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-	const handleAppClick = useCallback((appId: string) => {
-		if (isDragging) return;
-
-		// SYNCHRONOUSLY kill any pending close timeout to prevent race condition
-		cancelPendingClose();
-
-		triggerHaptic('light');
-
-		const iconElement = document.querySelector(`[data-app-id="${appId}"]`) as HTMLElement;
-		if (iconElement) {
-			const rect = iconElement.getBoundingClientRect();
-			setAppOpenOrigin({
-				x: rect.left,
-				y: rect.top,
-				width: rect.width,
-				height: rect.height,
+	const pageAwareCollisionDetection = useCallback<CollisionDetection>(
+		args => {
+			const { droppableContainers, ...rest } = args;
+			const validPageIds = currentPage === 0 ? page0Items : page1Items;
+			const allValidIds = [...validPageIds, ...dockItemIds];
+			const filteredContainers = droppableContainers.filter(container => {
+				return allValidIds.includes(container.id as string);
 			});
-		} else {
-			setAppOpenOrigin(null);
-		}
 
-		if (openTimeoutRef.current) {
-			clearTimeout(openTimeoutRef.current);
-			openTimeoutRef.current = null;
-		}
+			return closestCenter({
+				...rest,
+				droppableContainers: filteredContainers,
+			});
+		},
+		[page0Items, page1Items, dockItemIds, currentPage]
+	);
 
-		// Instant App Activation
-		launchApp(appId);
-		setCurrentApp(appId);
-		setAppToOpen(appId);
-		setIsOpening(true);
+	const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-		openTimeoutRef.current = setTimeout(() => {
-			setAppToOpen(null);
-			setIsOpening(false);
-			openTimeoutRef.current = null;
-		}, 260);
-	}, [isDragging, launchApp, cancelPendingClose, currentApp]);
+	// Clear a pending app-open if the home screen unmounts first.
+	useEffect(() => {
+		return () => {
+			if (openTimeoutRef.current) {
+				clearTimeout(openTimeoutRef.current);
+				openTimeoutRef.current = null;
+			}
+		};
+	}, []);
+
+	const handleAppClick = useCallback(
+		(appId: string) => {
+			if (isDragging) return;
+
+			// SYNCHRONOUSLY kill any pending close timeout to prevent race condition
+			cancelPendingClose();
+
+			triggerHaptic('light');
+
+			const iconElement = document.querySelector(`[data-app-id="${appId}"]`) as HTMLElement;
+			if (iconElement) {
+				const rect = iconElement.getBoundingClientRect();
+				setAppOpenOrigin({
+					x: rect.left,
+					y: rect.top,
+					width: rect.width,
+					height: rect.height,
+				});
+			} else {
+				setAppOpenOrigin(null);
+			}
+
+			if (openTimeoutRef.current) {
+				clearTimeout(openTimeoutRef.current);
+				openTimeoutRef.current = null;
+			}
+
+			// Instant App Activation
+			launchApp(appId);
+			setCurrentApp(appId);
+			setAppToOpen(appId);
+			setIsOpening(true);
+
+			openTimeoutRef.current = setTimeout(() => {
+				setAppToOpen(null);
+				setIsOpening(false);
+				openTimeoutRef.current = null;
+			}, 260);
+		},
+		[isDragging, launchApp, cancelPendingClose]
+	);
 
 	// --- Render Helpers ---
 	const renderGridItem = (id: string, _index: number) => {
@@ -270,7 +304,15 @@ function HomeScreen() {
 		} else {
 			// ENABLE empty slots as drop targets (remove disabled=true).
 			// They are not draggable because we don't attach listeners in SortableAppIcon if isEmpty=true.
-			return <SortableAppIcon key={id} id={id} app={{ id, name: '', icon: '', platform: 'ios', component: 'none' }} onClick={() => { }} isEmpty={true} />;
+			return (
+				<SortableAppIcon
+					key={id}
+					id={id}
+					app={{ id, name: '', icon: '', platform: 'ios', component: 'placeholder' }}
+					onClick={() => {}}
+					isEmpty={true}
+				/>
+			);
 		}
 	};
 
@@ -282,10 +324,7 @@ function HomeScreen() {
 				{/* Pass isDragging=false to AppIcon so it renders fully opaque without the 'ios-dragging' styles that might reduce opacity.
 				    The opacity/ghosting of the *original* item is handled by SortableAppIcon. 
 					The *dragged* copy (overlay) should be clear and solid. */}
-				<AppIcon
-					app={app}
-					isDragging={false}
-				/>
+				<AppIcon app={app} isDragging={false} />
 			</div>
 		);
 	};
@@ -304,15 +343,24 @@ function HomeScreen() {
 
 	return (
 		<ErrorBoundary>
-			<div className="ios-homescreen w-screen h-screen overflow-hidden relative touch-pan-x"
+			<div
+				className="ios-homescreen w-screen h-screen overflow-hidden relative touch-pan-x"
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
 				onTouchEnd={handleTouchEnd}
+				onTouchCancel={handleTouchCancel}
 			>
 				{/* Wallpaper */}
 				<div key={wallpaper} className="wallpaper absolute inset-0 -z-10">
 					{wallpaper.startsWith('/') || wallpaper.startsWith('http') ? (
-						<Image src={wallpaper} alt="Wallpaper" fill className="object-cover" priority unoptimized />
+						<Image
+							src={wallpaper}
+							alt="Wallpaper"
+							fill
+							className="object-cover"
+							priority
+							unoptimized
+						/>
 					) : (
 						<div className="w-full h-full" style={{ background: wallpaper }}></div>
 					)}
@@ -333,6 +381,7 @@ function HomeScreen() {
 					onDragStart={handleDragStart}
 					onDragOver={handleDragOver}
 					onDragEnd={handleDragEnd}
+					onDragCancel={handleDragCancel}
 					measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
 				>
 					{/* Drag Monitor for Auto-Scroll */}
@@ -382,17 +431,19 @@ function HomeScreen() {
 						</div>
 					</div>
 
-					<DragOverlay>
-						{activeId ? renderOverlayItem(activeId) : null}
-					</DragOverlay>
+					<DragOverlay>{activeId ? renderOverlayItem(activeId) : null}</DragOverlay>
 
 					<HomeScreenDock apps={dockApps} onAppClick={handleAppClick} />
 				</DndContext>
-
 			</div>
 
 			<HomeScreenAppContainer
 				Component={Component}
+				appName={
+					currentApp || appToOpen
+						? (appsMap.get(currentApp || appToOpen || '')?.name ?? undefined)
+						: undefined
+				}
 				appContainerRef={appContainerRef}
 				isOpening={isOpening}
 				currentApp={currentApp}
@@ -431,4 +482,3 @@ function HomeScreen() {
 }
 
 export default HomeScreen;
-

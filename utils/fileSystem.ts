@@ -3,6 +3,8 @@
  * Manages file and folder structure in browser storage
  */
 
+import { generateId } from './id';
+
 export interface FileItem {
 	id: string;
 	name: string;
@@ -77,8 +79,31 @@ function getDefaultFileSystem(): FileSystemData {
 	};
 }
 
+function isValidFileItem(item: unknown): item is FileItem {
+	if (typeof item !== 'object' || item === null) return false;
+	const record = item as Record<string, unknown>;
+	if (typeof record.id !== 'string' || typeof record.name !== 'string') return false;
+	if (record.type !== 'file' && record.type !== 'folder') return false;
+	if (record.parentId !== null && typeof record.parentId !== 'string') return false;
+	if (typeof record.modified !== 'string' || typeof record.created !== 'string') return false;
+	return true;
+}
+
+export function isValidFileSystemData(data: unknown): data is FileSystemData {
+	if (typeof data !== 'object' || data === null) return false;
+	const record = data as Record<string, unknown>;
+	// An empty items array is a valid filesystem (e.g. user deleted everything).
+	if (!Array.isArray(record.items)) return false;
+	return record.items.every(isValidFileItem);
+}
+
 /**
- * Load file system from localStorage
+ * Load file system from localStorage.
+ *
+ * - Absent storage: seed and persist defaults.
+ * - Valid storage (including an empty `items` array): returned as-is.
+ * - Invalid/unreadable storage: defaults are returned for rendering, but the
+ *   original payload is left untouched so it can be recovered or migrated.
  */
 export function loadFileSystem(): FileSystemData {
 	if (typeof window === 'undefined') {
@@ -87,34 +112,37 @@ export function loadFileSystem(): FileSystemData {
 
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored) {
-			const parsed = JSON.parse(stored);
-			if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
-				return parsed;
-			}
+		if (stored === null) {
+			const defaultData = getDefaultFileSystem();
+			saveFileSystem(defaultData);
+			return defaultData;
 		}
-	} catch {
-		// Silent fail, return default
+		const parsed: unknown = JSON.parse(stored);
+		if (isValidFileSystemData(parsed)) {
+			return parsed;
+		}
+		console.warn('[fileSystem] stored data failed validation, using in-memory defaults');
+		return getDefaultFileSystem();
+	} catch (error) {
+		console.warn('[fileSystem] failed to read stored data, using in-memory defaults', error);
+		return getDefaultFileSystem();
 	}
-
-	// Initialize with default data
-	const defaultData = getDefaultFileSystem();
-	saveFileSystem(defaultData);
-	return defaultData;
 }
 
-
 /**
- * Save file system to localStorage
+ * Save file system to localStorage.
+ * Returns true when the data was actually persisted.
  */
-export function saveFileSystem(data: FileSystemData): void {
-	if (typeof window === 'undefined') return;
+export function saveFileSystem(data: FileSystemData): boolean {
+	if (typeof window === 'undefined') return false;
 
 	try {
 		data.lastModified = new Date().toISOString();
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-	} catch {
-		// Silent fail
+		return true;
+	} catch (error) {
+		console.warn('[fileSystem] failed to persist data', error);
+		return false;
 	}
 }
 
@@ -123,7 +151,7 @@ export function saveFileSystem(data: FileSystemData): void {
  */
 export function getItemsInFolder(parentId: string | null): FileItem[] {
 	const fs = loadFileSystem();
-	return fs.items.filter((item) => item.parentId === parentId);
+	return fs.items.filter(item => item.parentId === parentId);
 }
 
 /**
@@ -131,18 +159,18 @@ export function getItemsInFolder(parentId: string | null): FileItem[] {
  */
 export function getItemById(id: string): FileItem | undefined {
 	const fs = loadFileSystem();
-	return fs.items.find((item) => item.id === id);
+	return fs.items.find(item => item.id === id);
 }
 
 /**
- * Create a new folder
+ * Create a new folder. Returns null when the change could not be persisted.
  */
-export function createFolder(name: string, parentId: string | null): FileItem {
+export function createFolder(name: string, parentId: string | null): FileItem | null {
 	const fs = loadFileSystem();
 	const now = new Date().toISOString();
 
 	const newFolder: FileItem = {
-		id: `folder-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+		id: generateId('folder'),
 		name,
 		type: 'folder',
 		parentId,
@@ -151,7 +179,9 @@ export function createFolder(name: string, parentId: string | null): FileItem {
 	};
 
 	fs.items.push(newFolder);
-	saveFileSystem(fs);
+	if (!saveFileSystem(fs)) {
+		return null;
+	}
 
 	return newFolder;
 }
@@ -164,12 +194,12 @@ export function createFile(
 	parentId: string | null,
 	content: string = '',
 	size?: number
-): FileItem {
+): FileItem | null {
 	const fs = loadFileSystem();
 	const now = new Date().toISOString();
 
 	const newFile: FileItem = {
-		id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+		id: generateId('file'),
 		name,
 		type: 'file',
 		parentId,
@@ -180,7 +210,9 @@ export function createFile(
 	};
 
 	fs.items.push(newFile);
-	saveFileSystem(fs);
+	if (!saveFileSystem(fs)) {
+		return null;
+	}
 
 	return newFile;
 }
@@ -190,24 +222,27 @@ export function createFile(
  */
 export function deleteItem(id: string): boolean {
 	const fs = loadFileSystem();
-	const item = fs.items.find((i) => i.id === id);
+	const item = fs.items.find(i => i.id === id);
 
 	if (!item) return false;
 
-	// If it's a folder, delete all children recursively
+	const idsToDelete = new Set<string>([id]);
 	if (item.type === 'folder') {
-		const childIds = fs.items
-			.filter((i) => i.parentId === id)
-			.map((i) => i.id);
-
-		childIds.forEach((childId) => deleteItem(childId));
+		const collectChildren = (parentId: string) => {
+			fs.items
+				.filter(i => i.parentId === parentId)
+				.forEach(child => {
+					idsToDelete.add(child.id);
+					if (child.type === 'folder') {
+						collectChildren(child.id);
+					}
+				});
+		};
+		collectChildren(id);
 	}
 
-	// Remove the item itself
-	fs.items = fs.items.filter((i) => i.id !== id);
-	saveFileSystem(fs);
-
-	return true;
+	fs.items = fs.items.filter(i => !idsToDelete.has(i.id));
+	return saveFileSystem(fs);
 }
 
 /**
@@ -215,15 +250,13 @@ export function deleteItem(id: string): boolean {
  */
 export function renameItem(id: string, newName: string): boolean {
 	const fs = loadFileSystem();
-	const item = fs.items.find((i) => i.id === id);
+	const item = fs.items.find(i => i.id === id);
 
 	if (!item) return false;
 
 	item.name = newName;
 	item.modified = new Date().toISOString();
-	saveFileSystem(fs);
-
-	return true;
+	return saveFileSystem(fs);
 }
 
 /**
@@ -231,7 +264,7 @@ export function renameItem(id: string, newName: string): boolean {
  */
 export function moveItem(id: string, newParentId: string | null): boolean {
 	const fs = loadFileSystem();
-	const item = fs.items.find((i) => i.id === id);
+	const item = fs.items.find(i => i.id === id);
 
 	if (!item) return false;
 
@@ -240,16 +273,14 @@ export function moveItem(id: string, newParentId: string | null): boolean {
 		let currentParent = newParentId;
 		while (currentParent) {
 			if (currentParent === id) return false;
-			const parent = fs.items.find((i) => i.id === currentParent);
+			const parent = fs.items.find(i => i.id === currentParent);
 			currentParent = parent?.parentId || null;
 		}
 	}
 
 	item.parentId = newParentId;
 	item.modified = new Date().toISOString();
-	saveFileSystem(fs);
-
-	return true;
+	return saveFileSystem(fs);
 }
 
 /**
@@ -257,7 +288,7 @@ export function moveItem(id: string, newParentId: string | null): boolean {
  */
 export function getItemCount(folderId: string): number {
 	const fs = loadFileSystem();
-	return fs.items.filter((item) => item.parentId === folderId).length;
+	return fs.items.filter(item => item.parentId === folderId).length;
 }
 
 /**
@@ -292,9 +323,7 @@ export function searchItems(query: string): FileItem[] {
 	const fs = loadFileSystem();
 	const lowerQuery = query.toLowerCase();
 
-	return fs.items.filter((item) =>
-		item.name.toLowerCase().includes(lowerQuery)
-	);
+	return fs.items.filter(item => item.name.toLowerCase().includes(lowerQuery));
 }
 
 /**
@@ -310,14 +339,13 @@ export function resetFileSystem(): void {
  */
 export function updateFileContent(id: string, content: string): boolean {
 	const fs = loadFileSystem();
-	const item = fs.items.find((i) => i.id === id);
+	const item = fs.items.find(i => i.id === id);
 	if (!item || item.type !== 'file') return false;
 
 	item.content = content;
 	item.size = new Blob([content]).size;
 	item.modified = new Date().toISOString();
-	saveFileSystem(fs);
-	return true;
+	return saveFileSystem(fs);
 }
 
 /**
@@ -330,7 +358,7 @@ export function getBreadcrumbs(folderId: string | null): FileItem[] {
 	let currentId: string | null = folderId;
 
 	while (currentId) {
-		const item = fs.items.find((i) => i.id === currentId);
+		const item = fs.items.find(i => i.id === currentId);
 		if (!item) break;
 		crumbs.unshift(item);
 		currentId = item.parentId;
@@ -340,9 +368,10 @@ export function getBreadcrumbs(folderId: string | null): FileItem[] {
 }
 
 /**
- * Get folder ID by slash-separated path (e.g. "Documents" or "Documents/Projects")
+ * Get folder ID by slash-separated path (e.g. "Documents" or "Documents/Projects").
+ * Returns null for root, or undefined when the path cannot be resolved.
  */
-export function resolveFolderPath(pathStr: string): string | null {
+export function resolveFolderPath(pathStr: string): string | null | undefined {
 	const normalized = pathStr.trim().replace(/^\/+|\/+$/g, '');
 	if (!normalized || normalized === '~' || normalized === '.') return null;
 
@@ -353,7 +382,7 @@ export function resolveFolderPath(pathStr: string): string | null {
 	for (const part of parts) {
 		if (part === '..') {
 			if (currentParentId) {
-				const parentItem = fs.items.find((i) => i.id === currentParentId);
+				const parentItem = fs.items.find(i => i.id === currentParentId);
 				currentParentId = parentItem?.parentId || null;
 			}
 			continue;
@@ -361,12 +390,14 @@ export function resolveFolderPath(pathStr: string): string | null {
 		if (part === '.' || part === '~') continue;
 
 		const match = fs.items.find(
-			(i) => i.type === 'folder' && i.parentId === currentParentId && i.name.toLowerCase() === part.toLowerCase()
+			i =>
+				i.type === 'folder' &&
+				i.parentId === currentParentId &&
+				i.name.toLowerCase() === part.toLowerCase()
 		);
-		if (!match) return undefined as unknown as null; // Not found
+		if (!match) return undefined; // Not found
 		currentParentId = match.id;
 	}
 
 	return currentParentId;
 }
-

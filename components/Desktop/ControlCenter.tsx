@@ -102,16 +102,43 @@ const SmoothSlider = ({ value, onChange, icon, label: _label, endIcon }: SmoothS
 		};
 	}, [isDragging, handleMove]);
 
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			const step = 5;
+			if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+				e.preventDefault();
+				onChange(Math.min(100, Math.round(value + step)));
+			} else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+				e.preventDefault();
+				onChange(Math.max(0, Math.round(value - step)));
+			} else if (e.key === 'Home') {
+				e.preventDefault();
+				onChange(0);
+			} else if (e.key === 'End') {
+				e.preventDefault();
+				onChange(100);
+			}
+		},
+		[value, onChange]
+	);
+
 	return (
 		<div
 			ref={containerRef}
+			role="slider"
+			tabIndex={0}
+			aria-label={_label || 'Level control'}
+			aria-valuemin={0}
+			aria-valuemax={100}
+			aria-valuenow={Math.round(value)}
 			// Use pointer-events-auto to capture clicks
-			className="relative h-11 w-full bg-black/20 dark:bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden cursor-pointer group select-none touch-none"
+			className="relative h-11 w-full bg-black/20 dark:bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden cursor-pointer group select-none touch-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#007AFF]"
 			onMouseDown={e => {
 				e.preventDefault(); // Prevent text selection
 				handleStart(e.clientX);
 			}}
 			onTouchStart={e => handleStart(e.touches[0].clientX)}
+			onKeyDown={handleKeyDown}
 		>
 			{/* Fill Bar */}
 			<div
@@ -177,8 +204,9 @@ export default function ControlCenter() {
 		<>
 			{/* Overlay */}
 			<div
-				className={`control-center-overlay fixed top-7 left-0 right-0 bottom-0 z-40 bg-transparent ${isOpen ? 'visible opacity-100' : 'invisible opacity-0 pointer-events-none'
-					}`}
+				className={`control-center-overlay fixed top-7 left-0 right-0 bottom-0 z-40 bg-transparent ${
+					isOpen ? 'visible opacity-100' : 'invisible opacity-0 pointer-events-none'
+				}`}
 				onClick={close}
 				role="button"
 				tabIndex={-1}
@@ -187,18 +215,23 @@ export default function ControlCenter() {
 
 			{/* Control Center Panel */}
 			<div
-				className={`control-center fixed top-8 right-6 w-80 z-55 p-3.5 ${isOpen ? 'control-center-open' : 'control-center-closed'
-					}`}
+				className={`control-center fixed top-8 right-6 w-80 z-55 p-3.5 transition-opacity duration-200 ${
+					isOpen
+						? 'control-center-open visible opacity-100'
+						: 'control-center-closed invisible opacity-0 pointer-events-none'
+				}`}
 				onClick={e => e.stopPropagation()}
 				data-debug="control-center"
+				aria-hidden={!isOpen}
 			>
 				<div className="control-center-content">
 					{/* Top Section: Connectivity & Quick Actions - Compact Grid */}
 					<div className="grid grid-cols-4 gap-2 mb-2.5">
 						{/* Wi-Fi */}
 						<button
-							className={`control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${wifiEnabled ? 'control-button-active' : ''
-								}`}
+							className={`control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
+								wifiEnabled ? 'control-button-active' : ''
+							}`}
 							onClick={() => setWifiEnabled(!wifiEnabled)}
 							aria-label={`Wi-Fi ${wifiEnabled ? 'On' : 'Off'}`}
 						>
@@ -209,8 +242,9 @@ export default function ControlCenter() {
 
 						{/* Bluetooth */}
 						<button
-							className={`control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${bluetoothEnabled ? 'control-button-active' : ''
-								}`}
+							className={`control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
+								bluetoothEnabled ? 'control-button-active' : ''
+							}`}
 							onClick={() => setBluetoothEnabled(!bluetoothEnabled)}
 							aria-label={`Bluetooth ${bluetoothEnabled ? 'On' : 'Off'}`}
 						>
@@ -221,8 +255,9 @@ export default function ControlCenter() {
 
 						{/* Focus */}
 						<button
-							className={`control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${focusEnabled ? 'control-button-active' : ''
-								}`}
+							className={`control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
+								focusEnabled ? 'control-button-active' : ''
+							}`}
 							onClick={() => setFocusEnabled(!focusEnabled)}
 							aria-label={`Focus ${focusEnabled ? 'On' : 'Off'}`}
 						>
@@ -344,4 +379,3 @@ export default function ControlCenter() {
 		</>
 	);
 }
-
