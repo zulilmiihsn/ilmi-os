@@ -193,6 +193,16 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 
 **Selesai bila investigasi dipilih:** ada baseline dan hasil perbandingan yang reproducible; perubahan hanya diterima bila manfaatnya terbukti tanpa regresi visual/deploy.
 
+## Tahap 9: Folder (fitur)
+
+**Status:** diimplementasi dan terverifikasi. Desain: folder menempati 1 slot posisi di model yang sama; hover 800ms tanpa gerak (>16px me-reset timer) membuat folder; tidak ada nesting; tidak masuk dock; max 9 isi; hapus hingga 1 anggota membubarkan folder; keluarkan via tombol di folder view (bukan drag fisik).
+
+- [x] Model `folders` + aksi `createFolder`/`moveAppIntoFolder`/`removeAppFromFolder` di apps store (13 unit test: slot target, guard dock/full/self, dissolve, keunikan posisi).
+- [x] `FolderIcon` (preview mini) + `FolderView` (dialog: launch, keluarkan, tutup; focus-return + trap + Escape).
+- [x] Hover-create + drop-onto-folder + guard zombie-drag + larangan folder-ke-dock di drag handlers.
+- [x] Perbaikan bug temuan: timer folder bisa menyala sesudah drop (sekarang dibatalkan saat drop + verifikasi target masih sama); sapuan cepat tak lagi memicu folder (reset saat pointer bergerak).
+- [x] Browser test end-to-end: hover-create → buka → keluarkan → bubar → app kembali; unit 54 + browser 19 hijau.
+
 ## Urutan dan Definition of Done
 
 1. Catat baseline dan lindungi data pengguna pada Tahap 2; hardening kecil Tahap 1 dapat dikerjakan independen.

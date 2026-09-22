@@ -45,6 +45,52 @@ describe('store APIs (Tahap 7)', () => {
 		expect(new Set(values).size).toBe(values.length);
 	});
 
+	it('creates a folder from two apps at the target slot', () => {
+		useAppsStore.setState({ iosAppPositions: { a: 0, b: 1, c: 2 }, folders: {} });
+		const folderId = useAppsStore.getState().createFolder('a', 'c');
+		expect(folderId).not.toBeNull();
+		const state = useAppsStore.getState();
+		expect(state.folders[folderId!]).toMatchObject({ appIds: ['c', 'a'] });
+		expect(state.iosAppPositions[folderId!]).toBe(2);
+		expect(state.iosAppPositions.a).toBeUndefined();
+		expect(state.iosAppPositions.c).toBeUndefined();
+		// b compacts into the vacated slot 0: no holes, no duplicates.
+		expect(state.iosAppPositions.b).toBe(0);
+		const values = Object.values(state.iosAppPositions);
+		expect(new Set(values).size).toBe(values.length);
+	});
+
+	it('rejects folder creation involving folders, self, or dock apps', () => {
+		useAppsStore.setState({
+			iosAppPositions: { a: 0, b: 1, d: 100 },
+			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x'] } },
+		});
+		const store = useAppsStore.getState();
+		expect(store.createFolder('a', 'a')).toBeNull();
+		expect(store.createFolder('a', 'f1')).toBeNull();
+		expect(store.createFolder('f1', 'b')).toBeNull();
+		expect(store.createFolder('d', 'b')).toBeNull();
+		expect(store.createFolder('a', 'missing')).toBeNull();
+	});
+
+	it('moves apps into folders and dissolves on last removal', () => {
+		useAppsStore.setState({
+			iosAppPositions: { a: 0, b: 1, c: 2, f1: 5 },
+			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x'] } },
+		});
+		expect(useAppsStore.getState().moveAppIntoFolder('c', 'f1')).toBe(true);
+		let state = useAppsStore.getState();
+		expect(state.folders.f1.appIds).toEqual(['x', 'c']);
+		expect(state.iosAppPositions.c).toBeUndefined();
+
+		expect(useAppsStore.getState().removeAppFromFolder('x', 'f1')).toBe(true);
+		state = useAppsStore.getState();
+		// One app left: folder dissolves and it inherits the folder slot.
+		// (Slot 5 compacted to 4 when c left the page, then inherited.)
+		expect(state.folders.f1).toBeUndefined();
+		expect(state.iosAppPositions.c).toBe(4);
+	});
+
 	it('refuses moves into a full page instead of overflowing regions', () => {
 		const fullPage: Record<string, number> = {};
 		for (let i = 0; i < 24; i++) fullPage[`app${i}`] = i;

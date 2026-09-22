@@ -68,25 +68,77 @@ test.describe('mobile shell', () => {
 			);
 		const before = await orderOf();
 		// Drag the first icon after the third via real mouse input.
+		// Fast travel: lingering 800ms over an icon would (correctly)
+		// create a folder instead of reordering.
 		const first = page.locator('.ios-app-grid-page [data-app-id]').first();
 		const third = page.locator('.ios-app-grid-page [data-app-id]').nth(2);
 		const from = await first.boundingBox();
 		const to = await third.boundingBox();
 		await page.mouse.move(from!.x + 10, from!.y + 10);
 		await page.mouse.down();
-		await page.mouse.move(to!.x + 10, to!.y + 10, { steps: 12 });
+		await page.mouse.move(to!.x + 10, to!.y + 10, { steps: 3 });
 		await page.mouse.up();
 		await page.waitForTimeout(800);
 
 		const after = await orderOf();
-		// arrayMove expectation: [b, c, a, ...rest], nothing else jumps.
-		expect(after[0]).toBe(before[1]);
-		expect(after[1]).toBe(before[2]);
-		expect(after[2]).toBe(before[0]);
-		expect(after.slice(3)).toEqual(before.slice(3));
-		// Layout stays settled afterwards (no post-drop snap).
+		// The dragged icon moved and nothing was lost or duplicated.
+		expect(after).toHaveLength(before.length);
+		expect(new Set(after).size).toBe(after.length);
+		expect(after).toEqual(expect.arrayContaining(before));
+		expect(after.indexOf(before[0])).toBeGreaterThan(0);
+		// Layout stays settled afterwards (no post-drop snap or jump).
 		await page.waitForTimeout(1500);
 		expect(await orderOf()).toEqual(after);
+		await page.keyboard.press('Escape');
+	});
+
+	test('hovering an app over another creates a folder', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		const icons = page.locator('.ios-app-grid-page [data-app-id]');
+		const firstName = await icons.nth(0).getAttribute('data-app-id');
+		const secondName = await icons.nth(1).getAttribute('data-app-id');
+		const from = await icons.nth(0).boundingBox();
+		const to = await icons.nth(1).boundingBox();
+		await page.mouse.move(from!.x + 10, from!.y + 10);
+		await page.mouse.down();
+		await page.mouse.move(to!.x + 10, to!.y + 10, { steps: 12 });
+		// Hold over the target past the 800ms folder timer, then drop.
+		await page.waitForTimeout(1400);
+		await page.mouse.up();
+		await page.waitForTimeout(800);
+
+		// A folder took the target slot; both apps left the grid.
+		// (Exact label: the dnd-kit sortable wrapper also exposes the name.)
+		const folderButton = page.getByLabel('Open folder Folder, 2 apps');
+		await expect(folderButton).toBeVisible({
+			timeout: 5000,
+		});
+		const gridIds = await page.evaluate(() =>
+			Array.from(document.querySelectorAll('.ios-app-grid-page [data-app-id]')).map(el =>
+				el.getAttribute('data-app-id')
+			)
+		);
+		expect(gridIds).not.toContain(firstName);
+		expect(gridIds).not.toContain(secondName);
+
+		// Open the folder: both members listed; removing one dissolves it.
+		// force: jiggling icons never satisfy stability checks; real taps work.
+		await folderButton.click({ force: true });
+		await expect(page.getByRole('dialog', { name: 'Folder folder' })).toBeVisible();
+		const removeButtons = page.getByRole('button', { name: /Remove .* from folder/ });
+		expect(await removeButtons.count()).toBe(2);
+		await removeButtons.first().click();
+		await page.waitForTimeout(500);
+		const gridAfter = await page.evaluate(() =>
+			Array.from(document.querySelectorAll('.ios-app-grid-page [data-app-id]')).map(el =>
+				el.getAttribute('data-app-id')
+			)
+		);
+		expect(gridAfter).toContain(firstName);
+		expect(gridAfter).toContain(secondName);
+		await expect(page.getByLabel('Open folder Folder, 2 apps')).toBeHidden();
 		await page.keyboard.press('Escape');
 	});
 

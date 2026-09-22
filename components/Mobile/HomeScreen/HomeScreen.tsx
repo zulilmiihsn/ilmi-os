@@ -27,6 +27,7 @@ import AppIcon from '../AppIcon';
 import SortableAppIcon from './SortableAppIcon';
 import Widget from '../Widget';
 import { useAppsStore } from '../../../stores/apps';
+import FolderView from './FolderView';
 import { isIosApp } from '../../../types';
 import { useSettingsStore } from '../../../stores/settings';
 import { getAppComponent } from '../../../utils/appComponents';
@@ -43,11 +44,13 @@ import { useHomeScreenGestures } from './useHomeScreenGestures';
 // Helper to generate empty slot IDs
 const getEmptySlotId = (page: number, index: number) => `empty-${page}-${index}`;
 
-// Helper to generate page items (pure function, no hooks)
+// Helper to generate page items (pure function, no hooks).
+// Folder ids share the position map and occupy slots like apps.
 const computePageItems = (
 	pageIndex: number,
 	positions: Record<string, number>,
-	appsList: { id: string }[]
+	appsList: { id: string }[],
+	folderIds: string[]
 ) => {
 	const items: string[] = [];
 	const PAGE_SIZE = pageIndex === 0 ? IOS_LAYOUT.PAGE0_SIZE : IOS_LAYOUT.PAGE1_SIZE;
@@ -57,7 +60,12 @@ const computePageItems = (
 	for (let i = 0; i < PAGE_SIZE; i++) {
 		const absoluteIndex = offset + i;
 		const app = appsList.find(a => positions[a.id] === absoluteIndex);
-		items.push(app ? app.id : getEmptySlotId(pageIndex, i));
+		if (app) {
+			items.push(app.id);
+			continue;
+		}
+		const folderId = folderIds.find(id => positions[id] === absoluteIndex);
+		items.push(folderId ?? getEmptySlotId(pageIndex, i));
 	}
 	return items;
 };
@@ -77,8 +85,12 @@ function HomeScreen() {
 	const { wallpaper, darkMode } = useSettingsStore();
 
 	const iosAppPositions = useAppsStore(state => state.iosAppPositions);
+	const folders = useAppsStore(state => state.folders);
 	const launchApp = useAppsStore(state => state.launchApp);
 	const closeApp = useAppsStore(state => state.closeApp);
+	const [openFolderId, setOpenFolderId] = useState<string | null>(null);
+
+	const openFolder = openFolderId ? folders[openFolderId] : undefined;
 	const reorderIosApps = useAppsStore(state => state.reorderIosApps);
 
 	const apps = useMemo(() => allApps.filter(isIosApp), [allApps]);
@@ -99,10 +111,10 @@ function HomeScreen() {
 
 	// Lazy initial state (computed once on mount)
 	const [page0Items, setPage0Items] = useState<string[]>(() =>
-		computePageItems(0, iosAppPositions, apps)
+		computePageItems(0, iosAppPositions, apps, [])
 	);
 	const [page1Items, setPage1Items] = useState<string[]>(() =>
-		computePageItems(1, iosAppPositions, apps)
+		computePageItems(1, iosAppPositions, apps, [])
 	);
 	const [dockItemIds, setDockItemIds] = useState<string[]>(() => computeDockItems(iosAppPositions));
 
@@ -117,14 +129,15 @@ function HomeScreen() {
 
 		// Use ref for apps to avoid it being a dependency
 		const currentApps = appsRef.current;
-		const newPage0 = computePageItems(0, iosAppPositions, currentApps);
-		const newPage1 = computePageItems(1, iosAppPositions, currentApps);
+		const currentFolderIds = Object.keys(folders);
+		const newPage0 = computePageItems(0, iosAppPositions, currentApps, currentFolderIds);
+		const newPage1 = computePageItems(1, iosAppPositions, currentApps, currentFolderIds);
 		const newDock = computeDockItems(iosAppPositions);
 
 		setPage0Items(prev => (JSON.stringify(prev) === JSON.stringify(newPage0) ? prev : newPage0));
 		setPage1Items(prev => (JSON.stringify(prev) === JSON.stringify(newPage1) ? prev : newPage1));
 		setDockItemIds(prev => (JSON.stringify(prev) === JSON.stringify(newDock) ? prev : newDock));
-	}, [iosAppPositions, isDragging]); // Removed apps from dependencies
+	}, [iosAppPositions, isDragging, folders]);
 
 	// --- Sensors ---
 	const sensors = useSensors(
@@ -224,6 +237,17 @@ function HomeScreen() {
 		setPage1Items,
 		setDockItemIds,
 		reorderIosApps,
+		isFolderId: useCallback((id: string) => useAppsStore.getState().isFolderId(id), []),
+		onCreateFolder: useCallback((draggedAppId: string, targetAppId: string) => {
+			const folderId = useAppsStore.getState().createFolder(draggedAppId, targetAppId);
+			if (folderId) triggerHaptic('medium');
+			return folderId !== null;
+		}, []),
+		onMoveIntoFolder: useCallback((appId: string, folderId: string) => {
+			const ok = useAppsStore.getState().moveAppIntoFolder(appId, folderId);
+			if (ok) triggerHaptic('medium');
+			return ok;
+		}, []),
 	});
 
 	const handleDragStart = useCallback(
@@ -359,13 +383,56 @@ function HomeScreen() {
 		[isDragging, launchApp, cancelPendingClose]
 	);
 
+	const openFolderView = useCallback((folderId: string) => {
+		triggerHaptic('light');
+		setOpenFolderId(folderId);
+	}, []);
+
+	const launchFolderApp = useCallback(
+		(appId: string) => {
+			setOpenFolderId(null);
+			handleAppClick(appId);
+		},
+		[handleAppClick]
+	);
+
+	const removeFolderApp = useCallback((folderId: string, appId: string) => {
+		const ok = useAppsStore.getState().removeAppFromFolder(appId, folderId);
+		if (ok) triggerHaptic('medium');
+		if (!useAppsStore.getState().folders[folderId]) {
+			setOpenFolderId(null);
+		}
+	}, []);
+
 	// --- Render Helpers ---
 	const renderGridItem = (id: string, _index: number) => {
+		const folder = folders[id];
+		if (folder) {
+			return (
+				<SortableAppIcon
+					key={id}
+					id={id}
+					app={{ id, name: folder.name, icon: '', platform: 'ios', component: 'placeholder' }}
+					onClick={() => openFolderView(id)}
+					isEditing={isEditing}
+					folder={folder}
+					onOpenFolder={openFolderView}
+				/>
+			);
+		}
 		const isApp = !id.startsWith('empty-');
 		if (isApp) {
 			const app = appsMap.get(id);
 			if (!app) return null;
-			return <SortableAppIcon key={id} id={id} app={app} onClick={handleAppClick} />;
+			return (
+				<SortableAppIcon
+					key={id}
+					id={id}
+					app={app}
+					onClick={handleAppClick}
+					isEditing={isEditing}
+				/>
+			);
 		} else {
 			// ENABLE empty slots as drop targets (remove disabled=true).
 			// They are not draggable because we don't attach listeners in SortableAppIcon if isEmpty=true.
@@ -520,6 +587,15 @@ function HomeScreen() {
 					<HomeScreenDock apps={dockApps} onAppClick={handleAppClick} isEditing={isEditing} />
 				</DndContext>
 			</div>
+
+			{openFolder && (
+				<FolderView
+					folder={openFolder}
+					onClose={() => setOpenFolderId(null)}
+					onLaunchApp={launchFolderApp}
+					onRemoveApp={appId => openFolderId && removeFolderApp(openFolderId, appId)}
+				/>
+			)}
 
 			<HomeScreenAppContainer
 				Component={Component}

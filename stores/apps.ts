@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import type { AppMetadata } from '../types';
 import { isIosApp, isMacosApp } from '../types';
 import { IOS_LAYOUT } from '../constants';
+import { generateId } from '../utils/id';
+
+export interface AppFolder {
+	id: string;
+	name: string;
+	appIds: string[];
+}
+
+export const FOLDER_MAX_APPS = 9;
 
 function regionOf(pos: number): 'page0' | 'page1' | 'dock' {
 	if (pos >= IOS_LAYOUT.DOCK_BASE) return 'dock';
@@ -13,6 +22,18 @@ function regionBase(region: 'page0' | 'page1' | 'dock'): number {
 	if (region === 'dock') return IOS_LAYOUT.DOCK_BASE;
 	if (region === 'page1') return IOS_LAYOUT.PAGE1_BASE;
 	return 0;
+}
+
+/** First free absolute slot across both pages, or null when full. */
+export function findFreePageSlot(positions: Record<string, number>): number | null {
+	const used = new Set(Object.values(positions));
+	for (let i = 0; i < IOS_LAYOUT.PAGE0_SIZE; i++) {
+		if (!used.has(i)) return i;
+	}
+	for (let i = 0; i < IOS_LAYOUT.PAGE1_SIZE; i++) {
+		if (!used.has(IOS_LAYOUT.PAGE1_BASE + i)) return IOS_LAYOUT.PAGE1_BASE + i;
+	}
+	return null;
 }
 
 export const DOCK_START_POSITION = IOS_LAYOUT.DOCK_BASE;
@@ -189,17 +210,28 @@ interface AppsStore {
 	runningApps: string[];
 	/** Serializable appId -> grid position map (was Map). Single source of truth for layout. */
 	iosAppPositions: Record<string, number>;
+	/** Folders occupy position slots; member apps leave the position map. */
+	folders: Record<string, AppFolder>;
 	getAppById: (id: string) => AppMetadata | undefined;
 	launchApp: (id: string) => void;
 	closeApp: (id: string) => void;
 	isAppRunning: (id: string) => boolean;
 	reorderIosApps: (fromIndex: number, toIndex: number) => void;
+	getFolderById: (id: string) => AppFolder | undefined;
+	isFolderId: (id: string) => boolean;
+	/** Create a folder from two page apps; the folder takes target's slot. */
+	createFolder: (draggedAppId: string, targetAppId: string) => string | null;
+	/** Move a loose app into an existing folder. */
+	moveAppIntoFolder: (appId: string, folderId: string) => boolean;
+	/** Remove an app from a folder back to the first free page slot. */
+	removeAppFromFolder: (appId: string, folderId: string) => boolean;
 }
 
 export const useAppsStore = create<AppsStore>((set, get) => ({
 	apps: defaultApps,
 	runningApps: [],
 	iosAppPositions: buildInitialPositions(defaultApps),
+	folders: {},
 	getAppById: (id: string) => {
 		return get().apps.find(app => app.id === id);
 	},
@@ -266,6 +298,97 @@ export const useAppsStore = create<AppsStore>((set, get) => ({
 			}
 			return { iosAppPositions: newPositions };
 		});
+	},
+	getFolderById: id => {
+		return get().folders[id];
+	},
+	isFolderId: id => {
+		return get().folders[id] !== undefined;
+	},
+	createFolder: (draggedAppId, targetAppId) => {
+		const state = get();
+		if (draggedAppId === targetAppId) return null;
+		if (state.folders[draggedAppId] || state.folders[targetAppId]) return null;
+		const draggedPos = state.iosAppPositions[draggedAppId];
+		const targetPos = state.iosAppPositions[targetAppId];
+		if (draggedPos === undefined || targetPos === undefined) return null;
+		// Folders live on pages only, never in the dock.
+		if (regionOf(draggedPos) === 'dock' || regionOf(targetPos) === 'dock') return null;
+		const folderId = generateId('folder');
+		const newPositions = { ...state.iosAppPositions };
+		delete newPositions[draggedAppId];
+		delete newPositions[targetAppId];
+		// The folder takes the target slot. Close the dragged gap only
+		// strictly between the two slots (toward the dragged side): this
+		// mapping is bijective, so positions stay unique. Adjacent drops
+		// leave a single valid empty slot at the dragged position.
+		for (const [id, pos] of Object.entries(newPositions)) {
+			if (regionOf(pos) !== regionOf(draggedPos)) continue;
+			if (draggedPos < targetPos && pos > draggedPos && pos < targetPos) {
+				newPositions[id] = pos - 1;
+			} else if (draggedPos > targetPos && pos > targetPos && pos < draggedPos) {
+				newPositions[id] = pos + 1;
+			}
+		}
+		newPositions[folderId] = targetPos;
+		set({
+			iosAppPositions: newPositions,
+			folders: {
+				...state.folders,
+				[folderId]: { id: folderId, name: 'Folder', appIds: [targetAppId, draggedAppId] },
+			},
+		});
+		return folderId;
+	},
+	moveAppIntoFolder: (appId, folderId) => {
+		const state = get();
+		const folder = state.folders[folderId];
+		const pos = state.iosAppPositions[appId];
+		if (!folder || pos === undefined || state.folders[appId]) return false;
+		if (regionOf(pos) === 'dock') return false;
+		if (folder.appIds.length >= FOLDER_MAX_APPS) return false;
+		if (folder.appIds.includes(appId)) return false;
+		const newPositions = { ...state.iosAppPositions };
+		delete newPositions[appId];
+		for (const [id, p] of Object.entries(newPositions)) {
+			if (regionOf(p) === regionOf(pos) && p > pos) {
+				newPositions[id] = Math.max(regionBase(regionOf(pos)), p - 1);
+			}
+		}
+		set({
+			iosAppPositions: newPositions,
+			folders: {
+				...state.folders,
+				[folderId]: { ...folder, appIds: [...folder.appIds, appId] },
+			},
+		});
+		return true;
+	},
+	removeAppFromFolder: (appId, folderId) => {
+		const state = get();
+		const folder = state.folders[folderId];
+		if (!folder || !folder.appIds.includes(appId)) return false;
+		const folderPos = state.iosAppPositions[folderId];
+		if (folderPos === undefined) return false;
+		const remaining = folder.appIds.filter(id => id !== appId);
+		const freedSlot = findFreePageSlot(state.iosAppPositions);
+		if (freedSlot === null) return false;
+		const newPositions = { ...state.iosAppPositions };
+		const newFolders = { ...state.folders };
+		if (remaining.length <= 1) {
+			// Dissolve: the last app inherits the folder's slot.
+			delete newFolders[folderId];
+			delete newPositions[folderId];
+			if (remaining.length === 1) {
+				newPositions[remaining[0]] = folderPos;
+			}
+			newPositions[appId] = freedSlot;
+		} else {
+			newPositions[appId] = freedSlot;
+			newFolders[folderId] = { ...folder, appIds: remaining };
+		}
+		set({ iosAppPositions: newPositions, folders: newFolders });
+		return true;
 	},
 }));
 
