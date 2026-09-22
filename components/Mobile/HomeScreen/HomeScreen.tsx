@@ -13,6 +13,7 @@ import {
 	MouseSensor,
 	MeasuringStrategy,
 	CollisionDetection,
+	type DragStartEvent,
 } from '@dnd-kit/core';
 import {
 	SortableContext,
@@ -30,7 +31,7 @@ import { isIosApp } from '../../../types';
 import { useSettingsStore } from '../../../stores/settings';
 import { getAppComponent } from '../../../utils/appComponents';
 import { triggerHaptic } from '../../../utils/haptic';
-import { IOS_LAYOUT } from '../../../constants';
+import { DRAG, IOS_LAYOUT } from '../../../constants';
 import HomeScreenDock from './HomeScreenDock';
 import HomeScreenAppContainer from './HomeScreenAppContainer';
 import NotificationCenter from '../NotificationCenter/NotificationCenter';
@@ -88,6 +89,9 @@ function HomeScreen() {
 	// --- DND State ---
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const isDragging = activeId !== null;
+	// iOS-style edit (jiggle) mode: entered on drag start, left via Done,
+	// home indicator, app launch, or Escape.
+	const [isEditing, setIsEditing] = useState(false);
 
 	// Lazy initial state (computed once on mount)
 	const [page0Items, setPage0Items] = useState<string[]>(() =>
@@ -198,8 +202,14 @@ function HomeScreen() {
 		currentPageRef.current = currentPage;
 	}, [currentPage]);
 
-	// Drag handlers with cross-container support
-	const { handleDragStart, handleDragOver, handleDragEnd, handleDragCancel } = useDragHandlers({
+	// Drag handlers with cross-container support.
+	// Any drag start enters edit mode (long-press to rearrange, like iOS).
+	const {
+		handleDragStart: handleDragStartInner,
+		handleDragOver,
+		handleDragEnd,
+		handleDragCancel,
+	} = useDragHandlers({
 		iosAppPositions,
 		page0Items,
 		page1Items,
@@ -210,6 +220,35 @@ function HomeScreen() {
 		setDockItemIds,
 		reorderIosApps,
 	});
+
+	const handleDragStart = useCallback(
+		(event: DragStartEvent) => {
+			setIsEditing(true);
+			handleDragStartInner(event);
+		},
+		[handleDragStartInner]
+	);
+
+	const exitEditing = useCallback(() => setIsEditing(false), []);
+
+	// Home indicator: closes the open app, or leaves edit mode when idle.
+	const handleHomeIndicator = useCallback(() => {
+		if (currentApp || appToOpen) {
+			triggerCloseApp();
+		} else {
+			setIsEditing(false);
+		}
+	}, [currentApp, appToOpen, triggerCloseApp]);
+
+	// Escape leaves edit mode (dnd-kit already cancels an active drag).
+	useEffect(() => {
+		if (!isEditing) return;
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') setIsEditing(false);
+		};
+		window.addEventListener('keydown', onKeyDown);
+		return () => window.removeEventListener('keydown', onKeyDown);
+	}, [isEditing]);
 
 	const statusBarColors = useMemo(() => {
 		const appId = currentApp || appToOpen;
@@ -255,6 +294,9 @@ function HomeScreen() {
 	const handleAppClick = useCallback(
 		(appId: string) => {
 			if (isDragging) return;
+
+			// Opening an app leaves edit mode, like iOS.
+			setIsEditing(false);
 
 			// SYNCHRONOUSLY kill any pending close timeout to prevent race condition
 			cancelPendingClose();
@@ -320,7 +362,13 @@ function HomeScreen() {
 		const app = appsMap.get(id);
 		if (!app) return null;
 		return (
-			<div className="w-16 h-16 pointer-events-none">
+			<div
+				className="w-16 h-16 pointer-events-none"
+				style={{
+					transform: `scale(${DRAG.SCALE_ON_DRAG})`,
+					filter: 'drop-shadow(0 12px 16px rgba(0, 0, 0, 0.35))',
+				}}
+			>
 				{/* Pass isDragging=false to AppIcon so it renders fully opaque without the 'ios-dragging' styles that might reduce opacity.
 				    The opacity/ghosting of the *original* item is handled by SortableAppIcon. 
 					The *dragged* copy (overlay) should be clear and solid. */}
@@ -375,6 +423,17 @@ function HomeScreen() {
 					/>
 				)}
 
+				{isEditing && !currentApp && !appToOpen && (
+					<button
+						type="button"
+						onClick={exitEditing}
+						aria-label="Done editing home screen"
+						className="absolute top-12 right-4 z-40 px-4 py-1.5 rounded-full bg-white/25 text-white text-sm font-semibold backdrop-blur-md active:scale-95 transition-transform focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80"
+					>
+						Done
+					</button>
+				)}
+
 				<DndContext
 					sensors={sensors}
 					collisionDetection={pageAwareCollisionDetection}
@@ -392,7 +451,9 @@ function HomeScreen() {
 						}}
 					/>
 
-					<div className="absolute inset-0 pt-12 pb-32 overflow-hidden">
+					<div
+						className={`absolute inset-0 pb-32 overflow-hidden ${isEditing ? 'pt-24' : 'pt-12'}`}
+					>
 						<div
 							className="flex h-full w-[200vw]"
 							style={{
@@ -433,7 +494,7 @@ function HomeScreen() {
 
 					<DragOverlay>{activeId ? renderOverlayItem(activeId) : null}</DragOverlay>
 
-					<HomeScreenDock apps={dockApps} onAppClick={handleAppClick} />
+					<HomeScreenDock apps={dockApps} onAppClick={handleAppClick} isEditing={isEditing} />
 				</DndContext>
 			</div>
 
@@ -457,7 +518,7 @@ function HomeScreen() {
 				onBottomPointerMove={handleBottomPointerMove}
 				onBottomPointerUp={handleBottomPointerUp}
 				onBottomPointerCancel={handleBottomPointerCancel}
-				onCloseApp={triggerCloseApp}
+				onCloseApp={handleHomeIndicator}
 				onOpenNotificationCenter={handleOpenNotificationCenter}
 				onOpenControlCenter={handleOpenControlCenter}
 			/>

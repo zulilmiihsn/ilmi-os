@@ -58,6 +58,17 @@ export function useDragHandlers({
 	// Throttle handleDragOver to max 30 updates per second
 	const lastDragOverTimeRef = useRef<number>(0);
 	const DRAG_OVER_THROTTLE_MS = 33; // ~30fps for state updates
+	// Haptic ticks on committed moves, rate-limited so they stay tactile.
+	const lastMoveHapticRef = useRef<number>(0);
+	const MOVE_HAPTIC_MIN_MS = 150;
+
+	const tickOnSnap = useCallback(() => {
+		const now = Date.now();
+		if (now - lastMoveHapticRef.current >= MOVE_HAPTIC_MIN_MS) {
+			lastMoveHapticRef.current = now;
+			triggerHaptic('light');
+		}
+	}, []);
 	// Body scroll lock is owned by this hook; restore the previous value
 	// (not blindly '') on end, cancel, or unmount.
 	const prevOverflowRef = useRef<string>('');
@@ -151,6 +162,7 @@ export function useDragHandlers({
 								? setPage1Items
 								: setDockItemIds;
 					setItems(arrayMove(items, oldIndex, newIndex));
+					tickOnSnap();
 				}
 				return;
 			}
@@ -229,8 +241,9 @@ export function useDragHandlers({
 			// Update ref to new container and reset debounce
 			currentContainerRef.current = targetContainer;
 			lastMoveRef.current = '';
+			tickOnSnap();
 		},
-		[page0Items, page1Items, dockItemIds, setPage0Items, setPage1Items, setDockItemIds]
+		[page0Items, page1Items, dockItemIds, setPage0Items, setPage1Items, setDockItemIds, tickOnSnap]
 	);
 
 	const resetRefs = useCallback(() => {

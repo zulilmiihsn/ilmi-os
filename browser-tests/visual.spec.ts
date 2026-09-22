@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // Visual regression: pixel baselines committed under
 // browser-tests/visual.spec.ts-snapshots/. Regenerate intentionally with
@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 // baselines from CI once, then keep them stable.
 // Deterministic rendering: freeze the clock (status bar, calendar icon,
 // widget) and Math.random (window cascade offsets) before navigation.
-async function prepareDeterministicPage(page) {
+async function prepareDeterministicPage(page: Page) {
 	await page.clock.install({ time: new Date('2026-09-22T12:00:00') });
 	await page.addInitScript(() => {
 		Math.random = () => 0.5;

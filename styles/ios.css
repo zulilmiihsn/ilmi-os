@@ -1,9 +1,11 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* iOS Colors and Styles */
 .ios-card {
 	border-radius: 14px;
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+	box-shadow:
+		0 4px 16px rgba(0, 0, 0, 0.15),
+		0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .ios-icon {
@@ -17,14 +19,15 @@
 	-webkit-user-select: none;
 }
 
-
 .ios-app-box {
 	background: rgba(255, 255, 255, 0.15);
 	backdrop-filter: blur(20px) saturate(180%);
 	-webkit-backdrop-filter: blur(20px) saturate(180%);
 	border-radius: 20px;
 	border: 1px solid rgba(255, 255, 255, 0.2);
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+	box-shadow:
+		0 4px 16px rgba(0, 0, 0, 0.1),
+		0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .ios-tap-animation {
@@ -35,6 +38,35 @@
 	transition: none;
 }
 
+/* iOS jiggle (edit mode): icons wobble to signal they can be rearranged.
+   Alternate direction per icon keeps the grid looking organic. */
+@keyframes ios-jiggle {
+	0% {
+		transform: rotate(-1.4deg) translateY(0);
+	}
+	50% {
+		transform: rotate(1.4deg) translateY(-1px);
+	}
+	100% {
+		transform: rotate(-1.4deg) translateY(0);
+	}
+}
+
+.ios-jiggle,
+.ios-jiggle-reverse {
+	animation: ios-jiggle 0.34s ease-in-out infinite;
+}
+
+.ios-jiggle-reverse {
+	animation-direction: reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ios-jiggle,
+	.ios-jiggle-reverse {
+		animation: none;
+	}
+}
 
 /* iOS Status Bar */
 .ios-statusbar {
@@ -97,12 +129,12 @@
 
 .ios-tap-animation {
 	animation: ios-spring 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-
 }
 
 /* iOS Wiggle Animation for Edit Mode */
 @keyframes ios-wiggle {
-	0%, 100% {
+	0%,
+	100% {
 		transform: rotate(0deg);
 	}
 	25% {
@@ -130,7 +162,6 @@
 	border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-
 /* iOS Search Bar */
 .ios-searchbar {
 	border-radius: 20px;
@@ -138,10 +169,12 @@
 
 /* iOS App Grid Sorting Animation */
 .ios-app-grid-page .grid > div {
-	transition: transform 200ms ease, opacity 150ms ease;
+	transition:
+		transform 200ms ease,
+		opacity 150ms ease;
 }
 
-.ios-app-grid-page .grid > div[style*="transform"] {
+.ios-app-grid-page .grid > div[style*='transform'] {
 	z-index: 1;
 }
 
@@ -182,7 +215,9 @@
 
 /* iOS Cover Sheet & Control Center Spring Animations */
 .ios-sheet-spring {
-	transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+	transition:
+		transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+		opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 	will-change: transform, opacity;
 }
 
@@ -200,6 +235,3 @@
 		transform: translateY(0) scale(1);
 	}
 }
-
-
-

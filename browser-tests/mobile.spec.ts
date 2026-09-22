@@ -32,6 +32,30 @@ test.describe('mobile shell', () => {
 		await expect(page.locator('.ios-app')).toBeVisible({ timeout: 5000 });
 	});
 
+	test('dragging enters jiggle edit mode with a Done action', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		const icon = page.locator('[data-app-id]').first();
+		const box = await icon.boundingBox();
+		expect(box).not.toBeNull();
+		await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(box!.x + box!.width / 2 + 60, box!.y + box!.height / 2, { steps: 5 });
+		await page.mouse.up();
+
+		// Edit mode persists after drop: icons jiggle and Done is offered.
+		await expect(page.locator('.ios-jiggle, .ios-jiggle-reverse').first()).toBeVisible({
+			timeout: 5000,
+		});
+		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeVisible();
+
+		// Escape leaves edit mode.
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.ios-jiggle, .ios-jiggle-reverse')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeHidden();
+	});
+
 	test('closed notification center keeps no keyboard focus', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
