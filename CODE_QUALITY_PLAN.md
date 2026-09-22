@@ -137,7 +137,7 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 - [x] Gunakan tombol nyata untuk trigger StatusBar (native button + focus style + `aria-haspopup`).
 - [x] Sediakan akses keyboard untuk desktop icon (role button + Enter/Space), resize window (tombol terlihat saat fokus + alternatif keyboard), home indicator (role button + Enter/Space menutup app), dan kartu notifikasi (role button + Enter/Space membuka app). Keyboard sensor drag dipertahankan.
 - [x] Perbaiki label yang memang hilang dan fokus yang disembunyikan: traffic buttons, resize, Apple menu (`aria-label` + `aria-expanded`/`haspopup`), dan tombol tambah penerima compose (`aria-label`, ikon `aria-hidden`).
-- [ ] Kelola initial focus, Escape, dan focus-return per workflow; belum dikerjakan (yang sudah ada dipertahankan: Spotlight/PhotoViewer Escape, dnd-kit sensor).
+- [x] Kelola focus-return per workflow via `useRestoreFocus` (Finder, Files create/rename/delete, Mail compose, Notes delete, Spotlight). Temuan browser: trigger harus dilacak via riwayat focusin karena autofocus dialog bergerak lebih dulu; tanpa rootRef, restore jatuh ke input yang sudah unmount. Terverifikasi: Finder + Spotlight mengembalikan fokus ke pemicu. Escape yang sudah ada dipertahankan; focus-return ke trigger yang unmount dilewati dengan aman.
 - [ ] Pilih semantik sesuai interaksi (menu/listbox/dialog semantik spesifik belum diubah; hanya yang rusak diperbaiki).
 - [x] Tambahkan status bermakna pada BootScreen (`role=status`, SVG `aria-hidden`, `motion-safe` pulse, teks sr-only).
 

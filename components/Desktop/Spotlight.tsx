@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRestoreFocus } from '../../utils/hooks/useRestoreFocus';
 
 interface SpotlightProps {
 	isOpen: boolean;
@@ -10,6 +11,8 @@ interface SpotlightProps {
 export default function Spotlight({ isOpen, onClose }: SpotlightProps) {
 	const [query, setQuery] = useState('');
 	const inputRef = useRef<HTMLInputElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
+	useRestoreFocus(isOpen, containerRef);
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -45,14 +48,24 @@ export default function Spotlight({ isOpen, onClose }: SpotlightProps) {
 
 			{/* Spotlight Bar */}
 			<div
+				ref={containerRef}
 				className={`spotlight-container fixed top-[20%] left-1/2 -translate-x-1/2 w-[600px] z-[10001]
-                transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
                 ${
 									isOpen
-										? 'opacity-100 scale-100 translate-y-0 pointer-events-auto visible'
-										: 'opacity-0 scale-95 -translate-y-2 pointer-events-none invisible'
+										? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
+										: 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
 								}
                 `}
+				// Visibility (not just opacity) keeps the closed bar out of
+				// keyboard focus. The delayed hide preserves the exit
+				// animation, while showing flips immediately so that
+				// programmatic focus is not swallowed by a hidden element.
+				style={{
+					visibility: isOpen ? 'visible' : 'hidden',
+					transition:
+						'opacity 0.3s cubic-bezier(0.32,0.72,0,1), transform 0.3s cubic-bezier(0.32,0.72,0,1), visibility 0s linear ' +
+						(isOpen ? '0s' : '0.3s'),
+				}}
 			>
 				<div className="bg-white/70 dark:bg-[#1E1E1E]/80 backdrop-blur-2xl rounded-2xl border border-white/20 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col">
 					<div className="flex items-center px-4 h-16 gap-3">

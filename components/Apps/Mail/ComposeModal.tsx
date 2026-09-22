@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, memo } from 'react';
 import { triggerHaptic } from '../../../utils/haptic';
+import { useRestoreFocus } from '../../../utils/hooks/useRestoreFocus';
 
 interface ComposeModalProps {
 	onClose: () => void;
@@ -17,6 +18,8 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 	const [isClosing, setIsClosing] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 	const modalRef = useRef<HTMLDivElement>(null);
+	// Mounted only while open: restores focus on send/close/unmount.
+	useRestoreFocus(true, modalRef);
 
 	useEffect(() => {
 		requestAnimationFrame(() => setIsVisible(true));
