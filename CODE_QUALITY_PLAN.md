@@ -119,7 +119,7 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 - [x] Selaraskan UI/ref recorder pada `onstop`/error, termasuk stop otomatis setelah track berakhir. Final data tetap diekspor; butuh browser berkamera untuk verifikasi perilaku.
 - [x] Tangani kegagalan constructor/start recorder dan stream yang sedang diganti (cek `MediaRecorder` + `isTypeSupported` + try/catch). Klaim `InvalidStateError` dihapus sesuai spesifikasi (no-op).
 - [x] Gunakan elapsed timestamp untuk stopwatch dan deadline untuk countdown, dengan pause/resume terjaga. Perlu verifikasi background-throttling di browser.
-- [ ] Putuskan state mana yang harus bertahan ketika lebar tablet melewati 1024 dan shell berganti. Keputusan produk, belum dikerjakan.
+- [x] Putuskan state mana yang harus bertahan ketika lebar tablet melewati 1024 dan shell berganti. Keputusan produk 2026-09-22: biarkan responsif (ganti shell + reset state lokal); store global dan data persisted tidak hilang. Ditutup tanpa perubahan kode.
 
 **Verifikasi:** drag end/cancel, restore window, Finder double-click dan kontrol window, rejected/cancelled swipe, async subscription selesai setelah unmount, repeated shutter, pergantian stream, background/pause/resume Clock, dan resize melintasi breakpoint.
 
