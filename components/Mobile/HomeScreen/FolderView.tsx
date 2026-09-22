@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import AppIcon from '../AppIcon';
 import type { AppFolder } from '../../../stores/apps';
 import { useAppsStore } from '../../../stores/apps';
@@ -18,9 +18,21 @@ interface FolderViewProps {
 /** Opened folder: member apps can be launched or moved back to the home grid. */
 function FolderView({ folder, onClose, onLaunchApp, onRemoveApp }: FolderViewProps) {
 	const apps = useAppsStore(state => state.apps);
+	const renameFolder = useAppsStore(state => state.renameFolder);
 	const rootRef = useRef<HTMLDivElement>(null);
 	useRestoreFocus(true, rootRef);
 	useFocusTrap(true, rootRef);
+	const [editingName, setEditingName] = useState(false);
+	const [draftName, setDraftName] = useState(folder.name);
+
+	const commitRename = () => {
+		if (renameFolder(folder.id, draftName)) {
+			setEditingName(false);
+		} else {
+			setDraftName(folder.name);
+			setEditingName(false);
+		}
+	};
 	const members = folder.appIds
 		.map(id => apps.find(app => app.id === id))
 		.filter((app): app is NonNullable<typeof app> => Boolean(app));
@@ -38,7 +50,32 @@ function FolderView({ folder, onClose, onLaunchApp, onRemoveApp }: FolderViewPro
 				className="w-72 rounded-3xl bg-white/25 backdrop-blur-2xl border border-white/20 p-5 shadow-2xl"
 			>
 				<div className="flex items-center justify-between mb-4">
-					<span className="text-white font-semibold">{folder.name}</span>
+					{editingName ? (
+						<input
+							autoFocus
+							value={draftName}
+							maxLength={24}
+							onChange={e => setDraftName(e.target.value)}
+							onBlur={commitRename}
+							onKeyDown={e => {
+								if (e.key === 'Enter') commitRename();
+							}}
+							aria-label="Folder name"
+							className="bg-white/20 text-white font-semibold rounded-lg px-2 py-0.5 outline-none w-32"
+						/>
+					) : (
+						<button
+							type="button"
+							onClick={() => {
+								setDraftName(folder.name);
+								setEditingName(true);
+							}}
+							aria-label={`Rename folder ${folder.name}`}
+							className="text-white font-semibold focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 rounded"
+						>
+							{folder.name}
+						</button>
+					)}
 					<button
 						type="button"
 						onClick={onClose}

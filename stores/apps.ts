@@ -219,6 +219,7 @@ interface AppsStore {
 	reorderIosApps: (fromIndex: number, toIndex: number) => void;
 	getFolderById: (id: string) => AppFolder | undefined;
 	isFolderId: (id: string) => boolean;
+	renameFolder: (id: string, name: string) => boolean;
 	/** Create a folder from two page apps; the folder takes target's slot. */
 	createFolder: (draggedAppId: string, targetAppId: string) => string | null;
 	/** Move a loose app into an existing folder. */
@@ -301,6 +302,15 @@ export const useAppsStore = create<AppsStore>((set, get) => ({
 	},
 	getFolderById: id => {
 		return get().folders[id];
+	},
+	renameFolder: (id, name) => {
+		const folder = get().folders[id];
+		const trimmed = name.trim().slice(0, 24);
+		if (!folder || !trimmed) return false;
+		set(state => ({
+			folders: { ...state.folders, [id]: { ...folder, name: trimmed } },
+		}));
+		return true;
 	},
 	isFolderId: id => {
 		return get().folders[id] !== undefined;

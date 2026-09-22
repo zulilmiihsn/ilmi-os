@@ -91,6 +91,14 @@ describe('store APIs (Tahap 7)', () => {
 		expect(state.iosAppPositions.c).toBe(4);
 	});
 
+	it('renames folders within limits', () => {
+		useAppsStore.setState({ folders: { f1: { id: 'f1', name: 'Folder', appIds: ['a'] } } });
+		expect(useAppsStore.getState().renameFolder('f1', '  Games  ')).toBe(true);
+		expect(useAppsStore.getState().folders.f1.name).toBe('Games');
+		expect(useAppsStore.getState().renameFolder('f1', '   ')).toBe(false);
+		expect(useAppsStore.getState().renameFolder('missing', 'x')).toBe(false);
+	});
+
 	it('refuses moves into a full page instead of overflowing regions', () => {
 		const fullPage: Record<string, number> = {};
 		for (let i = 0; i < 24; i++) fullPage[`app${i}`] = i;
