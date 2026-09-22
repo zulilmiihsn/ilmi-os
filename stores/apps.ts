@@ -3,6 +3,18 @@ import type { AppMetadata } from '../types';
 import { isIosApp, isMacosApp } from '../types';
 import { IOS_LAYOUT } from '../constants';
 
+function regionOf(pos: number): 'page0' | 'page1' | 'dock' {
+	if (pos >= IOS_LAYOUT.DOCK_BASE) return 'dock';
+	if (pos >= IOS_LAYOUT.PAGE1_BASE) return 'page1';
+	return 'page0';
+}
+
+function regionBase(region: 'page0' | 'page1' | 'dock'): number {
+	if (region === 'dock') return IOS_LAYOUT.DOCK_BASE;
+	if (region === 'page1') return IOS_LAYOUT.PAGE1_BASE;
+	return 0;
+}
+
 export const DOCK_START_POSITION = IOS_LAYOUT.DOCK_BASE;
 const DEFAULT_DOCK_IDS = ['safari', 'music', 'messages', 'phone'];
 
@@ -209,14 +221,47 @@ export const useAppsStore = create<AppsStore>((set, get) => ({
 			const fromEntry = entries.find(([, pos]) => pos === fromIndex);
 			if (!fromEntry) return state;
 			const [movingAppId] = fromEntry;
-			const toEntry = entries.find(([, pos]) => pos === toIndex);
+			const fromRegion = regionOf(fromIndex);
+			const toRegion = regionOf(toIndex);
 
+			// Mirror the UI's arrayMove semantics: shift the affected range
+			// instead of swapping endpoints, so committed positions match the
+			// layout the user already saw during the drag.
 			const newPositions: Record<string, number> = { ...state.iosAppPositions };
-			if (toEntry) {
-				const [otherAppId] = toEntry;
+			if (fromRegion === toRegion) {
+				for (const [id, pos] of entries) {
+					if (id === movingAppId) continue;
+					if (regionOf(pos) !== fromRegion) continue;
+					if (fromIndex < toIndex && pos > fromIndex && pos <= toIndex) {
+						newPositions[id] = pos - 1;
+					} else if (fromIndex > toIndex && pos < fromIndex && pos >= toIndex) {
+						newPositions[id] = pos + 1;
+					}
+				}
 				newPositions[movingAppId] = toIndex;
-				newPositions[otherAppId] = fromIndex;
 			} else {
+				// Cross-region relocate: close the gap left behind and open
+				// one at the destination within each affected region.
+				// Page regions have fixed slot counts; refuse the move when
+				// the destination is full instead of overflowing positions
+				// into the next region. The dock is unbounded.
+				const regionSize =
+					toRegion === 'dock'
+						? Number.POSITIVE_INFINITY
+						: toRegion === 'page1'
+							? IOS_LAYOUT.PAGE1_SIZE
+							: IOS_LAYOUT.PAGE0_SIZE;
+				const toOccupants = entries.filter(([, pos]) => regionOf(pos) === toRegion).length;
+				if (toOccupants >= regionSize) return state;
+				const fromBase = regionBase(fromRegion);
+				for (const [id, pos] of entries) {
+					if (id === movingAppId) continue;
+					if (regionOf(pos) === fromRegion && pos > fromIndex) {
+						newPositions[id] = Math.max(fromBase, pos - 1);
+					} else if (regionOf(pos) === toRegion && pos >= toIndex) {
+						newPositions[id] = pos + 1;
+					}
+				}
 				newPositions[movingAppId] = toIndex;
 			}
 			return { iosAppPositions: newPositions };

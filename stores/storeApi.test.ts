@@ -20,9 +20,38 @@ describe('store APIs (Tahap 7)', () => {
 		expect(useAppsStore.getState().isAppRunning('mail')).toBe(false);
 	});
 
-	it('swaps icon positions by value', () => {
-		useAppsStore.getState().reorderIosApps(0, 1);
-		expect(useAppsStore.getState().iosAppPositions).toEqual({ a: 1, b: 0 });
+	it('shifts (not swaps) icon positions on reorder', () => {
+		useAppsStore.setState({ iosAppPositions: { a: 0, b: 1, c: 2 } });
+		useAppsStore.getState().reorderIosApps(0, 2);
+		// arrayMove semantics: b and c shift down, a lands at 2.
+		expect(useAppsStore.getState().iosAppPositions).toEqual({ a: 2, b: 0, c: 1 });
+	});
+
+	it('shifts upward moves symmetrically', () => {
+		useAppsStore.setState({ iosAppPositions: { a: 0, b: 1, c: 2 } });
+		useAppsStore.getState().reorderIosApps(2, 0);
+		expect(useAppsStore.getState().iosAppPositions).toEqual({ a: 1, b: 2, c: 0 });
+	});
+
+	it('relocates across regions and closes the vacated gap', () => {
+		useAppsStore.setState({ iosAppPositions: { a: 0, b: 1, c: 2, d: 100 } });
+		useAppsStore.getState().reorderIosApps(0, 100);
+		const positions = useAppsStore.getState().iosAppPositions;
+		expect(positions.a).toBe(100);
+		expect(positions.b).toBe(0);
+		expect(positions.c).toBe(1);
+		// Uniqueness is preserved: no two apps share a position.
+		const values = Object.values(positions);
+		expect(new Set(values).size).toBe(values.length);
+	});
+
+	it('refuses moves into a full page instead of overflowing regions', () => {
+		const fullPage: Record<string, number> = {};
+		for (let i = 0; i < 24; i++) fullPage[`app${i}`] = i;
+		fullPage.extra = 100;
+		useAppsStore.setState({ iosAppPositions: fullPage });
+		useAppsStore.getState().reorderIosApps(100, 5);
+		expect(useAppsStore.getState().iosAppPositions.extra).toBe(100);
 	});
 
 	it('opens, focuses, and closes windows with rising z-index', () => {

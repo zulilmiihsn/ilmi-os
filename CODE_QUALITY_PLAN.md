@@ -171,7 +171,8 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 - [ ] Satukan semantic theme token yang benar-benar sama. Dilewati dengan sadar: perbedaan palette antar aplikasi dapat disengaja dan `useTheme()` bukan pengganti netral.
 - [x] Bagikan aturan layout yang memang harus konsisten: `IOS_LAYOUT` (page 24/28, dock 100) dipakai HomeScreen, drag handlers, dan apps store.
 - [ ] Helper subscription battery/network bersama. Dilewati: cadence tiap consumer terbukti berbeda; cleanup sudah diperbaiki per call-site.
-- [x] Tes store melalui `getState`/`setState` tanpa mount (4 tes apps/windows/control-center).
+- [x] Tes store melalui `getState`/`setState` tanpa mount (7 tes apps/windows/control-center, termasuk move-vs-swap dan guard region penuh).
+- [x] Perbaiki bug drop: `reorderIosApps` memakai swap padahal UI memakai `arrayMove`, sehingga ikon tetangga meloncat setelah drop. Diganti semantik shift/relocate per region + guard region penuh; drag aktif di-mirror via ref agar touchend tepat setelah drop tidak salah dibaca sebagai swipe pindah halaman. Terverifikasi browser (tetangga diam + tidak swipe).
 - [x] Hapus action tidak terpakai `updateWindowPosition`/`updateWindowSize` (tidak ada caller; `updateWindow` sudah dipakai drag hook).
 - [x] Ganti `navigator as any` dengan tipe API yang tersedia; snapshot BatteryInfo/NetworkInfo dipertahankan sebagai kontrak terpisah.
 - [x] Reuse `generateId` pada output Terminal; ID persisted tidak ditulis ulang.

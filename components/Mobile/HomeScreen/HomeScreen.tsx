@@ -89,6 +89,10 @@ function HomeScreen() {
 	// --- DND State ---
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const isDragging = activeId !== null;
+	// Synchronous mirror of drag activity. React state updates async, so a
+	// touchend arriving right after drop could otherwise read a stale
+	// isDragging=false and misfire a page swipe.
+	const dragActiveRef = useRef(false);
 	// iOS-style edit (jiggle) mode: entered on drag start, left via Done,
 	// home indicator, app launch, or Escape.
 	const [isEditing, setIsEditing] = useState(false);
@@ -174,6 +178,7 @@ function HomeScreen() {
 		cancelPendingClose,
 	} = useHomeScreenGestures({
 		isDragging,
+		isDraggingRef: dragActiveRef,
 		currentApp,
 		appToOpen,
 		currentPage,
@@ -207,8 +212,8 @@ function HomeScreen() {
 	const {
 		handleDragStart: handleDragStartInner,
 		handleDragOver,
-		handleDragEnd,
-		handleDragCancel,
+		handleDragEnd: handleDragEndInner,
+		handleDragCancel: handleDragCancelInner,
 	} = useDragHandlers({
 		iosAppPositions,
 		page0Items,
@@ -223,11 +228,29 @@ function HomeScreen() {
 
 	const handleDragStart = useCallback(
 		(event: DragStartEvent) => {
+			dragActiveRef.current = true;
 			setIsEditing(true);
 			handleDragStartInner(event);
 		},
 		[handleDragStartInner]
 	);
+
+	const markDragInactive = useCallback(() => {
+		dragActiveRef.current = false;
+	}, []);
+
+	const handleDragEnd = useCallback(
+		(event: Parameters<typeof handleDragEndInner>[0]) => {
+			markDragInactive();
+			handleDragEndInner(event);
+		},
+		[handleDragEndInner, markDragInactive]
+	);
+
+	const handleDragCancel = useCallback(() => {
+		markDragInactive();
+		handleDragCancelInner();
+	}, [handleDragCancelInner, markDragInactive]);
 
 	const exitEditing = useCallback(() => setIsEditing(false), []);
 

@@ -5,6 +5,8 @@ import { triggerHaptic } from '../../../utils/haptic';
 
 interface UseHomeScreenGesturesProps {
 	isDragging: boolean;
+	/** Synchronous drag mirror: guards touch handlers against stale React state. */
+	isDraggingRef?: { current: boolean };
 	currentApp: string | null;
 	appToOpen: string | null;
 	currentPage: number;
@@ -22,6 +24,7 @@ interface UseHomeScreenGesturesProps {
 
 export function useHomeScreenGestures({
 	isDragging,
+	isDraggingRef,
 	currentApp,
 	appToOpen,
 	currentPage,
@@ -209,8 +212,10 @@ export function useHomeScreenGestures({
 		};
 	};
 
+	const dragging = () => isDraggingRef?.current || isDragging;
+
 	const handleTouchMove = (e: React.TouchEvent) => {
-		if (isDragging || !touchStartRef.current) return;
+		if (dragging() || !touchStartRef.current) return;
 
 		const touch = touchStartRef.current;
 		const cy = e.touches[0].clientY;
@@ -256,7 +261,7 @@ export function useHomeScreenGestures({
 	};
 
 	const handleTouchEnd = (e: React.TouchEvent) => {
-		if (isDragging || !touchStartRef.current || isAnimatingCloseRef.current) {
+		if (dragging() || !touchStartRef.current || isAnimatingCloseRef.current) {
 			touchStartRef.current = null;
 			return;
 		}

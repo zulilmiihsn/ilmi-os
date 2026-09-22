@@ -56,6 +56,62 @@ test.describe('mobile shell', () => {
 		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeHidden();
 	});
 
+	test('drop commits shift semantics: neighbours stay put', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		const orderOf = () =>
+			page.evaluate(() =>
+				Array.from(document.querySelectorAll('.ios-app-grid-page [data-app-id]')).map(el =>
+					el.getAttribute('data-app-id')
+				)
+			);
+		const before = await orderOf();
+		// Drag the first icon after the third via real mouse input.
+		const first = page.locator('.ios-app-grid-page [data-app-id]').first();
+		const third = page.locator('.ios-app-grid-page [data-app-id]').nth(2);
+		const from = await first.boundingBox();
+		const to = await third.boundingBox();
+		await page.mouse.move(from!.x + 10, from!.y + 10);
+		await page.mouse.down();
+		await page.mouse.move(to!.x + 10, to!.y + 10, { steps: 12 });
+		await page.mouse.up();
+		await page.waitForTimeout(800);
+
+		const after = await orderOf();
+		// arrayMove expectation: [b, c, a, ...rest], nothing else jumps.
+		expect(after[0]).toBe(before[1]);
+		expect(after[1]).toBe(before[2]);
+		expect(after[2]).toBe(before[0]);
+		expect(after.slice(3)).toEqual(before.slice(3));
+		// Layout stays settled afterwards (no post-drop snap).
+		await page.waitForTimeout(1500);
+		expect(await orderOf()).toEqual(after);
+		await page.keyboard.press('Escape');
+	});
+
+	test('quick drag-release does not swipe pages', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		const icon = page.locator('[data-app-id]').first();
+		const box = await icon.boundingBox();
+		const sx = box!.x + box!.width / 2;
+		const sy = box!.y + box!.height / 2;
+		await page.mouse.move(sx, sy);
+		await page.mouse.down();
+		await page.mouse.move(sx - 100, sy, { steps: 4 });
+		await page.mouse.up();
+		await page.waitForTimeout(1000);
+		// Still on page 0: the slider must not have moved.
+		const transform = await page.evaluate(() => {
+			const el = document.querySelector('.ios-homescreen div[class*="200vw"]');
+			return el ? (el as HTMLElement).style.transform : 'missing';
+		});
+		expect(transform).toContain('0vw');
+		await page.keyboard.press('Escape');
+	});
+
 	test('closed notification center keeps no keyboard focus', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
