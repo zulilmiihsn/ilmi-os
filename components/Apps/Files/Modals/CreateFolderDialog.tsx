@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { useRestoreFocus } from '../../../../utils/hooks/useRestoreFocus';
+import { useFocusTrap } from '../../../../utils/hooks/useFocusTrap';
 
 interface CreateFolderDialogProps {
 	isOpen: boolean;
@@ -22,6 +23,7 @@ export default function CreateFolderDialog({
 }: CreateFolderDialogProps) {
 	const rootRef = useRef<HTMLDivElement>(null);
 	useRestoreFocus(isOpen, rootRef);
+	useFocusTrap(isOpen, rootRef);
 	if (!isOpen) return null;
 
 	const theme = {
@@ -34,6 +36,9 @@ export default function CreateFolderDialog({
 	return (
 		<div
 			ref={rootRef}
+			onKeyDown={e => {
+				if (e.key === 'Escape') onClose();
+			}}
 			className="absolute inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 animate-fade-in"
 		>
 			<div

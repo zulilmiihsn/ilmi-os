@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { triggerHaptic } from '../../../utils/haptic';
 import { useRestoreFocus } from '../../../utils/hooks/useRestoreFocus';
+import { useFocusTrap } from '../../../utils/hooks/useFocusTrap';
 
 interface ComposeModalProps {
 	onClose: () => void;
@@ -20,6 +21,7 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 	const modalRef = useRef<HTMLDivElement>(null);
 	// Mounted only while open: restores focus on send/close/unmount.
 	useRestoreFocus(true, modalRef);
+	useFocusTrap(true, modalRef);
 
 	useEffect(() => {
 		requestAnimationFrame(() => setIsVisible(true));
@@ -60,6 +62,9 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 			{/* iOS Sheet Modal */}
 			<div
 				ref={modalRef}
+				onKeyDown={e => {
+					if (e.key === 'Escape') handleClose();
+				}}
 				className={`w-full h-[92%] rounded-t-2xl shadow-2xl flex flex-col pointer-events-auto transition-transform duration-300 ease-out transform ${
 					darkMode ? 'bg-[#1c1c1e] text-white' : 'bg-white text-black'
 				} ${isVisible && !isClosing ? 'translate-y-0' : 'translate-y-full'}`}

@@ -40,6 +40,15 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 		}
 	}, [x, y]);
 
+	// Close on Escape.
+	useEffect(() => {
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key === 'Escape') onClose();
+		}
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [onClose]);
+
 	// Close on click outside (already handled by parent usually, but fail-safe)
 	// Actually parent (Desktop) handles global click closing.
 
@@ -65,8 +74,6 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 				top: y,
 			}}
 		>
-
-
 			{menuItems.map((item, index) => {
 				if (item.type === 'separator') {
 					return <div key={index} className="h-px my-1 mx-3 bg-gray-400/20 dark:bg-white/10" />;

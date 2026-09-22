@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { useRestoreFocus } from '../../../../utils/hooks/useRestoreFocus';
+import { useFocusTrap } from '../../../../utils/hooks/useFocusTrap';
 
 interface DeleteAlertProps {
 	count: number;
@@ -13,9 +14,13 @@ export default function DeleteAlert({ count, onCancel, onDelete }: DeleteAlertPr
 	const rootRef = useRef<HTMLDivElement>(null);
 	// Mounted only while open: restores focus on delete/cancel/unmount.
 	useRestoreFocus(true, rootRef);
+	useFocusTrap(true, rootRef);
 	return (
 		<div
 			ref={rootRef}
+			onKeyDown={e => {
+				if (e.key === 'Escape') onCancel();
+			}}
 			className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-in fade-in duration-200"
 		>
 			<div className="bg-gray-100/90 dark:bg-[#2C2C2E]/90 text-black dark:text-white w-[270px] rounded-[14px] overflow-hidden text-center backdrop-blur-xl shadow-2xl transition-colors">

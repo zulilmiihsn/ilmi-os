@@ -19,6 +19,40 @@ test.describe('dialog focus management', () => {
 		await expect(folderBtn).toBeFocused();
 	});
 
+	test('finder dialog closes on Escape and returns focus', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
+		await page.getByRole('button', { name: 'Launch Finder' }).click();
+		await expect(page.locator('.finder')).toBeVisible({ timeout: 10000 });
+
+		const folderBtn = page.getByRole('button', { name: 'Folder' });
+		await folderBtn.click();
+		const dialog = page.locator('.finder').locator('div', { hasText: 'New Folder' }).last();
+		await expect(dialog.locator('input[type="text"]')).toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(dialog.locator('input[type="text"]')).toBeHidden({ timeout: 5000 });
+		await expect(folderBtn).toBeFocused();
+	});
+
+	test('finder dialog traps Tab navigation', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
+		await page.getByRole('button', { name: 'Launch Finder' }).click();
+		await expect(page.locator('.finder')).toBeVisible({ timeout: 10000 });
+
+		await page.getByRole('button', { name: 'Folder' }).click();
+		const dialog = page.locator('.finder').locator('div', { hasText: 'New Folder' }).last();
+		await expect(dialog.locator('input[type="text"]')).toBeFocused();
+		for (let i = 0; i < 8; i++) {
+			await page.keyboard.press('Tab');
+			const inside = await dialog.evaluate(
+				(el, active) => el.contains(active),
+				await page.evaluateHandle(() => document.activeElement)
+			);
+			expect(inside).toBe(true);
+		}
+	});
+
 	test('spotlight returns focus to its trigger', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });

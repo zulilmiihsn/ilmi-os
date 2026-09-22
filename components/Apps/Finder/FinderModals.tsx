@@ -3,6 +3,7 @@
 import React, { useRef } from 'react';
 import { formatFileSize } from '../../../utils/fileSystem';
 import { useRestoreFocus } from '../../../utils/hooks/useRestoreFocus';
+import { useFocusTrap } from '../../../utils/hooks/useFocusTrap';
 import { DialogState } from './types';
 
 interface FinderModalsProps {
@@ -29,12 +30,19 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 	handleDelete,
 }) => {
 	const rootRef = useRef<HTMLDivElement>(null);
-	useRestoreFocus(dialog.type !== null, rootRef);
+	const dialogOpen = dialog.type !== null;
+	useRestoreFocus(dialogOpen, rootRef);
+	useFocusTrap(dialogOpen, rootRef);
 	if (!dialog.type) return null;
+
+	const closeOnEscape = (e: React.KeyboardEvent) => {
+		if (e.key === 'Escape') setDialog({ type: null });
+	};
 
 	return (
 		<div
 			ref={rootRef}
+			onKeyDown={closeOnEscape}
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs animate-in fade-in duration-150"
 		>
 			<div className="bg-white dark:bg-[#2A2A2A] rounded-xl shadow-2xl border border-black/10 dark:border-white/10 w-80 p-5 text-gray-800 dark:text-gray-200">

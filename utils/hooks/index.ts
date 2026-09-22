@@ -12,3 +12,4 @@ export { useTheme, getThemeColors } from './useTheme';
 export type { ThemeTokens } from './useTheme';
 
 export { useRestoreFocus } from './useRestoreFocus';
+export { useFocusTrap } from './useFocusTrap';
