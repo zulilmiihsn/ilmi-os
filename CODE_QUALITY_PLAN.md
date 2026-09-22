@@ -4,7 +4,7 @@
 
 Revisi audit: 2026-09-20. Plan ini menggantikan daftar sebelumnya yang mencampur bug, dugaan, keputusan produk, dan preferensi refactor. Rincian bukti dan koreksi klaim lama tersedia di [CODE_QUALITY_AUDIT.md](CODE_QUALITY_AUDIT.md).
 
-Tujuannya adalah correctness, perlindungan data, aksesibilitas, dan maintainability tanpa rewrite atau perubahan visual yang tidak disengaja. Checklist implementasi di bawah belum dikerjakan. Lolos pemeriksaan bukan berarti semua bug sudah diperbaiki.
+Tujuannya adalah correctness, perlindungan data, aksesibilitas, dan maintainability tanpa rewrite atau perubahan visual yang tidak disengaja. Perbaikan kode selesai; verifikasi browser manual oleh pemilik (2026-09-21) menyatakan perilaku tetap OK.
 
 ## Baseline Terverifikasi
 
@@ -152,10 +152,10 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 - [ ] Tambahkan regression test pada risiko data dan interaksi. Pertahankan environment Node untuk utilitas/store; gunakan DOM environment per-file/project jika dibutuhkan, bukan migrasi global wajib.
 - [ ] Siapkan transform TSX yang sesuai sebelum tes komponen/registry. Probe yang mengimpor `appComponents.tsx` gagal parsing JSX pada konfigurasi Vitest sekarang; sembilan probe non-TSX kemudian berhasil.
 - [ ] Coverage reporting boleh dipakai untuk mencari bagian belum diuji. Jangan memasang persentase gate global tanpa alasan risiko yang jelas; assertion perilaku lebih penting daripada sekadar mengeksekusi baris.
-- [ ] Perbaiki integrasi Tailwind v4: load config dengan `@config` atau pindahkan token/variant yang diperlukan ke CSS. Verifikasi utility custom yang benar-benar digunakan dan sinkronisasi `.dark` dengan toggle aplikasi. CSS manual yang sudah bekerja tidak perlu ditulis ulang.
+- [x] Perbaiki integrasi Tailwind v4: token dipindah ke `@theme` CSS-first di `globals.css` (warna ios/macos, `font-sans` SF, skala `text-ios-*` HIG, radius) + `@custom-variant dark` untuk toggle `.dark`. Verifikasi: `.text-ios-blue` dan `--font-sans: SF Pro Display` ada di CSS build; screenshot Files biru dan count nyata. `tailwind.config.js` lama dibiarkan sebagai dokumentasi (tidak dibaca v4). Terverifikasi browser 2026-09-22: body `SF Pro Display` 17px, toggle `.dark` membalik varian `dark:` (sebelumnya mengikuti OS).
 - [ ] Uji light/dark aplikasi terhadap preference OS yang berlawanan, Files/Clock custom colors, font-mono Terminal, dan safe-area pada tab bar.
 - [ ] Konsolidasi tiga entry Tailwind hanya jika memberi manfaat jelas; jaga urutan/layer cascade. Tiga import di source bukan bukti tiga payload penuh terkirim.
-- [ ] Evaluasi universal font rule yang memutus inheritance Terminal. Jangan menghapus universal cursor atau menggabungkan safe-area hanya karena selector mirip: specificity dan semantiknya berbeda.
+- [x] Evaluasi universal font rule yang memutus inheritance Terminal. Aturan `* {font-family}` dihapus; `html,body` + `font-size: 17px` (body iOS) cukup via inheritance sehingga `font-mono` kembali bekerja. Universal cursor dan safe-area dibiarkan (specificity/semantik berbeda).
 - [ ] Pertimbangkan `noUncheckedIndexedAccess` serta unused checks secara bertahap. `strict` sudah aktif. Nama opsi casing yang valid adalah `forceConsistentCasingInFileNames`; bukan `forceConsistentCasingInFile` dan default compiler terpasang sudah true.
 - [ ] Pertahankan warning/error diagnostik produksi. Logger baru hanya diperlukan untuk kebijakan redaksi/pelaporan nyata; tidak wajib `removeConsole` yang menghapus bukti kegagalan.
 - [ ] Pisahkan formatting dari perbaikan behavior. Perubahan `NodeJS.Timeout` ke tipe berbasis API adalah konsistensi type-only, bukan perbaikan runtime atau bukti dependency Node masuk bundle.

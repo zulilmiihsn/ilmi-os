@@ -1,5 +1,107 @@
 @import 'tailwindcss';
 
+/* Tailwind v4 CSS-first theme. The legacy tailwind.config.js is NOT
+   auto-loaded by v4; these tokens are the live source of truth for the
+   ios and macos utilities, font-sans, and dark variant behavior. */
+@theme {
+	--font-sans: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+	--color-macos-blue: #007aff;
+	--color-macos-gray: #8e8e93;
+	--color-macos-bg: rgba(255, 255, 255, 0.1);
+	--color-macos-bg-dark: rgba(0, 0, 0, 0.2);
+
+	--color-ios-blue: #007aff;
+	--color-ios-green: #34c759;
+	--color-ios-red: #ff3b30;
+	--color-ios-yellow: #ffcc00;
+	--color-ios-notes-yellow: #dca326;
+	--color-ios-orange: #ff9500;
+	--color-ios-calc-num: #333333;
+	--color-ios-calc-func: #a5a5a5;
+	--color-ios-gray: #8e8e93;
+	--color-ios-gray2: #aeaeb2;
+	--color-ios-gray3: #c7c7cc;
+	--color-ios-gray4: #d1d1d6;
+	--color-ios-gray5: #e5e5ea;
+	--color-ios-gray6: #f2f2f7;
+	--color-ios-separator: #c6c6c8;
+	--color-ios-dark-gray6: #1c1c1e;
+	--color-ios-dark-gray5: #2c2c2e;
+	--color-ios-dark-gray4: #3a3a3c;
+	--color-ios-dark-gray3: #48484a;
+	--color-ios-dark-gray2: #636366;
+	--color-ios-dark-separator: #38383a;
+
+	--color-bg-primary: var(--bg-primary);
+	--color-bg-secondary: var(--bg-secondary);
+	--color-text-primary: var(--text-primary);
+	--color-text-secondary: var(--text-secondary);
+
+	/* Apple HIG Dynamic Type scale: size / leading / tracking / weight. */
+	--text-ios-large-title: 34px;
+	--text-ios-large-title--line-height: 41px;
+	--text-ios-large-title--letter-spacing: 0.37px;
+	--text-ios-large-title--font-weight: 700;
+
+	--text-ios-title1: 28px;
+	--text-ios-title1--line-height: 34px;
+	--text-ios-title1--letter-spacing: 0.36px;
+	--text-ios-title1--font-weight: 700;
+
+	--text-ios-title2: 22px;
+	--text-ios-title2--line-height: 28px;
+	--text-ios-title2--letter-spacing: 0.35px;
+	--text-ios-title2--font-weight: 700;
+
+	--text-ios-title3: 20px;
+	--text-ios-title3--line-height: 25px;
+	--text-ios-title3--letter-spacing: 0.38px;
+	--text-ios-title3--font-weight: 600;
+
+	--text-ios-headline: 17px;
+	--text-ios-headline--line-height: 22px;
+	--text-ios-headline--letter-spacing: -0.41px;
+	--text-ios-headline--font-weight: 600;
+
+	--text-ios-body: 17px;
+	--text-ios-body--line-height: 22px;
+	--text-ios-body--letter-spacing: -0.41px;
+	--text-ios-body--font-weight: 400;
+
+	--text-ios-callout: 16px;
+	--text-ios-callout--line-height: 21px;
+	--text-ios-callout--letter-spacing: -0.32px;
+	--text-ios-callout--font-weight: 400;
+
+	--text-ios-subhead: 15px;
+	--text-ios-subhead--line-height: 20px;
+	--text-ios-subhead--letter-spacing: -0.24px;
+	--text-ios-subhead--font-weight: 400;
+
+	--text-ios-footnote: 13px;
+	--text-ios-footnote--line-height: 18px;
+	--text-ios-footnote--letter-spacing: -0.08px;
+	--text-ios-footnote--font-weight: 400;
+
+	--text-ios-caption1: 12px;
+	--text-ios-caption1--line-height: 16px;
+	--text-ios-caption1--letter-spacing: 0px;
+	--text-ios-caption1--font-weight: 400;
+
+	--text-ios-caption2: 11px;
+	--text-ios-caption2--line-height: 13px;
+	--text-ios-caption2--letter-spacing: 0.07px;
+	--text-ios-caption2--font-weight: 400;
+
+	--radius-ios-icon: 22px;
+	--radius-ios-card: 14px;
+	--radius-macos-window: 10px;
+}
+
+/* Class-based dark mode (the app toggles .dark on <html>). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* San Francisco UI Display Font Face Definitions.
    Only weights actually referenced by the UI (300-700) are declared. */
 @font-face {
@@ -59,11 +161,15 @@ html.dark {
 @layer base {
 	html,
 	body {
-		/* Official Apple San Francisco (SF Pro Display) */
+		/* Official Apple San Francisco (SF Pro Display).
+		   Inherited by all descendants; explicit font utilities
+		   (e.g. font-mono) keep working because nothing overrides them. */
 		font-family:
 			'SF Pro Display',
 			-apple-system,
 			BlinkMacSystemFont;
+		/* iOS body size for unclassed text; rem-based utilities are unaffected. */
+		font-size: 17px;
 		font-weight: 400;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
@@ -75,13 +181,6 @@ html.dark {
 
 		/* Prevent browser bounce/overscroll */
 		overscroll-behavior: none;
-	}
-
-	* {
-		font-family:
-			'SF Pro Display',
-			-apple-system,
-			BlinkMacSystemFont;
 	}
 
 	/* macOS Style Cursors */
