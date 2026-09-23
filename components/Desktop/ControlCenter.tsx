@@ -270,7 +270,7 @@ export default function ControlCenter() {
 							aria-label={`Bluetooth ${bluetoothEnabled ? 'On' : 'Off'}`}
 						>
 							<svg
-								className={`w-6 h-6 ${bluetoothEnabled ? 'text-white' : 'text-white/50'}`}
+								className={`h-6 w-6 scale-[1.2] ${bluetoothEnabled ? 'text-white' : 'text-white/50'}`}
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
