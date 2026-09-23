@@ -71,21 +71,23 @@ export default function Camera() {
 			const data = imageData.data;
 
 			for (let i = 0; i < data.length; i += 4) {
+				// Indices stay in bounds by loop construction (i+2 <= length-2);
+				// fallbacks only satisfy the type checker, never trigger.
+				const r0 = data[i] ?? 0;
+				const g0 = data[i + 1] ?? 0;
+				const b0 = data[i + 2] ?? 0;
 				if (currentFilter === 'grayscale') {
-					const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+					const avg = (r0 + g0 + b0) / 3;
 					data[i] = data[i + 1] = data[i + 2] = avg;
 				} else if (currentFilter === 'sepia') {
-					const r = data[i],
-						g = data[i + 1],
-						b = data[i + 2];
-					data[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
-					data[i + 1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
-					data[i + 2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
+					data[i] = Math.min(255, r0 * 0.393 + g0 * 0.769 + b0 * 0.189);
+					data[i + 1] = Math.min(255, r0 * 0.349 + g0 * 0.686 + b0 * 0.168);
+					data[i + 2] = Math.min(255, r0 * 0.272 + g0 * 0.534 + b0 * 0.131);
 				} else if (currentFilter === 'vintage') {
-					data[i] = Math.min(255, data[i] * 1.2);
-					data[i + 2] = Math.min(255, data[i + 2] * 0.8);
+					data[i] = Math.min(255, r0 * 1.2);
+					data[i + 2] = Math.min(255, b0 * 0.8);
 				} else if (currentFilter === 'cool') {
-					data[i + 2] = Math.min(255, data[i + 2] * 1.2);
+					data[i + 2] = Math.min(255, b0 * 1.2);
 				}
 			}
 

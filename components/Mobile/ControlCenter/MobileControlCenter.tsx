@@ -204,12 +204,16 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 			if (!isOpen) return;
 			const target = e.target as HTMLElement | null;
 			if (target?.closest('.ios-vertical-slider, button, input')) return;
-			touchStartRef.current = { y: e.touches[0].clientY, active: true };
+			const touch = e.touches[0];
+			if (!touch) return;
+			touchStartRef.current = { y: touch.clientY, active: true };
 		};
 
 		const handleTouchEnd = (e: React.TouchEvent) => {
 			if (!touchStartRef.current?.active || !isOpen) return;
-			const deltaY = touchStartRef.current.y - e.changedTouches[0].clientY;
+			const touch = e.changedTouches[0];
+			if (!touch) return;
+			const deltaY = touchStartRef.current.y - touch.clientY;
 			touchStartRef.current = null;
 
 			// Swipe up to dismiss (only if swiped UP by > 80px outside interactive controls)

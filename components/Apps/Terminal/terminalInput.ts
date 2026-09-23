@@ -8,5 +8,6 @@ export function parseTerminalInput(raw: string): ParsedCommand | null {
 	const trimmed = raw.trim();
 	if (!trimmed) return null;
 	const [command, ...args] = trimmed.split(' ').filter(Boolean);
+	if (!command) return null;
 	return { command: command.toLowerCase(), args };
 }

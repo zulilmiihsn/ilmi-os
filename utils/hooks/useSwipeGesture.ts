@@ -91,6 +91,7 @@ export function useSwipeGesture({
     const onTouchStart = useCallback(
         (e: React.TouchEvent) => {
             const touch = e.touches[0];
+            if (!touch) return;
             startRef.current = {
                 x: touch.clientX,
                 y: touch.clientY,
@@ -107,6 +108,7 @@ export function useSwipeGesture({
             if (!startRef.current) return;
 
             const touch = e.touches[0];
+            if (!touch) return;
             const deltaX = touch.clientX - startRef.current.x;
             const deltaY = touch.clientY - startRef.current.y;
             const swipeDir = getSwipeDirection(deltaX, deltaY);
@@ -133,6 +135,12 @@ export function useSwipeGesture({
             }
 
             const touch = e.changedTouches[0];
+            if (!touch) {
+                startRef.current = null;
+                isSwipingRef.current = false;
+                onSwipeEnd?.();
+                return;
+            }
             const deltaX = touch.clientX - startRef.current.x;
             const deltaY = touch.clientY - startRef.current.y;
             const deltaTime = Date.now() - startRef.current.time;

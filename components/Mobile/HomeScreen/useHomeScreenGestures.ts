@@ -197,6 +197,7 @@ export function useHomeScreenGestures({
 	const handleTouchStart = (e: React.TouchEvent) => {
 		if (isAnimatingCloseRef.current) return;
 		const touch = e.touches[0];
+		if (!touch) return;
 		const target = e.target as HTMLElement | null;
 		const isBottomTarget = Boolean(target?.closest?.('.ios-bottom-bar'));
 		const isBottom = touch.clientY >= window.innerHeight - 85 || isBottomTarget;
@@ -218,7 +219,9 @@ export function useHomeScreenGestures({
 		if (dragging() || !touchStartRef.current) return;
 
 		const touch = touchStartRef.current;
-		const cy = e.touches[0].clientY;
+		const moveTouch = e.touches[0];
+		if (!moveTouch) return;
+		const cy = moveTouch.clientY;
 		const deltaY = cy - touch.y; // Positive when pulled DOWN
 
 		// Top Swipe Down Real-Time Panel Tracking
@@ -269,8 +272,10 @@ export function useHomeScreenGestures({
 		const touch = touchStartRef.current;
 		touchStartRef.current = null;
 
-		const cx = e.changedTouches[0].clientX;
-		const cy = e.changedTouches[0].clientY;
+		const endTouch = e.changedTouches[0];
+		if (!endTouch) return;
+		const cx = endTouch.clientX;
+		const cy = endTouch.clientY;
 		const deltaX = cx - touch.x;
 		const deltaY = cy - touch.y; // Positive when pulled down
 

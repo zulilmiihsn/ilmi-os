@@ -350,7 +350,7 @@ export default function MenuBar() {
 							</svg>
 						</button>
 						<MenuDropdown
-							items={menus.apple.getItems()}
+							items={menus.apple?.getItems() ?? []}
 							isOpen={activeMenu === 'apple'}
 							onClose={() => setActiveMenu(null)}
 						/>
@@ -361,6 +361,7 @@ export default function MenuBar() {
 						.filter(key => key !== 'apple')
 						.map(key => {
 							const menu = menus[key];
+							if (!menu) return null;
 							return (
 								<div key={key} className="relative h-full flex items-center">
 									<button

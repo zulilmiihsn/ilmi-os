@@ -80,7 +80,7 @@ describe('store APIs (Tahap 7)', () => {
 		});
 		expect(useAppsStore.getState().moveAppIntoFolder('c', 'f1')).toBe(true);
 		let state = useAppsStore.getState();
-		expect(state.folders.f1.appIds).toEqual(['x', 'c']);
+		expect(state.folders.f1?.appIds).toEqual(['x', 'c']);
 		expect(state.iosAppPositions.c).toBeUndefined();
 
 		expect(useAppsStore.getState().removeAppFromFolder('x', 'f1')).toBe(true);
@@ -94,7 +94,7 @@ describe('store APIs (Tahap 7)', () => {
 	it('renames folders within limits', () => {
 		useAppsStore.setState({ folders: { f1: { id: 'f1', name: 'Folder', appIds: ['a'] } } });
 		expect(useAppsStore.getState().renameFolder('f1', '  Games  ')).toBe(true);
-		expect(useAppsStore.getState().folders.f1.name).toBe('Games');
+		expect(useAppsStore.getState().folders.f1?.name).toBe('Games');
 		expect(useAppsStore.getState().renameFolder('f1', '   ')).toBe(false);
 		expect(useAppsStore.getState().renameFolder('missing', 'x')).toBe(false);
 	});

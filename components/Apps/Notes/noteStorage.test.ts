@@ -10,8 +10,8 @@ describe('decodeNotes (Tahap 2)', () => {
 		const decoded = decodeNotes([
 			{ id: 'a', title: 't', content: 'c', date: '2026-01-15T10:30:00.000Z', folder: 'Notes' },
 		]);
-		expect(decoded?.[0].date).toBeInstanceOf(Date);
-		expect(decoded?.[0].date.getFullYear()).toBe(2026);
+		expect(decoded?.[0]?.date).toBeInstanceOf(Date);
+		expect(decoded?.[0]?.date.getFullYear()).toBe(2026);
 	});
 
 	it('rejects non-array payloads', () => {

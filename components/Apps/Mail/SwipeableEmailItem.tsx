@@ -30,12 +30,16 @@ function SwipeableEmailItem({
 
     const handleTouchStart = (e: React.TouchEvent) => {
         if (isEditing) return;
-        startX.current = e.touches[0].clientX;
+        const touch = e.touches[0];
+        if (!touch) return;
+        startX.current = touch.clientX;
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
         if (startX.current === null || isEditing) return;
-        const currentX = e.touches[0].clientX;
+        const touch = e.touches[0];
+        if (!touch) return;
+        const currentX = touch.clientX;
         const diff = currentX - startX.current;
         // Only allow swiping left
         if (diff < 0) {

@@ -15,7 +15,8 @@ export function useRestoreFocus(active: boolean, rootRef?: RefObject<HTMLElement
 
 	useEffect(() => {
 		const onFocusIn = (event: FocusEvent) => {
-			historyRef.current = [event.target as Element, historyRef.current[0]].slice(0, 2);
+			const previous = historyRef.current[0] ?? null;
+			historyRef.current = [event.target as Element, previous].slice(0, 2);
 		};
 		document.addEventListener('focusin', onFocusIn);
 		return () => document.removeEventListener('focusin', onFocusIn);

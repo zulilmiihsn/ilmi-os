@@ -252,7 +252,7 @@ export default function Terminal() {
 			if (commandHistory.length === 0) return;
 			const nextIdx = historyIdx === -1 ? commandHistory.length - 1 : Math.max(0, historyIdx - 1);
 			setHistoryIdx(nextIdx);
-			setCurrentCommand(commandHistory[nextIdx]);
+			setCurrentCommand(commandHistory[nextIdx] ?? '');
 		} else if (e.key === 'ArrowDown') {
 			e.preventDefault();
 			if (historyIdx === -1) return;
@@ -262,7 +262,7 @@ export default function Terminal() {
 				setCurrentCommand('');
 			} else {
 				setHistoryIdx(nextIdx);
-				setCurrentCommand(commandHistory[nextIdx]);
+				setCurrentCommand(commandHistory[nextIdx] ?? '');
 			}
 		}
 	};

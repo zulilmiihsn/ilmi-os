@@ -18,7 +18,7 @@ function Calculator() {
 		if (typeof num === 'string') {
 			if (num.includes('.')) {
 				const [integer, decimal] = num.split('.');
-				return `${parseFloat(integer).toLocaleString('en-US')}.${decimal}`;
+				return `${parseFloat(integer ?? '').toLocaleString('en-US')}.${decimal}`;
 			}
 			return parseFloat(num).toLocaleString('en-US');
 		}

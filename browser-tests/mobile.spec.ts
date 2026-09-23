@@ -85,7 +85,7 @@ test.describe('mobile shell', () => {
 		expect(after).toHaveLength(before.length);
 		expect(new Set(after).size).toBe(after.length);
 		expect(after).toEqual(expect.arrayContaining(before));
-		expect(after.indexOf(before[0])).toBeGreaterThan(0);
+		expect(after.indexOf(before[0] ?? '')).toBeGreaterThan(0);
 		// Layout stays settled afterwards (no post-drop snap or jump).
 		await page.waitForTimeout(1500);
 		expect(await orderOf()).toEqual(after);

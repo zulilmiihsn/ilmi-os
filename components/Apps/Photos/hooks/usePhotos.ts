@@ -63,13 +63,16 @@ export function usePhotos() {
 	}, [localPhotos]);
 
 	const albums: Album[] = useMemo(() => {
+		// Fixed 12-photo mock above: covers are always present; defaults only
+		// satisfy the index checker and never trigger at runtime.
+		const [c0 = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = ''] = MOCK_PHOTOS;
 		return [
-			{ title: 'Recents', count: allPhotos.length + 461, image: allPhotos[0] || MOCK_PHOTOS[0] },
-			{ title: 'Great Shots', count: 36, image: MOCK_PHOTOS[1] },
-			{ title: 'Favorites', count: 72, image: MOCK_PHOTOS[2] },
-			{ title: 'HDR Video', count: 23, image: MOCK_PHOTOS[3] },
-			{ title: 'Instagram', count: 105, image: MOCK_PHOTOS[4] },
-			{ title: 'WhatsApp', count: 890, image: MOCK_PHOTOS[5] },
+			{ title: 'Recents', count: allPhotos.length + 461, image: allPhotos[0] ?? c0 },
+			{ title: 'Great Shots', count: 36, image: c1 },
+			{ title: 'Favorites', count: 72, image: c2 },
+			{ title: 'HDR Video', count: 23, image: c3 },
+			{ title: 'Instagram', count: 105, image: c4 },
+			{ title: 'WhatsApp', count: 890, image: c5 },
 		];
 	}, [allPhotos]);
 

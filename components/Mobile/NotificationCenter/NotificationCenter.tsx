@@ -50,12 +50,16 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 		// Swipe up to dismiss handlers
 		const handleTouchStart = (e: React.TouchEvent) => {
 			if (!isOpen) return;
-			touchStartRef.current = { y: e.touches[0].clientY, active: true };
+			const touch = e.touches[0];
+			if (!touch) return;
+			touchStartRef.current = { y: touch.clientY, active: true };
 		};
 
 		const handleTouchMove = (e: React.TouchEvent) => {
 			if (!touchStartRef.current?.active || !internalRef.current || !isOpen) return;
-			const deltaY = touchStartRef.current.y - e.touches[0].clientY;
+			const touch = e.touches[0];
+			if (!touch) return;
+			const deltaY = touchStartRef.current.y - touch.clientY;
 			if (deltaY > 0) {
 				const translateY = Math.min(deltaY, window.innerHeight);
 				internalRef.current.style.transition = 'none';
@@ -65,7 +69,9 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 
 		const handleTouchEnd = (e: React.TouchEvent) => {
 			if (!touchStartRef.current?.active || !internalRef.current || !isOpen) return;
-			const deltaY = touchStartRef.current.y - e.changedTouches[0].clientY;
+			const touch = e.changedTouches[0];
+			if (!touch) return;
+			const deltaY = touchStartRef.current.y - touch.clientY;
 			touchStartRef.current = null;
 
 			// Reset inline transform override

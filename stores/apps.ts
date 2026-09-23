@@ -390,7 +390,10 @@ export const useAppsStore = create<AppsStore>((set, get) => ({
 			delete newFolders[folderId];
 			delete newPositions[folderId];
 			if (remaining.length === 1) {
-				newPositions[remaining[0]] = folderPos;
+				const survivor = remaining[0];
+				if (survivor !== undefined) {
+					newPositions[survivor] = folderPos;
+				}
 			}
 			newPositions[appId] = freedSlot;
 		} else {

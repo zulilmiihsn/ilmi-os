@@ -163,7 +163,8 @@ export default function Files() {
 			setTimeout(() => {
 				const newPath = folderPath.slice(0, -1);
 				setFolderPath(newPath);
-				setCurrentFolderId(newPath[newPath.length - 1].id);
+				const parent = newPath[newPath.length - 1];
+				setCurrentFolderId(parent?.id ?? null);
 				setSearchQuery('');
 				setIsAnimating(false);
 			}, 150);
@@ -232,7 +233,7 @@ export default function Files() {
 		setShowActionSheet(true);
 	}
 
-	const currentPathName = folderPath[folderPath.length - 1].name;
+	const currentPathName = folderPath[folderPath.length - 1]?.name ?? '';
 
 	if (!mounted) return null;
 

@@ -117,6 +117,7 @@ export function useLongPress({
     const onTouchStart = useCallback(
         (e: React.TouchEvent) => {
             const touch = e.touches[0];
+            if (!touch) return;
             handleStart(touch.clientX, touch.clientY);
         },
         [handleStart]
@@ -125,6 +126,7 @@ export function useLongPress({
     const onTouchMove = useCallback(
         (e: React.TouchEvent) => {
             const touch = e.touches[0];
+            if (!touch) return;
             handleMove(touch.clientX, touch.clientY);
         },
         [handleMove]

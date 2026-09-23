@@ -63,8 +63,10 @@ export function useFinder() {
 	const goBack = useCallback(() => {
 		if (historyIndex > 0) {
 			const newIndex = historyIndex - 1;
+			const target = history[newIndex];
+			if (target === undefined) return;
 			setHistoryIndex(newIndex);
-			setCurrentFolderId(history[newIndex]);
+			setCurrentFolderId(target);
 			setSelectedItemId(null);
 		}
 	}, [history, historyIndex]);
@@ -72,8 +74,10 @@ export function useFinder() {
 	const goForward = useCallback(() => {
 		if (historyIndex < history.length - 1) {
 			const newIndex = historyIndex + 1;
+			const target = history[newIndex];
+			if (target === undefined) return;
 			setHistoryIndex(newIndex);
-			setCurrentFolderId(history[newIndex]);
+			setCurrentFolderId(target);
 			setSelectedItemId(null);
 		}
 	}, [history, historyIndex]);

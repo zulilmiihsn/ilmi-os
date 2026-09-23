@@ -265,7 +265,8 @@ function Calendar() {
 				result.push({
 					year: y,
 					month: m,
-					name: monthNames[m],
+					// m is always 0-11 and monthNames has exactly 12 entries.
+					name: monthNames[m] ?? '',
 				});
 			}
 		}

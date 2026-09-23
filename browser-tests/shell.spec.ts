@@ -42,7 +42,7 @@ test.describe('desktop shell', () => {
 		await page.waitForTimeout(500);
 		await page.evaluate(() => {
 			const header = document.querySelectorAll('.window-header')[1] as HTMLElement;
-			const [x, y] = (header as unknown as { __dragFrom: number[] }).__dragFrom;
+			const [x = 0, y = 0] = (header as unknown as { __dragFrom: number[] }).__dragFrom;
 			const opts = (cx: number, cy: number): MouseEventInit => ({
 				bubbles: true,
 				cancelable: true,

@@ -80,7 +80,11 @@ const SmoothSlider = ({ value, onChange, icon, label: _label, endIcon }: SmoothS
 		if (!isDragging) return;
 
 		const onMouseMove = (e: MouseEvent) => handleMove(e.clientX);
-		const onTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientX);
+		const onTouchMove = (e: TouchEvent) => {
+			const touch = e.touches[0];
+			if (!touch) return;
+			handleMove(touch.clientX);
+		};
 
 		const onEnd = () => {
 			setIsDragging(false);
@@ -137,7 +141,11 @@ const SmoothSlider = ({ value, onChange, icon, label: _label, endIcon }: SmoothS
 				e.preventDefault(); // Prevent text selection
 				handleStart(e.clientX);
 			}}
-			onTouchStart={e => handleStart(e.touches[0].clientX)}
+			onTouchStart={e => {
+				const touch = e.touches[0];
+				if (!touch) return;
+				handleStart(touch.clientX);
+			}}
 			onKeyDown={handleKeyDown}
 		>
 			{/* Fill Bar */}

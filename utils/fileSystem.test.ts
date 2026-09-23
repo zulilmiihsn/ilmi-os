@@ -140,8 +140,8 @@ describe('fileSystem utilities', () => {
 
 			const crumbs = getBreadcrumbs(subfolder.id);
 			expect(crumbs.length).toBe(2);
-			expect(crumbs[0].name).toBe('Documents');
-			expect(crumbs[1].name).toBe('Receipts');
+			expect(crumbs[0]?.name).toBe('Documents');
+			expect(crumbs[1]?.name).toBe('Receipts');
 		});
 	});
 

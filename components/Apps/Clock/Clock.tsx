@@ -191,7 +191,8 @@ function Clock() {
 	}, []);
 
 	const handleLap = useCallback(() => {
-		const lapDiff = lapTimes.length > 0 ? stopwatchTime - lapTimes[0].time : stopwatchTime;
+		const firstLap = lapTimes[0];
+		const lapDiff = firstLap ? stopwatchTime - firstLap.time : stopwatchTime;
 
 		setLapTimes(prev => [{ id: prev.length + 1, time: stopwatchTime, lapDiff }, ...prev]);
 	}, [stopwatchTime, lapTimes]);
