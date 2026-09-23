@@ -83,4 +83,39 @@ test.describe('desktop shell', () => {
 		);
 		expect(after).toBe(before);
 	});
+
+	test('control center opens as dark frosted glass with blue active tiles', async ({
+		page,
+	}) => {
+		await page.goto('/');
+		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
+		await page.getByRole('button', { name: 'Control Center' }).click();
+		const panel = page.locator('.control-center');
+		await expect(panel).toBeVisible({ timeout: 5000 });
+
+		const frame = await page.evaluate(() => {
+			const el = document.querySelector('.control-center');
+			if (!el) return null;
+			const style = getComputedStyle(el);
+			return {
+				bg: style.backgroundColor,
+				backdrop: style.backdropFilter,
+			};
+		});
+		expect(frame).not.toBeNull();
+		// Always-dark glass (content is white-only): translucent black + blur.
+		// (Edge may serialize as rgba() or oklab(); both describe the same color.)
+		expect(frame!.bg).toMatch(/0[,\s] *0[,\s] *0/);
+		expect(frame!.bg).toContain('0.3');
+		expect(frame!.backdrop).toContain('blur');
+
+		// Wi-Fi starts on: its tile renders iOS blue like macOS toggles.
+		// Plain (unmodified) colors serialize as rgb(); only color-mix() with
+		// opacity modifiers resolves to oklab, so this is deterministic.
+		const wifiTile = await page.evaluate(() => {
+			const btn = document.querySelector('.control-center button[aria-label^="Wi-Fi"]');
+			return btn ? getComputedStyle(btn).backgroundColor : 'missing';
+		});
+		expect(wifiTile).toBe('rgb(0, 122, 255)');
+	});
 });

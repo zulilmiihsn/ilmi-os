@@ -221,9 +221,10 @@ export default function ControlCenter() {
 				aria-label="Close Control Center"
 			/>
 
-			{/* Control Center Panel */}
+			{/* Control Center Panel: always-dark frosted glass like macOS and the
+			mobile sibling (content is white-only, so no light-mode variant). */}
 			<div
-				className={`control-center fixed top-8 right-6 w-80 z-55 p-3.5 transition-opacity duration-200 ${
+				className={`control-center fixed top-8 right-6 w-80 z-55 p-3.5 rounded-2xl border border-white/20 bg-black/30 backdrop-blur-2xl shadow-2xl transition-opacity duration-200 ${
 					isOpen
 						? 'control-center-open visible opacity-100'
 						: 'control-center-closed invisible opacity-0 pointer-events-none'
@@ -237,8 +238,8 @@ export default function ControlCenter() {
 					<div className="grid grid-cols-4 gap-2 mb-2.5">
 						{/* Wi-Fi */}
 						<button
-							className={`control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
-								wifiEnabled ? 'control-button-active' : ''
+							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
+								wifiEnabled ? 'bg-[#007aff]' : 'bg-white/10'
 							}`}
 							onClick={() => setWifiEnabled(!wifiEnabled)}
 							aria-label={`Wi-Fi ${wifiEnabled ? 'On' : 'Off'}`}
@@ -250,8 +251,8 @@ export default function ControlCenter() {
 
 						{/* Bluetooth */}
 						<button
-							className={`control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
-								bluetoothEnabled ? 'control-button-active' : ''
+							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
+								bluetoothEnabled ? 'bg-[#007aff]' : 'bg-white/10'
 							}`}
 							onClick={() => setBluetoothEnabled(!bluetoothEnabled)}
 							aria-label={`Bluetooth ${bluetoothEnabled ? 'On' : 'Off'}`}
@@ -263,8 +264,8 @@ export default function ControlCenter() {
 
 						{/* Focus */}
 						<button
-							className={`control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
-								focusEnabled ? 'control-button-active' : ''
+							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
+								focusEnabled ? 'bg-[#007aff]' : 'bg-white/10'
 							}`}
 							onClick={() => setFocusEnabled(!focusEnabled)}
 							aria-label={`Focus ${focusEnabled ? 'On' : 'Off'}`}
@@ -276,7 +277,7 @@ export default function ControlCenter() {
 
 						{/* Profile */}
 						<button
-							className="control-connectivity-button aspect-square p-3 rounded-xl transition-all flex items-center justify-center"
+							className="aspect-square p-3 rounded-xl transition-all flex items-center justify-center bg-white/10"
 							aria-label="User Profile"
 						>
 							<i className="fas fa-user text-xl text-white"></i>
@@ -312,7 +313,7 @@ export default function ControlCenter() {
 					{/* Bottom Section: Music Player & Battery - Compact */}
 					<div className="space-y-2">
 						{/* Music Player Widget - Compact */}
-						<div className="control-music-widget p-2.5 rounded-xl">
+						<div className="p-2.5 rounded-xl bg-white/10">
 							<div className="flex items-center gap-2 mb-2">
 								{/* Album Art - Smaller */}
 								<div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-400 to-purple-500 shrink-0 overflow-hidden relative">
@@ -360,7 +361,7 @@ export default function ControlCenter() {
 						</div>
 
 						{/* Battery Indicator - Compact */}
-						<div className="control-battery p-2.5 rounded-xl">
+						<div className="p-2.5 rounded-xl bg-white/10">
 							<div className="flex items-center justify-between">
 								<span className="text-xs font-semibold text-white">Battery</span>
 								<div className="flex items-center gap-2">
