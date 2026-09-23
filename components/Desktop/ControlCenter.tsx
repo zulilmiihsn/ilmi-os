@@ -245,9 +245,20 @@ export default function ControlCenter() {
 							onClick={() => setWifiEnabled(!wifiEnabled)}
 							aria-label={`Wi-Fi ${wifiEnabled ? 'On' : 'Off'}`}
 						>
-							<i
-								className={`fas fa-wifi text-xl ${wifiEnabled ? 'text-white' : 'text-white/50'}`}
-							></i>
+							<svg
+								className={`w-6 h-6 ${wifiEnabled ? 'text-white' : 'text-white/50'}`}
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								aria-hidden="true"
+							>
+								<path d="M2.5 9.5a13.5 13.5 0 0 1 19 0" />
+								<path d="M5.5 12.8a9 9 0 0 1 13 0" />
+								<path d="M8.4 15.9a5 5 0 0 1 7.2 0" />
+								<circle cx="12" cy="18.5" r="1.3" fill="currentColor" stroke="none" />
+							</svg>
 						</button>
 
 						{/* Bluetooth */}
@@ -258,9 +269,18 @@ export default function ControlCenter() {
 							onClick={() => setBluetoothEnabled(!bluetoothEnabled)}
 							aria-label={`Bluetooth ${bluetoothEnabled ? 'On' : 'Off'}`}
 						>
-							<i
-								className={`fab fa-bluetooth-b text-xl ${bluetoothEnabled ? 'text-white' : 'text-white/50'}`}
-							></i>
+							<svg
+								className={`w-6 h-6 ${bluetoothEnabled ? 'text-white' : 'text-white/50'}`}
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								aria-hidden="true"
+							>
+								<path d="m7 7 10 10-5 5V2l5 5L7 7z" />
+							</svg>
 						</button>
 
 						{/* Focus */}
@@ -271,9 +291,14 @@ export default function ControlCenter() {
 							onClick={() => setFocusEnabled(!focusEnabled)}
 							aria-label={`Focus ${focusEnabled ? 'On' : 'Off'}`}
 						>
-							<i
-								className={`fas fa-moon text-xl ${focusEnabled ? 'text-white' : 'text-white/50'}`}
-							></i>
+							<svg
+								className={`w-6 h-6 ${focusEnabled ? 'text-white' : 'text-white/50'}`}
+								viewBox="0 0 24 24"
+								fill="currentColor"
+								aria-hidden="true"
+							>
+								<path d="M20 13.2A8 8 0 1 1 10.8 4 6.6 6.6 0 0 0 20 13.2z" />
+							</svg>
 						</button>
 
 						{/* AirDrop */}
@@ -284,9 +309,20 @@ export default function ControlCenter() {
 							onClick={() => setAirdropEnabled(!airdropEnabled)}
 							aria-label={`AirDrop ${airdropEnabled ? 'On' : 'Off'}`}
 						>
-							<i
-								className={`fas fa-share-nodes text-xl ${airdropEnabled ? 'text-white' : 'text-white/50'}`}
-							></i>
+							<svg
+								className={`w-6 h-6 ${airdropEnabled ? 'text-white' : 'text-white/50'}`}
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								aria-hidden="true"
+							>
+								<circle cx="6" cy="12" r="2.2" />
+								<circle cx="17" cy="6" r="2.2" />
+								<circle cx="17" cy="18" r="2.2" />
+								<path d="M8 11l7-4M8 13l7 4" />
+							</svg>
 						</button>
 					</div>
 
