@@ -456,4 +456,8 @@ html.dark {
 	.safe-area-bottom {
 		padding-bottom: env(safe-area-inset-bottom);
 	}
+
+	.pb-safe {
+		padding-bottom: env(safe-area-inset-bottom);
+	}
 }
