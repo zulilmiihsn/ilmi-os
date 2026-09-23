@@ -276,10 +276,12 @@ export default function ControlCenter() {
 								stroke="currentColor"
 								strokeWidth="2"
 								strokeLinecap="round"
-								strokeLinejoin="round"
+								strokeLinejoin="miter"
 								aria-hidden="true"
 							>
-								<path d="m7 7 10 10-5 5V2l5 5L7 7z" />
+								<path d="M10 4v16" />
+								<path d="M10 5.5L18 9.5 10 13.5" />
+								<path d="M10 18.5L18 14.5 10 10.5" />
 							</svg>
 						</button>
 
