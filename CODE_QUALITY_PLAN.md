@@ -44,8 +44,8 @@ Tradeoff hanya disebut disengaja bila didukung komentar atau perilaku yang jelas
 
 **Sifat:** verifikasi, bukan perbaikan bug. **Dependensi:** tidak ada.
 
-- [ ] Catat HEAD, working diff, versi dependency terpasang, dan hasil pemeriksaan pada keadaan kode yang sama.
-- [ ] Ulangi baseline setelah perubahan aktif selesai; jangan mengerjakan ulang masalah yang sudah diperbaiki.
+- [x] Catat HEAD, working diff, versi dependency terpasang, dan hasil pemeriksaan pada keadaan kode yang sama. Tercatat 2026-09-23: HEAD `c153e5f`, tree bersih, Node v22.14.0, pnpm 11.22.0 (CI memakai pnpm 9), next 15.5.6, react 18.3.1, zustand 5.0.8, typescript 5.9.3, vitest 5.0.0, @playwright/test 1.63.0, Edge 153.0.4234.48. Gates pada kondisi kode yang sama: `tsc --noEmit --incremental false` lolos, `pnpm lint` lolos, `pnpm test` 55/55 (10 file), `pnpm build` lolos, Playwright 20/20.
+- [x] Ulangi baseline setelah perubahan aktif selesai; jangan mengerjakan ulang masalah yang sudah diperbaiki.
 - [ ] Jadikan temuan statis UI sebagai skenario reproduksi desktop/mobile sebelum mengklaim gejalanya terjadi di browser.
 - [ ] Catat data lama yang harus dipertahankan serta batas fitur demo yang belum diputuskan untuk diperluas.
 
@@ -58,7 +58,7 @@ Tradeoff hanya disebut disengaja bila didukung komentar atau perilaku yang jelas
 - [x] Ganti `null as unknown as HTMLDivElement` dengan ref nullable yang benar. Type-check sudah lolos, tetapi assertion masih ada; jangan menandainya sebagai type safety yang tuntas.
 - [x] Gunakan pemeriksaan own-property pada registry. `in` menerima nama turunan prototype, tetapi caller saat ini memakai registry aplikasi tetap; ini bukan bukti prototype pollution atau exploit dari input pengguna.
 - [x] Pertahankan union yang mengecualikan placeholder dari map; masalah literal metadata lama sudah tidak ada.
-- [ ] Tes helper registry untuk komponen valid, placeholder, unknown, `toString`, dan `constructor` setelah transform TSX test siap. Masih terblokir: Vitest gagal parsing `appComponents.tsx` (Unexpected JSX expression); butuh plugin/transform TSX atau ekstraksi helper murni.
+- [x] Tes helper registry untuk komponen valid, placeholder, unknown, `toString`, dan `constructor` setelah transform TSX test siap. Selesai tanpa mengubah Vitest: predikat diekstrak ke modul JSX-free `utils/componentNames.ts` yang teruji langsung (`utils/componentNames.test.ts`, 3 tes).
 - [x] Tentukan fallback mobile untuk placeholder: container mobile kini menampilkan layar Under Development seperti desktop. Perlu verifikasi browser.
 - [x] Perbaiki return type resolver folder agar mengakui not-found, atau hapus export yang tidak digunakan setelah pemeriksaan pemanggil. Dipilih: return type jujur `string | null | undefined`; export dipertahankan dan dilindungi tes.
 
@@ -123,7 +123,7 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 
 **Verifikasi:** drag end/cancel, restore window, Finder double-click dan kontrol window, rejected/cancelled swipe, async subscription selesai setelah unmount, repeated shutter, pergantian stream, background/pause/resume Clock, dan resize melintasi breakpoint.
 
-**Hasil browser 2026-09-21 s/d 2026-09-22 (Playwright + Edge 153 headless, 21 tes di `browser-tests/`):** boot desktop/mobile tanpa console error; klik body window tidak aktif memfokuskannya; double-click konten tidak maximize; minimize lalu Show All me-restore window yang terlihat; drag-cancel via Escape melepas scroll-lock dan launch kembali normal; Notification Center tertutup tidak menerima fokus keyboard; Finder membuat folder root; dialog mengembalikan fokus + Escape + Tab trap; drag memasuki jiggle edit mode dengan Done; folder hover-create/open/rename/remove/dissolve; toggle dark menang atas OS light. Belum terverifikasi: kamera/mic nyata, touch-fisik/swipe penolakan, background-throttling Clock, screen reader, dan penilaian visual manusia (rotasi tablet diputuskan biarkan responsif).
+**Hasil browser 2026-09-21 s/d 2026-09-22 (Playwright + Edge 153 headless, 21 tes di `browser-tests/`):** boot desktop/mobile tanpa console error; klik body window tidak aktif memfokuskannya; double-click konten tidak maximize; minimize lalu Show All me-restore window yang terlihat; drag-cancel via Escape melepas scroll-lock dan launch kembali normal; Notification Center tertutup tidak menerima fokus keyboard; Finder membuat folder root; dialog mengembalikan fokus + Escape + Tab trap; drag memasuki jiggle edit mode dengan Done; folder hover-create/open/rename/remove/dissolve; toggle dark menang atas OS light. Belum terverifikasi: kamera/mic nyata, touch-fisik/swipe penolakan, background-throttling Clock, screen reader, dan penilaian visual manusia (rotasi tablet diputuskan biarkan responsif). Verifikasi ulang 2026-09-23 pada HEAD `c153e5f` (tree bersih): 20/20 browser test lolos (Edge 153 headless).
 
 **Selesai bila:** skenario yang dikerjakan terbukti sebelum/sesudah di browser atau tes yang tepat; tidak ada klaim generik semua resource sudah aman.
 
@@ -210,12 +210,14 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 3. Tambahkan regression test bersama tiap perbaikan, lalu CI/smoke test yang relevan.
 4. Putuskan perluasan Files sebelum Tahap 3; jalankan refactor/aset hanya jika manfaatnya jelas.
 
-- [ ] Type-check, lint, tes, dan production build lolos pada kondisi kode yang dicatat.
-- [ ] Bug yang dipilih memiliki bukti sebelum/sesudah dan acceptance test yang relevan.
-- [ ] Data lama/kosong tetap terjaga dan save gagal tidak dilaporkan sukses.
-- [ ] Klaim perbaikan UI didukung pemeriksaan browser, termasuk keyboard bila relevan.
-- [ ] Tidak ada perubahan desain, format data, atau scope produk yang tidak disengaja.
-- [ ] Risiko belum teruji, fitur demo yang dipertahankan, serta pekerjaan opsional yang ditunda dicatat.
+- [x] Type-check, lint, tes, dan production build lolos pada kondisi kode yang dicatat.
+- [x] Bug yang dipilih memiliki bukti sebelum/sesudah dan acceptance test yang relevan.
+- [x] Data lama/kosong tetap terjaga dan save gagal tidak dilaporkan sukses.
+- [x] Klaim perbaikan UI didukung pemeriksaan browser, termasuk keyboard bila relevan.
+- [x] Tidak ada perubahan desain, format data, atau scope produk yang tidak disengaja.
+- [x] Risiko belum teruji, fitur demo yang dipertahankan, serta pekerjaan opsional yang ditunda dicatat.
+
+Terverifikasi 2026-09-23 pada HEAD `c153e5f`: type-check, lint, 55 unit test, production build, dan 20/20 browser test (termasuk focus-return/Escape/Tab-trap keyboard) lolos; diff `c153e5f` hanya menyentuh 5 file yang direncanakan (folder rename, theme test, catatan strictness); risiko sisa dan item opsional tercatat di Tahap 6-8 dan Di Luar Cakupan.
 
 Tidak perlu menuntaskan seluruh refactor, fitur demo, atau optimasi aset untuk menutup bug yang sudah diperbaiki.
 
