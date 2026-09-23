@@ -8,12 +8,17 @@ import { getAppComponent } from '../../utils/appComponents';
 import { TIMING } from '../../constants';
 import { useWindowDragResize } from './Window/useWindowDragResize';
 import WindowHeader from './Window/WindowHeader';
+import type { ExposeTile } from '../../utils/exposeLayout';
 
 interface WindowProps {
 	window: WindowState;
+	/** Exposé tile geometry. When present the window renders scaled into the
+	tile (even when minimized) and clicks select instead of dragging. */
+	exposeTile?: ExposeTile | null;
+	onExposeSelect?: (id: string) => void;
 }
 
-export default function Window({ window: windowProp }: WindowProps) {
+export default function Window({ window: windowProp, exposeTile, onExposeSelect }: WindowProps) {
 	const [isClosing, setIsClosing] = useState(false);
 	const [isMinimizing, setIsMinimizing] = useState(false);
 	const [isOpening, setIsOpening] = useState(true);
@@ -146,11 +151,19 @@ export default function Window({ window: windowProp }: WindowProps) {
 		}
 	}
 
-	if (windowState.isMinimized) return null;
+	if (windowState.isMinimized && !exposeTile) return null;
 
 	const windowStyle: React.CSSProperties = { zIndex: windowState.zIndex, top: 0, left: 0 };
 
-	if ((isMinimizing || isRestoring) && interactionRef.current.minimizeTarget) {
+	if (exposeTile) {
+		// Exposé overrides geometry: scale the stored size into the tile.
+		// The existing 250ms transition animates windows into place for free.
+		windowStyle.width = `${windowState.width}px`;
+		windowStyle.height = `${windowState.height}px`;
+		windowStyle.transform = `translate3d(${exposeTile.x}px, ${exposeTile.y}px, 0) scale(${exposeTile.scale})`;
+		windowStyle.transformOrigin = 'top left';
+		windowStyle.opacity = 1;
+	} else if ((isMinimizing || isRestoring) && interactionRef.current.minimizeTarget) {
 		const target = interactionRef.current.minimizeTarget;
 		windowStyle.width = `${target.width}px`;
 		windowStyle.height = `${target.height}px`;
@@ -177,6 +190,7 @@ export default function Window({ window: windowProp }: WindowProps) {
 		'shadow-[0_0_0_1px_rgba(255,255,255,0.1)]',
 		'will-change-[transform,width,height]',
 		'transition-[transform,width,height,opacity] duration-[250ms] ease-[cubic-bezier(0.2,0,0,1)]',
+		exposeTile ? 'expose-tile cursor-pointer' : '',
 		windowState.isFocused
 			? 'shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5),0_0_1px_0_rgba(0,0,0,0.5)] dark:shadow-[0_30px_80px_-10px_rgba(0,0,0,0.6)] z-50'
 			: 'shadow-[0_10px_30px_-5px_rgba(0,0,0,0.2)] grayscale-[0.05] opacity-95 z-10',
@@ -191,9 +205,22 @@ export default function Window({ window: windowProp }: WindowProps) {
 			ref={windowRef}
 			className={containerClasses}
 			style={windowStyle}
-			onMouseDownCapture={handleActivate}
-			onMouseDown={e => handleMouseDown(e, windowState)}
-			onDoubleClick={handleDoubleClick}
+			onMouseDownCapture={exposeTile ? undefined : handleActivate}
+			onMouseDown={exposeTile ? undefined : e => handleMouseDown(e, windowState)}
+			onDoubleClick={exposeTile ? undefined : handleDoubleClick}
+			onClick={exposeTile ? () => onExposeSelect?.(windowState.id) : undefined}
+			onKeyDown={
+				exposeTile
+					? e => {
+							if (e.key !== 'Enter' && e.key !== ' ') return;
+							e.preventDefault();
+							onExposeSelect?.(windowState.id);
+						}
+					: undefined
+			}
+			role={exposeTile ? 'button' : undefined}
+			tabIndex={exposeTile ? 0 : undefined}
+			aria-label={exposeTile ? `Exposé: focus ${windowState.title}` : undefined}
 		>
 			<WindowHeader
 				windowState={windowState}
@@ -222,7 +249,7 @@ export default function Window({ window: windowProp }: WindowProps) {
 				{!windowState.isFocused && <div className="absolute inset-0 z-10" />}
 			</div>
 
-			{!windowState.isMaximized && (
+			{!windowState.isMaximized && !exposeTile && (
 				<button
 					className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize z-50 opacity-0 focus-visible:opacity-100 focus-visible:bg-[#007AFF]/40 focus-visible:rounded-tl-lg focus:outline-none"
 					onMouseDown={e => handleResizeStart(e, windowState)}
