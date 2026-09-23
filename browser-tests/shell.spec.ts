@@ -118,4 +118,17 @@ test.describe('desktop shell', () => {
 		});
 		expect(wifiTile).toBe('rgb(0, 122, 255)');
 	});
+
+	test('menubar menus fade in instead of popping', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
+		await page.getByRole('button', { name: 'Apple menu' }).click();
+		// The Apple menu dropdown animates open like macOS menus.
+		const menu = page.getByRole('menu').first();
+		await expect(menu).toBeVisible({ timeout: 5000 });
+		// zoomIn95 carries the fade (opacity 0→1) plus the scale; later
+		// keyframe rules win over .fade-in, so either name proves motion.
+		const animationName = await menu.evaluate(el => getComputedStyle(el).animationName);
+		expect(animationName).toMatch(/fadeIn|zoomIn/);
+	});
 });

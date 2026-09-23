@@ -46,7 +46,8 @@ export default function MenuDropdown({ items, isOpen, onClose }: MenuDropdownPro
 	return (
 		<div
 			ref={menuRef}
-			className="absolute top-full left-0 mt-1 min-w-[220px] py-1.5 z-50 text-gray-900 overflow-hidden transform"
+			role="menu"
+			className="absolute top-full left-0 mt-1 min-w-[220px] py-1.5 z-50 text-gray-900 overflow-hidden transform animate-in fade-in zoom-in-95 duration-100"
 			style={{
 				background: 'rgba(255, 255, 255, 0.15)',
 				backdropFilter: 'blur(20px) saturate(180%)',

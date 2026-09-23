@@ -17,6 +17,11 @@ export default function Window({ window: windowProp }: WindowProps) {
 	const [isClosing, setIsClosing] = useState(false);
 	const [isMinimizing, setIsMinimizing] = useState(false);
 	const [isOpening, setIsOpening] = useState(true);
+	// Restore replays the minimize trip in reverse (macOS behavior). It starts
+	// during render — not in an effect — so the first paint is already at the
+	// dock icon instead of flashing full-size for a frame.
+	const [isRestoring, setIsRestoring] = useState(false);
+	const [prevMinimized, setPrevMinimized] = useState(windowProp.isMinimized);
 
 	const windowState = useWindowsStore(
 		state => state.windows.find(w => w.id === windowProp.id) || windowProp
@@ -46,15 +51,41 @@ export default function Window({ window: windowProp }: WindowProps) {
 
 	// A restore (Show All) flips isMinimized back while the stale minimizing
 	// animation state is still set; drop it so the window does not render at
-	// Dock size with zero opacity.
+	// Dock size with zero opacity. The reverse trip itself starts during render
+	// below; this effect only refreshes the dock target (the dock may have
+	// moved) and finishes the trip after paint.
 	const prevMinimizedRef = useRef(false);
 	useEffect(() => {
 		if (prevMinimizedRef.current && !windowState.isMinimized) {
-			setIsMinimizing(false);
-			interactionRef.current.minimizeTarget = null;
+			if (typeof document !== 'undefined') {
+				const dockIcon = document.querySelector(`[data-app-id="${windowState.appId}"]`);
+				if (dockIcon) {
+					const rect = dockIcon.getBoundingClientRect();
+					interactionRef.current.minimizeTarget = {
+						x: rect.left,
+						y: rect.top,
+						width: rect.width,
+						height: rect.height,
+					};
+				}
+			}
 		}
 		prevMinimizedRef.current = windowState.isMinimized;
-	}, [windowState.isMinimized, interactionRef]);
+	}, [windowState.isMinimized, windowState.appId, interactionRef]);
+
+	useEffect(() => {
+		if (!isRestoring) return;
+		// Double rAF: let the small frame paint before growing to full size.
+		// Keyed on the state itself (not the restore edge) so a StrictMode
+		// remount reschedules instead of stranding the window at dock size.
+		const raf1 = requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				setIsRestoring(false);
+				interactionRef.current.minimizeTarget = null;
+			});
+		});
+		return () => cancelAnimationFrame(raf1);
+	}, [isRestoring, interactionRef]);
 
 	const handleMinimize = useCallback(() => {
 		if (typeof document !== 'undefined') {
@@ -99,11 +130,27 @@ export default function Window({ window: windowProp }: WindowProps) {
 		[handleMaximize]
 	);
 
+	// Minimize/restore edge handled during render — BEFORE the minimized
+	// early-return below, or the restore trip never starts (and the stale
+	// minimizing state strands the window at dock size with zero opacity).
+	// The commit that flips isMinimized paints small immediately (no
+	// full-size flash), then the effect above grows the window back after
+	// paint. Idempotent under double render.
+	if (prevMinimized !== windowState.isMinimized) {
+		setPrevMinimized(windowState.isMinimized);
+		if (prevMinimized && !windowState.isMinimized) {
+			setIsMinimizing(false);
+			if (interactionRef.current.minimizeTarget) {
+				setIsRestoring(true);
+			}
+		}
+	}
+
 	if (windowState.isMinimized) return null;
 
 	const windowStyle: React.CSSProperties = { zIndex: windowState.zIndex, top: 0, left: 0 };
 
-	if (isMinimizing && interactionRef.current.minimizeTarget) {
+	if ((isMinimizing || isRestoring) && interactionRef.current.minimizeTarget) {
 		const target = interactionRef.current.minimizeTarget;
 		windowStyle.width = `${target.width}px`;
 		windowStyle.height = `${target.height}px`;
