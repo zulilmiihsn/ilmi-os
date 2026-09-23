@@ -123,7 +123,7 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 
 **Verifikasi:** drag end/cancel, restore window, Finder double-click dan kontrol window, rejected/cancelled swipe, async subscription selesai setelah unmount, repeated shutter, pergantian stream, background/pause/resume Clock, dan resize melintasi breakpoint.
 
-**Hasil browser 2026-09-21 s/d 2026-09-22 (Playwright + Edge 153 headless, 21 tes di `browser-tests/`):** boot desktop/mobile tanpa console error; klik body window tidak aktif memfokuskannya; double-click konten tidak maximize; minimize lalu Show All me-restore window yang terlihat; drag-cancel via Escape melepas scroll-lock dan launch kembali normal; Notification Center tertutup tidak menerima fokus keyboard; Finder membuat folder root; dialog mengembalikan fokus + Escape + Tab trap; drag memasuki jiggle edit mode dengan Done; folder hover-create/open/rename/remove/dissolve; toggle dark menang atas OS light. Belum terverifikasi: kamera/mic nyata, touch-fisik/swipe penolakan, background-throttling Clock, screen reader, dan penilaian visual manusia (rotasi tablet diputuskan biarkan responsif). Verifikasi ulang 2026-09-23 pada HEAD `c153e5f` (tree bersih): 20/20 browser test lolos (Edge 153 headless).
+**Hasil browser 2026-09-21 s/d 2026-09-22 (Playwright + Edge 153 headless, 21 tes di `browser-tests/`):** boot desktop/mobile tanpa console error; klik body window tidak aktif memfokuskannya; double-click konten tidak maximize; minimize lalu Show All me-restore window yang terlihat; drag-cancel via Escape melepas scroll-lock dan launch kembali normal; Notification Center tertutup tidak menerima fokus keyboard; Finder membuat folder root; dialog mengembalikan fokus + Escape + Tab trap; drag memasuki jiggle edit mode dengan Done; folder hover-create/open/rename/remove/dissolve; toggle dark menang atas OS light. Belum terverifikasi: penilaian visual manusia (rotasi tablet diputuskan biarkan responsif). Verifikasi pemilik di perangkat nyata 2026-09-23: kamera/mic nyata, touch-fisik/penolakan swipe, background-throttling Clock, dan screen reader — semua OK. Verifikasi ulang 2026-09-23 pada HEAD `c153e5f` (tree bersih): 20/20 browser test lolos (Edge 153 headless).
 
 **Selesai bila:** skenario yang dikerjakan terbukti sebelum/sesudah di browser atau tes yang tepat; tidak ada klaim generik semua resource sudah aman.
 
@@ -142,7 +142,7 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 - [ ] Pilih semantik sesuai interaksi (menu/listbox/dialog semantik spesifik belum diubah; hanya yang rusak diperbaiki).
 - [x] Tambahkan status bermakna pada BootScreen (`role=status`, SVG `aria-hidden`, `motion-safe` pulse, teks sr-only).
 
-**Selesai bila:** alur yang dipilih dapat digunakan lewat keyboard dan tidak menjangkau kontrol tertutup; modalitas, fokus, dan transisi sesuai perilaku sebenarnya.
+**Selesai bila:** alur yang dipilih dapat digunakan lewat keyboard dan tidak menjangkau kontrol tertutup; modalitas, fokus, dan transisi sesuai perilaku sebenarnya. Verifikasi pemilik dengan screen reader di perangkat nyata 2026-09-23: OK.
 
 ## Tahap 6: Quality Gates dan Styling
 
