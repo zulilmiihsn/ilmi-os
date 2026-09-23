@@ -238,7 +238,7 @@ export default function ControlCenter() {
 					<div className="grid grid-cols-4 gap-2 mb-2.5">
 						{/* Wi-Fi */}
 						<button
-							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
+							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
 								wifiEnabled ? 'bg-[#007aff]' : 'bg-white/10'
 							}`}
 							onClick={() => setWifiEnabled(!wifiEnabled)}
@@ -251,7 +251,7 @@ export default function ControlCenter() {
 
 						{/* Bluetooth */}
 						<button
-							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
+							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
 								bluetoothEnabled ? 'bg-[#007aff]' : 'bg-white/10'
 							}`}
 							onClick={() => setBluetoothEnabled(!bluetoothEnabled)}
@@ -264,7 +264,7 @@ export default function ControlCenter() {
 
 						{/* Focus */}
 						<button
-							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center ${
+							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
 								focusEnabled ? 'bg-[#007aff]' : 'bg-white/10'
 							}`}
 							onClick={() => setFocusEnabled(!focusEnabled)}
@@ -277,7 +277,7 @@ export default function ControlCenter() {
 
 						{/* Profile */}
 						<button
-							className="aspect-square p-3 rounded-xl transition-all flex items-center justify-center bg-white/10"
+							className="aspect-square p-3 rounded-xl transition-all flex items-center justify-center bg-white/10 hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80"
 							aria-label="User Profile"
 						>
 							<i className="fas fa-user text-xl text-white"></i>

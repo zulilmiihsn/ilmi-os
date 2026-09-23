@@ -84,9 +84,7 @@ test.describe('desktop shell', () => {
 		expect(after).toBe(before);
 	});
 
-	test('control center opens as dark frosted glass with blue active tiles', async ({
-		page,
-	}) => {
+	test('control center opens as dark frosted glass with blue active tiles', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
 		await page.getByRole('button', { name: 'Control Center' }).click();
@@ -132,6 +130,26 @@ test.describe('desktop shell', () => {
 		expect(animationName).toMatch(/fadeIn|zoomIn/);
 	});
 
+	test('control center tiles give feedback and toggle', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
+		await page.getByRole('button', { name: 'Control Center' }).click();
+		const wifi = page.locator('.control-center button[aria-label^="Wi-Fi"]');
+		await expect(wifi).toBeVisible({ timeout: 5000 });
+
+		// Hover feedback (macOS highlight cue).
+		await wifi.hover();
+		const hoverFilter = await wifi.evaluate(el => getComputedStyle(el).filter);
+		expect(hoverFilter).toContain('brightness');
+
+		// Toggle off and back on; the tile color follows the state.
+		const bgOf = () => wifi.evaluate(el => getComputedStyle(el).backgroundColor);
+		await wifi.click();
+		await expect.poll(bgOf, { timeout: 3000 }).not.toBe('rgb(0, 122, 255)');
+		await wifi.click();
+		await expect.poll(bgOf, { timeout: 3000 }).toBe('rgb(0, 122, 255)');
+	});
+
 	test('dock shows app names on hover and bounces icons on launch', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
@@ -142,11 +160,9 @@ test.describe('desktop shell', () => {
 		const tooltip = finderIcon.locator('.dock-tooltip');
 		await expect(tooltip).toHaveText('Finder');
 		await expect
-			.poll(
-				async () =>
-					tooltip.evaluate(el => Number(getComputedStyle(el).opacity)),
-				{ timeout: 4000 }
-			)
+			.poll(async () => tooltip.evaluate(el => Number(getComputedStyle(el).opacity)), {
+				timeout: 4000,
+			})
 			.toBeGreaterThan(0.5);
 		// Clicking launches with a bounce cue on the icon itself.
 		await finderIcon.click();
