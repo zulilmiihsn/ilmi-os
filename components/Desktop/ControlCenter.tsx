@@ -178,6 +178,7 @@ export default function ControlCenter() {
 	// Connectivity states
 	const [wifiEnabled, setWifiEnabled] = useState(true);
 	const [bluetoothEnabled, setBluetoothEnabled] = useState(true);
+	const [airdropEnabled, setAirdropEnabled] = useState(true);
 
 	// Focus state
 	const [focusEnabled, setFocusEnabled] = useState(false);
@@ -275,12 +276,17 @@ export default function ControlCenter() {
 							></i>
 						</button>
 
-						{/* Profile */}
+						{/* AirDrop */}
 						<button
-							className="aspect-square p-3 rounded-xl transition-all flex items-center justify-center bg-white/10 hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80"
-							aria-label="User Profile"
+							className={`aspect-square p-3 rounded-xl transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
+								airdropEnabled ? 'bg-[#007aff]' : 'bg-white/10'
+							}`}
+							onClick={() => setAirdropEnabled(!airdropEnabled)}
+							aria-label={`AirDrop ${airdropEnabled ? 'On' : 'Off'}`}
 						>
-							<i className="fas fa-user text-xl text-white"></i>
+							<i
+								className={`fas fa-share-nodes text-xl ${airdropEnabled ? 'text-white' : 'text-white/50'}`}
+							></i>
 						</button>
 					</div>
 

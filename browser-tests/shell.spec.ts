@@ -148,6 +148,13 @@ test.describe('desktop shell', () => {
 		await expect.poll(bgOf, { timeout: 3000 }).not.toBe('rgb(0, 122, 255)');
 		await wifi.click();
 		await expect.poll(bgOf, { timeout: 3000 }).toBe('rgb(0, 122, 255)');
+
+		// Every tile is alive: AirDrop (ex-User Profile dead button) toggles too.
+		const airdrop = page.locator('.control-center button[aria-label^="AirDrop"]');
+		await airdrop.click();
+		await expect(airdrop).toHaveAttribute('aria-label', 'AirDrop Off');
+		await airdrop.click();
+		await expect(airdrop).toHaveAttribute('aria-label', 'AirDrop On');
 	});
 
 	test('dock shows app names on hover and bounces icons on launch', async ({ page }) => {
