@@ -99,6 +99,29 @@ describe('Files migration (Tahap 3)', () => {
 		expect(parseDisplaySize('1.1 MB')).toBe(Math.round(1.1 * 1024 * 1024));
 		expect(parseDisplaySize('512 B')).toBe(512);
 		expect(parseDisplaySize('nonsense')).toBeUndefined();
+		expect(parseDisplaySize('1.2.3 MB')).toBeUndefined();
 		expect(parseDisplaySize(undefined)).toBeUndefined();
+	});
+
+	it('rejects legacy items that fail validation without touching stores', () => {
+		const raw = JSON.stringify({ items: [null, { id: '1' }] });
+		globalThis.localStorage.setItem(LEGACY_KEY, raw);
+		expect(migrateLegacyFilesStorage()).toBe('legacy-invalid');
+		expect(globalThis.localStorage.getItem(LEGACY_KEY)).toBe(raw);
+		expect(globalThis.localStorage.getItem(SHARED_KEY)).toBeNull();
+	});
+
+	it('treats an unreadable shared store as invalid and storage failure as absent', () => {
+		globalThis.localStorage.setItem(LEGACY_KEY, JSON.stringify(legacyPayload));
+		globalThis.localStorage.setItem(SHARED_KEY, '{broken');
+		expect(migrateLegacyFilesStorage()).toBe('shared-invalid');
+		const holder = globalThis as unknown as Record<string, unknown>;
+		const prevWindow = holder.window;
+		delete holder.window;
+		try {
+			expect(migrateLegacyFilesStorage()).toBe('nothing-to-migrate');
+		} finally {
+			holder.window = prevWindow;
+		}
 	});
 });

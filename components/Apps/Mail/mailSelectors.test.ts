@@ -41,4 +41,35 @@ describe('mail selectors (Tahap 7)', () => {
 		expect(result.map(e => e.id)).toEqual(['1']);
 		expect(emails.map(e => e.id)).toEqual(['1', '2', '3']);
 	});
+
+	it('filters vip and specific mailboxes with date-desc ordering', () => {
+		const emails: Email[] = [
+			{ ...base, id: '1', mailbox: 'inbox', date: '9/14/21', isVip: true },
+			{ ...base, id: '2', mailbox: 'inbox', date: '9/16/21', isVip: true },
+			{ ...base, id: '3', mailbox: 'sent', date: '9/15/21' },
+		];
+		const vip = filterDisplayEmails(emails, { mailboxId: 'vip', searchQuery: '', unreadOnly: false });
+		expect(vip.map(e => e.id)).toEqual(['2', '1']);
+		const sent = filterDisplayEmails(emails, {
+			mailboxId: 'sent',
+			searchQuery: '',
+			unreadOnly: false,
+		});
+		expect(sent.map(e => e.id)).toEqual(['3']);
+		// Input order untouched: the sort copies instead of mutating.
+		expect(emails.map(e => e.id)).toEqual(['1', '2', '3']);
+	});
+
+	it('matches search text in preview bodies too', () => {
+		const emails: Email[] = [
+			{ ...base, id: '1', subject: 'Hello', preview: 'quarterly report attached' },
+			{ ...base, id: '2', subject: 'Hello', preview: 'see you soon' },
+		];
+		const result = filterDisplayEmails(emails, {
+			mailboxId: 'all_inboxes',
+			searchQuery: 'quarterly',
+			unreadOnly: false,
+		});
+		expect(result.map(e => e.id)).toEqual(['1']);
+	});
 });

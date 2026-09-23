@@ -22,6 +22,16 @@ export function migrateWallpaper(value: unknown): string {
 	return RENAMED_WALLPAPERS[value] ?? value;
 }
 
+/** Bring a persisted settings snapshot onto the current schema (v1). */
+export function migrateSettingsState(persisted: unknown): SettingsState {
+	const state = persisted as Partial<SettingsState>;
+	return {
+		...state,
+		wallpaper: migrateWallpaper(state.wallpaper),
+		darkMode: typeof state.darkMode === 'boolean' ? state.darkMode : false,
+	} as SettingsState;
+}
+
 export const useSettingsStore = create<SettingsState>()(
 	persist(
 		set => ({
@@ -34,14 +44,7 @@ export const useSettingsStore = create<SettingsState>()(
 		{
 			name: 'settings-storage',
 			version: 1,
-			migrate: persisted => {
-				const state = persisted as Partial<SettingsState>;
-				return {
-					...state,
-					wallpaper: migrateWallpaper(state.wallpaper),
-					darkMode: typeof state.darkMode === 'boolean' ? state.darkMode : false,
-				} as SettingsState;
-			},
-		}
+			migrate: persisted => migrateSettingsState(persisted),
+		},
 	)
 );

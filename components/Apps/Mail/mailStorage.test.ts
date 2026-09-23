@@ -48,4 +48,23 @@ describe('mail storage (Tahap 2)', () => {
 		});
 		expect(saveEmails(SEED_EMAILS)).toBe(false);
 	});
+
+	it('rejects null records and round-trips valid emails', () => {
+		expect(decodeEmails([null])).toBeNull();
+		expect(saveEmails(SEED_EMAILS)).toBe(true);
+		expect(loadEmails()).toEqual(SEED_EMAILS);
+	});
+
+	it('falls back to seeds without a browser or stored key', () => {
+		expect(loadEmails()).toEqual(SEED_EMAILS);
+		const holder = globalThis as unknown as Record<string, unknown>;
+		const prevWindow = holder.window;
+		delete holder.window;
+		try {
+			expect(loadEmails()).toEqual(SEED_EMAILS);
+			expect(saveEmails(SEED_EMAILS)).toBe(false);
+		} finally {
+			holder.window = prevWindow;
+		}
+	});
 });

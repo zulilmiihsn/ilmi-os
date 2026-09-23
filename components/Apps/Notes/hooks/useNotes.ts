@@ -47,7 +47,7 @@ export function decodeNotes(payload: unknown): Note[] | null {
 }
 
 /** Read the pre-v1 raw-array format without touching the new destination key. */
-function readLegacyNotes(): Note[] | null {
+export function readLegacyNotes(): Note[] | null {
 	if (typeof window === 'undefined') return null;
 	try {
 		const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -77,6 +77,59 @@ const DEFAULT_NOTES: Note[] = [
 	},
 ];
 
+export interface NotesLoadInput {
+	/** Raw destination payload (`appStorage.load` result, null when absent/unreadable). */
+	stored: unknown;
+	/** Whether the destination key exists, even if its content is invalid. */
+	destinationPresent: boolean;
+	/** Read the pre-v1 format; invoked lazily, only when migration is an option. */
+	readLegacy: () => Note[] | null;
+	/** Persist to the destination; result is verified by a re-read. */
+	save: (notes: Note[]) => boolean;
+	/** Re-read the destination after a migration write. May throw. */
+	loadVerify: () => unknown;
+}
+
+export interface NotesLoadResult {
+	/** Notes to render. Falls back to defaults without touching stored payloads. */
+	notes: Note[];
+	/** Skip the first autosave so fallback content never overwrites recoverable data. */
+	skipInitialSave: boolean;
+	/** The legacy source migrated cleanly and may be removed. */
+	removeLegacy: boolean;
+}
+
+/**
+ * Pure mount-load decision for Notes (Tahap 2 acceptance without React):
+ * valid destination (including `[]`) wins; invalid-but-present destination is
+ * preserved while defaults render; legacy migrates only after a verified
+ * write, otherwise the source is kept and the first autosave skipped.
+ */
+export function resolveInitialNotes(input: NotesLoadInput): NotesLoadResult {
+	const decoded = input.stored === null ? null : decodeNotes(input.stored);
+	if (decoded) {
+		return { notes: decoded, skipInitialSave: false, removeLegacy: false };
+	}
+	if (input.destinationPresent) {
+		return { notes: DEFAULT_NOTES, skipInitialSave: true, removeLegacy: false };
+	}
+	const legacy = input.readLegacy();
+	if (!legacy) {
+		return { notes: DEFAULT_NOTES, skipInitialSave: false, removeLegacy: false };
+	}
+	input.save(legacy);
+	let verified = false;
+	try {
+		verified = input.loadVerify() !== null;
+	} catch {
+		verified = false;
+	}
+	if (verified) {
+		return { notes: legacy, skipInitialSave: false, removeLegacy: true };
+	}
+	return { notes: legacy, skipInitialSave: true, removeLegacy: false };
+}
+
 export function useNotes() {
 	const [notes, setNotes] = useState<Note[]>([]);
 	const [view, setView] = useState<NoteView>('list');
@@ -94,40 +147,28 @@ export function useNotes() {
 	// Load notes on mount
 	useEffect(() => {
 		const stored = appStorage.load<unknown>(STORAGE_KEY, null);
-		const decoded = stored === null ? null : decodeNotes(stored);
 		let destinationPresent = false;
 		try {
 			destinationPresent = window.localStorage.getItem(STORAGE_KEY) !== null;
 		} catch {
 			destinationPresent = false;
 		}
-		if (decoded) {
-			setNotes(decoded);
-		} else if (destinationPresent) {
-			// Destination exists but is invalid: show defaults for rendering
-			// and preserve the original until the user makes a change.
-			skipInitialSave.current = true;
-			setNotes(DEFAULT_NOTES);
-		} else {
-			// Migrate the pre-v1 raw-array format once; keep the source
-			// until the new destination is verified to persist.
-			const legacy = readLegacyNotes();
-			if (legacy) {
-				setNotes(legacy);
-				appStorage.save(STORAGE_KEY, legacy);
-				try {
-					const verify = appStorage.load<unknown>(STORAGE_KEY, null);
-					if (verify !== null) {
-						window.localStorage.removeItem(LEGACY_STORAGE_KEY);
-					} else {
-						skipInitialSave.current = true;
-					}
-				} catch {
-					// Keep the legacy source when verification is unavailable.
-					skipInitialSave.current = true;
-				}
-			} else {
-				setNotes(DEFAULT_NOTES);
+		const result = resolveInitialNotes({
+			stored,
+			destinationPresent,
+			readLegacy: readLegacyNotes,
+			save: notes => appStorage.save(STORAGE_KEY, notes),
+			loadVerify: () => appStorage.load<unknown>(STORAGE_KEY, null),
+		});
+		setNotes(result.notes);
+		skipInitialSave.current = result.skipInitialSave;
+		if (result.removeLegacy) {
+			try {
+				window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+			} catch {
+				// Keep the legacy source when it cannot be removed; skip the
+				// first autosave like a failed verification.
+				skipInitialSave.current = true;
 			}
 		}
 		setMounted(true);

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useAppsStore } from './apps';
+import { selectIosApps, useAppsStore } from './apps';
 import { useWindowsStore } from './windows';
 import { useControlCenterStore } from './controlCenter';
 
@@ -148,5 +148,220 @@ describe('store APIs (Tahap 7)', () => {
 			wifi: false,
 			cellular: false,
 		});
+	});
+});
+
+describe('store coverage (Tahap 6)', () => {
+	beforeEach(() => {
+		useAppsStore.setState({ runningApps: [], iosAppPositions: { a: 0, b: 1 }, folders: {} });
+		useWindowsStore.setState({ windows: [], nextZIndex: 1000 });
+		useControlCenterStore.setState({
+			isOpen: false,
+			wifi: true,
+			bluetooth: true,
+			cellular: true,
+			airplaneMode: false,
+			focusMode: false,
+			activeFocus: null,
+			brightness: 85,
+			volume: 65,
+		});
+	});
+
+	it('opens, closes, and toggles control center plus radios', () => {
+		const store = useControlCenterStore.getState();
+		store.open();
+		expect(useControlCenterStore.getState().isOpen).toBe(true);
+		useControlCenterStore.getState().toggle();
+		expect(useControlCenterStore.getState().isOpen).toBe(false);
+		useControlCenterStore.getState().toggleWifi();
+		expect(useControlCenterStore.getState().wifi).toBe(false);
+		useControlCenterStore.getState().toggleBluetooth();
+		expect(useControlCenterStore.getState().bluetooth).toBe(false);
+		useControlCenterStore.getState().close();
+		expect(useControlCenterStore.getState().isOpen).toBe(false);
+	});
+
+	it('restores radios when airplane mode turns off', () => {
+		useControlCenterStore.getState().toggleAirplaneMode();
+		useControlCenterStore.getState().toggleAirplaneMode();
+		expect(useControlCenterStore.getState()).toMatchObject({
+			airplaneMode: false,
+			wifi: true,
+			cellular: true,
+		});
+	});
+
+	it('couples focus mode with its active focus', () => {
+		useControlCenterStore.getState().toggleFocusMode();
+		expect(useControlCenterStore.getState()).toMatchObject({
+			focusMode: true,
+			activeFocus: 'Do Not Disturb',
+		});
+		useControlCenterStore.getState().setActiveFocus('Work');
+		expect(useControlCenterStore.getState()).toMatchObject({
+			focusMode: true,
+			activeFocus: 'Work',
+		});
+		useControlCenterStore.getState().setActiveFocus(null);
+		expect(useControlCenterStore.getState()).toMatchObject({
+			focusMode: false,
+			activeFocus: null,
+		});
+		useControlCenterStore.getState().setBrightness(40);
+		useControlCenterStore.getState().setVolume(20);
+		expect(useControlCenterStore.getState()).toMatchObject({ brightness: 40, volume: 20 });
+		useControlCenterStore.getState().toggleFocusMode();
+		expect(useControlCenterStore.getState()).toMatchObject({
+			focusMode: true,
+			activeFocus: 'Do Not Disturb',
+		});
+	});
+
+	it('keeps a preset focus when toggling on', () => {
+		useControlCenterStore.setState({ focusMode: false, activeFocus: 'Sleep' });
+		useControlCenterStore.getState().toggleFocusMode();
+		expect(useControlCenterStore.getState()).toMatchObject({
+			focusMode: true,
+			activeFocus: 'Sleep',
+		});
+	});
+
+	it('flips the remaining quick toggles', () => {
+		const store = useControlCenterStore.getState();
+		store.toggleCellular();
+		store.toggleAirdrop();
+		store.toggleFlashlight();
+		store.toggleLowPowerMode();
+		store.toggleOrientationLock();
+		store.toggleSilentMode();
+		expect(useControlCenterStore.getState()).toMatchObject({
+			cellular: false,
+			airdrop: false,
+			flashlight: true,
+			lowPowerMode: true,
+			orientationLock: false,
+			silentMode: false,
+		});
+	});
+
+	it('minimizes, maximizes, and updates one window at a time', () => {
+		const base = {
+			title: 'W',
+			appId: 'notes',
+			x: 0,
+			y: 0,
+			width: 800,
+			height: 600,
+			isMaximized: false,
+			isMinimized: false,
+		};
+		const first = useWindowsStore.getState().openWindow(base);
+		const second = useWindowsStore.getState().openWindow({ ...base, title: 'V' });
+		useWindowsStore.getState().minimizeWindow(first);
+		let state = useWindowsStore.getState();
+		expect(state.windows.find(w => w.id === first)?.isMinimized).toBe(true);
+		expect(state.windows.find(w => w.id === second)?.isMinimized).toBe(false);
+		useWindowsStore.getState().maximizeWindow(first);
+		useWindowsStore.getState().maximizeWindow(first);
+		state = useWindowsStore.getState();
+		expect(state.windows.find(w => w.id === first)?.isMaximized).toBe(false);
+		useWindowsStore.getState().updateWindow(second, { x: 10, y: 20 });
+		state = useWindowsStore.getState();
+		expect(state.windows.find(w => w.id === second)).toMatchObject({ x: 10, y: 20 });
+		expect(state.windows.find(w => w.id === first)).toMatchObject({ x: 0, y: 0 });
+	});
+
+	it('ignores reorder and lookup misses without corrupting state', () => {
+		useAppsStore.getState().reorderIosApps(0, 0);
+		expect(useAppsStore.getState().iosAppPositions).toEqual({ a: 0, b: 1 });
+		useAppsStore.getState().reorderIosApps(99, 0);
+		expect(useAppsStore.getState().iosAppPositions).toEqual({ a: 0, b: 1 });
+		expect(useAppsStore.getState().getAppById('missing')).toBeUndefined();
+		expect(useAppsStore.getState().getAppById('a')).toBeUndefined();
+		expect(useAppsStore.getState().getFolderById('missing')).toBeUndefined();
+		expect(useAppsStore.getState().isFolderId('missing')).toBe(false);
+	});
+
+	it('refuses invalid folder moves and removals', () => {
+		useAppsStore.setState({
+			iosAppPositions: { a: 0, b: 1, c: 2, d: 100, f1: 5 },
+			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x', 'y', 'z'] } },
+		});
+		const store = useAppsStore.getState();
+		expect(store.moveAppIntoFolder('a', 'missing')).toBe(false);
+		expect(store.moveAppIntoFolder('missing', 'f1')).toBe(false);
+		expect(store.moveAppIntoFolder('f1', 'f1')).toBe(false);
+		expect(store.moveAppIntoFolder('d', 'f1')).toBe(false);
+		// A valid move lands the app in the folder and frees its slot.
+		expect(store.moveAppIntoFolder('a', 'f1')).toBe(true);
+		expect(useAppsStore.getState().folders.f1?.appIds).toEqual(['x', 'y', 'z', 'a']);
+		expect(useAppsStore.getState().iosAppPositions.a).toBeUndefined();
+		expect(store.removeAppFromFolder('a', 'missing')).toBe(false);
+		expect(store.removeAppFromFolder('nope', 'f1')).toBe(false);
+		// Non-dissolving removal keeps the folder with the rest.
+		expect(store.removeAppFromFolder('x', 'f1')).toBe(true);
+		expect(useAppsStore.getState().folders.f1).toMatchObject({ appIds: ['y', 'z', 'a'] });
+	});
+
+	it('refuses moves into a full folder', () => {
+		const members = Array.from({ length: 9 }, (_, i) => `m${i}`);
+		useAppsStore.setState({
+			iosAppPositions: { newcomer: 3 },
+			folders: { full: { id: 'full', name: 'Full', appIds: members } },
+		});
+		expect(useAppsStore.getState().moveAppIntoFolder('newcomer', 'full')).toBe(false);
+	});
+
+	it('compacts distant drops and leaves other regions alone', () => {
+		useAppsStore.setState({ iosAppPositions: { a: 0, b: 1, c: 2, t: 5, d: 100 } });
+		const folderId = useAppsStore.getState().createFolder('a', 't');
+		expect(folderId).not.toBeNull();
+		// Apps strictly between the slots shift toward the dragged gap.
+		const positions = useAppsStore.getState().iosAppPositions;
+		expect(positions).toMatchObject({ b: 0, c: 1, d: 100, [folderId!]: 5 });
+		expect('a' in positions).toBe(false);
+		expect('t' in positions).toBe(false);
+	});
+
+	it('compacts the other direction when the target sits before the drag', () => {
+		useAppsStore.setState({ iosAppPositions: { t: 0, b: 1, c: 2, a: 5, d: 100 } });
+		const folderId = useAppsStore.getState().createFolder('a', 't');
+		expect(folderId).not.toBeNull();
+		const positions = useAppsStore.getState().iosAppPositions;
+		expect(positions).toMatchObject({ b: 2, c: 3, d: 100, [folderId!]: 0 });
+		expect('a' in positions).toBe(false);
+		expect('t' in positions).toBe(false);
+	});
+
+	it('skips foreign regions when shifting a reorder', () => {
+		useAppsStore.setState({ iosAppPositions: { a: 0, b: 1, d: 100 } });
+		useAppsStore.getState().reorderIosApps(0, 1);
+		expect(useAppsStore.getState().iosAppPositions).toEqual({ a: 1, b: 0, d: 100 });
+	});
+
+	it('rejects duplicate moves and removals without a free slot', () => {
+		useAppsStore.setState({
+			iosAppPositions: { a: 0, f1: 5 },
+			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x'] } },
+		});
+		expect(useAppsStore.getState().moveAppIntoFolder('a', 'f1')).toBe(true);
+		expect(useAppsStore.getState().moveAppIntoFolder('a', 'f1')).toBe(false);
+		// Fill both pages (0-23, 24-51): no slot left to release the app into.
+		const packed: Record<string, number> = {};
+		for (let i = 0; i < 51; i++) packed[`app${i}`] = i;
+		packed.f1 = 51;
+		useAppsStore.setState({
+			iosAppPositions: packed,
+			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x', 'y'] } },
+		});
+		expect(useAppsStore.getState().removeAppFromFolder('x', 'f1')).toBe(false);
+	});
+
+	it('selects ios apps for the mobile shell', () => {
+		expect(selectIosApps(useAppsStore.getState()).length).toBeGreaterThan(0);
+		expect(
+			selectIosApps(useAppsStore.getState()).every(app => app.platform !== 'macos')
+		).toBe(true);
 	});
 });
