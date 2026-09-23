@@ -269,20 +269,10 @@ export default function ControlCenter() {
 							onClick={() => setBluetoothEnabled(!bluetoothEnabled)}
 							aria-label={`Bluetooth ${bluetoothEnabled ? 'On' : 'Off'}`}
 						>
-							<svg
-								className={`h-6 w-6 scale-[1.2] ${bluetoothEnabled ? 'text-white' : 'text-white/50'}`}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								strokeLinejoin="miter"
+							<i
+								className={`fab fa-bluetooth text-lg leading-none ${bluetoothEnabled ? 'text-white' : 'text-white/50'}`}
 								aria-hidden="true"
-							>
-								<path d="M10 4v16" />
-								<path d="M10 5.5L18 9.5 10 13.5" />
-								<path d="M10 18.5L18 14.5 10 10.5" />
-							</svg>
+							></i>
 						</button>
 
 						{/* Focus */}
