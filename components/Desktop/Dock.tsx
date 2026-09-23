@@ -33,10 +33,21 @@ function Dock() {
 
 	function handleAppClick(app: (typeof apps)[number], index: number) {
 		launchApp(app.id);
+		// Bounce the icon while the app opens (macOS cue). Direct DOM so the
+		// RAF magnification loop keeps running re-render free.
+		const iconEl = iconRefs.current[index];
+		if (iconEl) {
+			iconEl.classList.remove('dock-bounce');
+			// Restart the keyframes when the same icon is clicked twice.
+			void iconEl.offsetWidth;
+			iconEl.classList.add('dock-bounce');
+			iconEl.addEventListener('animationend', () => iconEl.classList.remove('dock-bounce'), {
+				once: true,
+			});
+		}
 		const existingWindow = windows.find(w => w.appId === app.id && !w.isMinimized);
 
 		// Get icon position for animation
-		const iconEl = iconRefs.current[index];
 		let originRect;
 		if (iconEl) {
 			const rect = iconEl.getBoundingClientRect();
@@ -147,11 +158,18 @@ function Dock() {
 							ref={el => {
 								iconRefs.current[index] = el;
 							}}
-							className="dock-item relative rounded-2xl flex items-center justify-center transition-all duration-100 ease-out will-change-transform"
+							className="dock-item group relative rounded-2xl flex items-center justify-center transition-all duration-100 ease-out will-change-transform"
 							style={{ width: `${BASE_SIZE}px`, height: `${BASE_SIZE}px` }}
 							onClick={() => handleAppClick(app, index)}
 							aria-label={isAppRunning(app.id) ? `Focus ${app.name}` : `Launch ${app.name}`}
 						>
+							{/* Name tooltip like macOS: CSS-only so magnification stays re-render free. */}
+							<span
+								aria-hidden="true"
+								className="dock-tooltip pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-black/70 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-hover:delay-300"
+							>
+								{app.name}
+							</span>
 							{isSvgIcon ? (
 								<Image
 									src={app.icon}
@@ -171,8 +189,6 @@ function Dock() {
 							{isAppRunning(app.id) && (
 								<div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-white/80 rounded-full shadow-sm"></div>
 							)}
-
-							{/* Tooltip on hover (optional, only show when not scaling crazily? implementation complexity high for now, skipping) */}
 						</button>
 					);
 				})}

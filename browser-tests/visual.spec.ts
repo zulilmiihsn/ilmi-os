@@ -36,6 +36,9 @@ test.describe('visual regression', () => {
 		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
 		await page.getByRole('button', { name: 'Launch Finder' }).click();
 		await expect(page.locator('.finder')).toBeVisible({ timeout: 10000 });
+		// Park the mouse inside the window: the dock tooltip must not leak
+		// into the resting-state baseline (hover states have dedicated tests).
+		await page.locator('.finder').hover();
 		await page.waitForTimeout(800);
 		await expect(page).toHaveScreenshot('finder-window.png', {
 			animations: 'disabled',

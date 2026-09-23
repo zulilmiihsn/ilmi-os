@@ -131,4 +131,27 @@ test.describe('desktop shell', () => {
 		const animationName = await menu.evaluate(el => getComputedStyle(el).animationName);
 		expect(animationName).toMatch(/fadeIn|zoomIn/);
 	});
+
+	test('dock shows app names on hover and bounces icons on launch', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
+		const finderIcon = page.locator('.dock-item[data-app-id="finder"]');
+		await finderIcon.hover();
+		// Name tooltip fades in after a beat, like macOS (opacity-based:
+		// Playwright visibility ignores opacity, so assert computed opacity).
+		const tooltip = finderIcon.locator('.dock-tooltip');
+		await expect(tooltip).toHaveText('Finder');
+		await expect
+			.poll(
+				async () =>
+					tooltip.evaluate(el => Number(getComputedStyle(el).opacity)),
+				{ timeout: 4000 }
+			)
+			.toBeGreaterThan(0.5);
+		// Clicking launches with a bounce cue on the icon itself.
+		await finderIcon.click();
+		const bounce = await finderIcon.evaluate(el => getComputedStyle(el).animationName);
+		expect(bounce).toContain('dockBounce');
+		await expect(page.locator('.finder')).toBeVisible({ timeout: 10000 });
+	});
 });
