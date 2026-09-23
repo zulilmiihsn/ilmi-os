@@ -25,6 +25,35 @@ export interface FileSystemData {
 const STORAGE_KEY = 'ilmi_file_system';
 
 /**
+ * Same-document notification for filesystem writes. The native `storage`
+ * event only fires in *other* documents, so views open in the writing
+ * document (e.g. Finder next to Terminal) would stay stale without this.
+ */
+export const FILE_SYSTEM_CHANGED_EVENT = 'ilmi:filesystem-changed';
+
+function notifyFileSystemChanged(): void {
+	if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+	window.dispatchEvent(new CustomEvent(FILE_SYSTEM_CHANGED_EVENT));
+}
+
+/**
+ * Reload-driven views subscribe here instead of wiring `storage` directly:
+ * they get cross-tab updates via `storage` plus same-document updates via
+ * the local event. Safe without a DOM (returns a no-op unsubscribe).
+ */
+export function subscribeFileSystemChanged(listener: () => void): () => void {
+	if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') {
+		return () => {};
+	}
+	window.addEventListener('storage', listener);
+	window.addEventListener(FILE_SYSTEM_CHANGED_EVENT, listener);
+	return () => {
+		window.removeEventListener('storage', listener);
+		window.removeEventListener(FILE_SYSTEM_CHANGED_EVENT, listener);
+	};
+}
+
+/**
  * Get default/initial file system data
  */
 function getDefaultFileSystem(): FileSystemData {
@@ -139,6 +168,7 @@ export function saveFileSystem(data: FileSystemData): boolean {
 	try {
 		data.lastModified = new Date().toISOString();
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+		notifyFileSystemChanged();
 		return true;
 	} catch (error) {
 		console.warn('[fileSystem] failed to persist data', error);

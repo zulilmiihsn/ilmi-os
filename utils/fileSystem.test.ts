@@ -12,6 +12,7 @@ import {
 	getItemsInFolder,
 	resolveFolderPath,
 	saveFileSystem,
+	subscribeFileSystemChanged,
 	updateFileContent,
 	type FileItem,
 } from './fileSystem';
@@ -192,6 +193,76 @@ describe('fileSystem utilities', () => {
 		it('distinguishes root from unresolvable paths', () => {
 			expect(resolveFolderPath('/')).toBeNull();
 			expect(resolveFolderPath('no-such-folder')).toBeUndefined();
+		});
+	});
+
+	describe('live sync notification (Tahap 3)', () => {
+		// Node has no window event system, so drive subscribe/notify through
+		// a minimal fake window instead of asserting against a no-op.
+		const listeners = new Map<string, Set<() => void>>();
+		const fakeWindow = {
+			addEventListener: (type: string, listener: () => void) => {
+				if (!listeners.has(type)) listeners.set(type, new Set());
+				listeners.get(type)!.add(listener);
+			},
+			removeEventListener: (type: string, listener: () => void) => {
+				listeners.get(type)?.delete(listener);
+			},
+			dispatchEvent: (event: { type: string }) => {
+				listeners.get(event.type)?.forEach(listener => listener());
+				return true;
+			},
+		};
+		beforeEach(() => {
+			listeners.clear();
+			(globalThis as unknown as Record<string, unknown>).window = fakeWindow;
+		});
+
+		it('notifies subscribers after a successful save in the same document', () => {
+			loadFileSystem(); // seed defaults before subscribing
+			let calls = 0;
+			const stop = subscribeFileSystemChanged(() => {
+				calls += 1;
+			});
+			expect(saveFileSystem(loadFileSystem())).toBe(true);
+			expect(calls).toBe(1);
+			stop();
+		});
+
+		it('stops notifying after unsubscribe', () => {
+			let calls = 0;
+			const stop = subscribeFileSystemChanged(() => {
+				calls += 1;
+			});
+			stop();
+			expect(saveFileSystem(loadFileSystem())).toBe(true);
+			expect(calls).toBe(0);
+		});
+
+		it('stays silent on failed saves', () => {
+			let calls = 0;
+			const stop = subscribeFileSystemChanged(() => {
+				calls += 1;
+			});
+			vi.spyOn(globalThis.localStorage, 'setItem').mockImplementation(() => {
+				throw new DOMException('Quota reached', 'QuotaExceededError');
+			});
+			expect(saveFileSystem(loadFileSystem())).toBe(false);
+			expect(calls).toBe(0);
+			stop();
+		});
+
+		it('is safe without a window (SSR)', () => {
+			const holder = globalThis as unknown as Record<string, unknown>;
+			const prevWindow = holder.window;
+			delete holder.window;
+			try {
+				const stop = subscribeFileSystemChanged(() => {});
+				expect(() => stop()).not.toThrow();
+				expect(saveFileSystem({ items: [], lastModified: 'x' })).toBe(false);
+			} finally {
+				holder.window = prevWindow;
+			}
 		});
 	});
 });

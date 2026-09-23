@@ -99,10 +99,10 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 - [x] Jika hierarki disetujui, gunakan parent ID, operasi folder, dan count yang benar. Files kini memakai `createFolder/deleteItem/renameItem/getItemsInFolder/getItemCount` dari `utils/fileSystem.ts` dengan parent folder yang benar dan count nyata.
 - [x] Inventarisasi `fileSystem` dan `ilmi_file_system`. Format size display string dipetakan best-effort ke bytes; timestamp dipakai ulang; parent selalu root karena data lama tidak menyimpan parent.
 - [x] Pertahankan sumber sampai destination berhasil disimpan. Legacy key `fileSystem` hanya dihapus setelah merge tersimpan; payload korup di kedua sisi dibiarkan utuh.
-- [ ] Untuk data yang memang sudah dibagi Finder/Terminal, uji refresh antar-view yang sedang terbuka. Native `storage` event tidak memberi notifikasi pada dokumen penulis; tambahkan notifikasi lokal minimal jika sinkronisasi live diharapkan.
+- [x] Untuk data yang memang sudah dibagi Finder/Terminal, uji refresh antar-view yang sedang terbuka. Dipilih notifikasi lokal minimal: `saveFileSystem` memancarkan `ilmi:filesystem-changed` setelah persist sukses (+ tetap dengar `storage` antar-tab); `useFinder` berlangganan via `subscribeFileSystemChanged` sehingga mkdir Terminal terlihat di Finder yang terbuka tanpa refresh manual. Terminal tidak diubah (selalu baca fresh per command).
 - [x] Hapus helper lama hanya setelah caller dan kebutuhan migrasi ditangani. `Files/utils.ts` kini hanya berisi migrasi + `parseDisplaySize`; duplikat load/save/list/count dihapus.
 
-**Tes bila fitur disetujui:** nested creation, parent/child navigation, count, rename/delete, reload, migrasi, dan sinkronisasi dua view. Migrasi teruji (7 tes); navigasi bersarang dan sinkronisasi live antar-view belum diuji.
+**Tes bila fitur disetujui:** nested creation, parent/child navigation, count, rename/delete, reload, migrasi, dan sinkronisasi dua view. Migrasi teruji (7 tes); sinkronisasi live antar-view teruji: 4 unit test subscribe/notify (`utils/fileSystem.test.ts`) + 1 browser test Terminal→Finder (`browser-tests/filesync.spec.ts`, gagal sebelum perbaikan, lolos sesudahnya).
 
 ## Tahap 4: Interaksi dan Lifecycle
 
@@ -217,7 +217,7 @@ Files secara eksplisit memakai mock: subfolder kosong dan count acak. Finder/Ter
 - [x] Tidak ada perubahan desain, format data, atau scope produk yang tidak disengaja.
 - [x] Risiko belum teruji, fitur demo yang dipertahankan, serta pekerjaan opsional yang ditunda dicatat.
 
-Terverifikasi 2026-09-23 pada HEAD `c153e5f`: type-check, lint, 55 unit test, production build, dan 20/20 browser test (termasuk focus-return/Escape/Tab-trap keyboard) lolos; diff `c153e5f` hanya menyentuh 5 file yang direncanakan (folder rename, theme test, catatan strictness); risiko sisa dan item opsional tercatat di Tahap 6-8 dan Di Luar Cakupan.
+Terverifikasi 2026-09-23 pada HEAD `c153e5f`: type-check, lint, 55 unit test, production build, dan 20/20 browser test (termasuk focus-return/Escape/Tab-trap keyboard) lolos; diff `c153e5f` hanya menyentuh 5 file yang direncanakan (folder rename, theme test, catatan strictness); risiko sisa dan item opsional tercatat di Tahap 6-8 dan Di Luar Cakupan. Tambahan 2026-09-23 (live-sync Finder/Terminal): type-check, lint, 59 unit test (10 file), production build, dan 21/21 browser test lolos pada working tree ini.
 
 Tidak perlu menuntaskan seluruh refactor, fitur demo, atau optimasi aset untuk menutup bug yang sudah diperbaiki.
 

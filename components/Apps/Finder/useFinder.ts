@@ -7,6 +7,7 @@ import {
 	createFile as fsCreateFile,
 	deleteItem as fsDeleteItem,
 	renameItem as fsRenameItem,
+	subscribeFileSystemChanged,
 	getBreadcrumbs,
 	FileItem,
 } from '../../../utils/fileSystem';
@@ -36,9 +37,9 @@ export function useFinder() {
 
 	useEffect(() => {
 		refreshItems();
-		const handleStorage = () => refreshItems();
-		window.addEventListener('storage', handleStorage);
-		return () => window.removeEventListener('storage', handleStorage);
+		// Cross-tab via `storage` plus same-document writes (e.g. Terminal
+		// mkdir while Finder is open) via the local filesystem event.
+		return subscribeFileSystemChanged(refreshItems);
 	}, [refreshItems]);
 
 	useEffect(() => {
