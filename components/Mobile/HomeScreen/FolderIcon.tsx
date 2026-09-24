@@ -21,6 +21,7 @@ function FolderIcon({ folder, onOpen }: FolderIconProps) {
 	return (
 		<button
 			type="button"
+			data-folder-id={folder.id}
 			onClick={() => onOpen(folder.id)}
 			aria-label={`Open folder ${folder.name}, ${folder.appIds.length} apps`}
 			className="w-full h-full flex flex-col items-center justify-center gap-1 group focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 rounded-2xl"

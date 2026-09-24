@@ -68,7 +68,21 @@ export function useHomeScreenGestures({
 		container.style.willChange = 'transform, opacity';
 		container.style.transition =
 			'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease';
-		container.style.transform = 'translate3d(0, 80%, 0) scale(0.7)';
+		// iOS zooms the app back into its icon. Fall back to the generic
+		// shrink-and-fade when the icon rect is unavailable.
+		const activeApp = currentApp || appToOpen;
+		const icon = activeApp
+			? document.querySelector(`[data-app-id="${activeApp}"]`)
+			: null;
+		if (icon) {
+			const rect = icon.getBoundingClientRect();
+			const scale = rect.width / window.innerWidth;
+			container.style.transformOrigin = '0 0';
+			container.style.transform = `translate3d(${rect.left}px, ${rect.top}px, 0) scale(${scale})`;
+			container.style.borderRadius = '40px';
+		} else {
+			container.style.transform = 'translate3d(0, 80%, 0) scale(0.7)';
+		}
 		container.style.opacity = '0';
 
 		closeAnimationTimeoutRef.current = setTimeout(() => {
@@ -77,6 +91,7 @@ export function useHomeScreenGestures({
 			if (container) {
 				container.style.transition = '';
 				container.style.transform = '';
+				container.style.transformOrigin = '';
 				container.style.opacity = '';
 				container.style.pointerEvents = '';
 				container.style.borderRadius = '';
@@ -84,7 +99,7 @@ export function useHomeScreenGestures({
 			}
 			isAnimatingCloseRef.current = false;
 		}, 350);
-	}, [closeApp, setCurrentApp, cancelPendingClose, appContainerRef]);
+	}, [closeApp, setCurrentApp, cancelPendingClose, appContainerRef, currentApp, appToOpen]);
 
 	// Bottom pointer handlers for Home Indicator
 	const handleBottomPointerDown = useCallback(

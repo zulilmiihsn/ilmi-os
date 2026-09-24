@@ -180,4 +180,139 @@ test.describe('mobile shell', () => {
 			await page.keyboard.press('Tab');
 		}
 	});
+
+	test('page dots reflect the home pages', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+		const dots = page.locator('.ios-homescreen [aria-label^="Page "]');
+		await expect(dots).toHaveCount(2);
+		await expect(dots.first()).toHaveAttribute('aria-label', 'Page 1 (current)');
+	});
+
+	test('closing zooms the app back into its icon', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		await page.locator('[data-app-id]').first().tap();
+		const app = page.locator('.ios-app');
+		await expect(app).toBeVisible({ timeout: 5000 });
+		await page.waitForTimeout(600);
+		const fullWidth = await app.evaluate(el => el.getBoundingClientRect().width);
+
+		// Sample frames across the close: like iOS, the app must shrink
+		// toward its home icon instead of fading generically.
+		await page.evaluate(() => {
+			const samples: number[] = [];
+			(window as unknown as { __closeWidths: number[] }).__closeWidths = samples;
+			const tick = () => {
+				const el = document.querySelector('.ios-app');
+				if (el) samples.push(el.getBoundingClientRect().width);
+				requestAnimationFrame(tick);
+			};
+			requestAnimationFrame(tick);
+		});
+		await page.getByRole('button', { name: 'Close app and return to home screen' }).click();
+		await expect(app).toBeHidden({ timeout: 5000 });
+		const widths = await page.evaluate(
+			() => (window as unknown as { __closeWidths: number[] }).__closeWidths
+		);
+		expect(widths.length).toBeGreaterThan(3);
+		expect(Math.min(...widths)).toBeLessThan(fullWidth * 0.5);
+	});
+
+	test('folder opens with a zoom from its icon', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		// Build a folder by hovering one app over another.
+		const first = page.locator('.ios-app-grid-page [data-app-id]').first();
+		const second = page.locator('.ios-app-grid-page [data-app-id]').nth(1);
+		const from = await first.boundingBox();
+		const to = await second.boundingBox();
+		await page.mouse.move(from!.x + 10, from!.y + 10);
+		await page.mouse.down();
+		await page.mouse.move(to!.x + 10, to!.y + 10, { steps: 5 });
+		await page.waitForTimeout(1000);
+		await page.mouse.up();
+		const folderButton = page.getByLabel('Open folder Folder, 2 apps');
+		await expect(folderButton).toBeVisible({ timeout: 5000 });
+		// Settle out of the post-drag state first (a click issued in the same
+		// breath as a drop is swallowed), then open the folder for real.
+		await page.keyboard.press('Escape');
+		await page.waitForTimeout(300);
+
+		// Sample the dialog card across the open: it must grow from the
+		// folder icon instead of popping in at full size.
+		await page.evaluate(() => {
+			const samples: number[] = [];
+			(window as unknown as { __folderWidths: number[] }).__folderWidths = samples;
+			const tick = () => {
+				const el = document.querySelector('[role="dialog"]');
+				if (el) samples.push(el.getBoundingClientRect().width);
+				requestAnimationFrame(tick);
+			};
+			requestAnimationFrame(tick);
+		});
+		await folderButton.click({ force: true });
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toBeVisible({ timeout: 5000 });
+		await page.waitForTimeout(900);
+		const widths = await page.evaluate(
+			() => (window as unknown as { __folderWidths: number[] }).__folderWidths
+		);
+		expect(widths.length).toBeGreaterThan(3);
+		expect(Math.min(...widths)).toBeLessThan(200);
+		const settled = await dialog.evaluate(el => el.getBoundingClientRect().width);
+		const expectedCard = await page.evaluate(
+			() => 18 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
+		);
+		expect(Math.abs(settled - expectedCard)).toBeLessThan(4);
+
+		// Closing zooms back; the dialog unmounts afterwards.
+		await page.getByRole('button', { name: 'Close folder' }).click();
+		await expect(dialog).toBeHidden({ timeout: 5000 });
+		await page.keyboard.press('Escape');
+	});
+
+	test('long-press on empty area enters edit mode, tap exits', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		// Find a background point inside the grid that hits no icon or button.
+		const point = await page.evaluate(() => {
+			const blocked = Array.from(
+				document.querySelectorAll('.ios-app-grid-page [data-app-id], .ios-app-grid-page button')
+			).map(el => el.getBoundingClientRect());
+			const grid = document.querySelector('.ios-app-grid-page')?.getBoundingClientRect();
+			if (!grid) return null;
+			for (let y = grid.top + 20; y < grid.bottom - 20; y += 25) {
+				for (let x = grid.left + 20; x < grid.right - 20; x += 25) {
+					if (!blocked.some(r => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) {
+						return { x, y };
+					}
+				}
+			}
+			return null;
+		});
+		expect(point).not.toBeNull();
+
+		// Hold: edit mode engages with jiggle + Done, like iOS long-press.
+		await page.mouse.move(point!.x, point!.y);
+		await page.mouse.down();
+		await page.waitForTimeout(700);
+		await page.mouse.up();
+		await expect(page.locator('.ios-jiggle, .ios-jiggle-reverse').first()).toBeVisible({
+			timeout: 5000,
+		});
+		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeVisible();
+
+		// Quick tap on empty background leaves edit mode.
+		await page.mouse.move(point!.x, point!.y);
+		await page.mouse.down();
+		await page.mouse.up();
+		await expect(page.locator('.ios-jiggle, .ios-jiggle-reverse')).toHaveCount(0, {
+			timeout: 5000,
+		});
+		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeHidden();
+	});
 });

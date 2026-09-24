@@ -34,6 +34,7 @@ import { getAppComponent } from '../../../utils/appComponents';
 import { triggerHaptic } from '../../../utils/haptic';
 import { DRAG, IOS_LAYOUT } from '../../../constants';
 import HomeScreenDock from './HomeScreenDock';
+import HomeScreenPagination from './HomeScreenPagination';
 import HomeScreenAppContainer from './HomeScreenAppContainer';
 import NotificationCenter from '../NotificationCenter/NotificationCenter';
 import MobileControlCenter from '../ControlCenter/MobileControlCenter';
@@ -89,6 +90,12 @@ function HomeScreen() {
 	const launchApp = useAppsStore(state => state.launchApp);
 	const closeApp = useAppsStore(state => state.closeApp);
 	const [openFolderId, setOpenFolderId] = useState<string | null>(null);
+	const [folderOpenOrigin, setFolderOpenOrigin] = useState<{
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	} | null>(null);
 
 	const openFolder = openFolderId ? folders[openFolderId] : undefined;
 	const reorderIosApps = useAppsStore(state => state.reorderIosApps);
@@ -278,6 +285,102 @@ function HomeScreen() {
 
 	const exitEditing = useCallback(() => setIsEditing(false), []);
 
+	// iOS long-press on empty home area enters edit mode; a quick tap on empty
+	// area leaves it. Icons keep their dnd-kit sensors — this only arms on
+	// background, so drags, swipes, and icon taps are untouched.
+	const LONG_PRESS_MS = 500;
+	const TAP_MS = 350;
+	const PRESS_TOLERANCE_PX = 12;
+	const emptyPressRef = useRef<{
+		x: number;
+		y: number;
+		time: number;
+		moved: boolean;
+		timer: ReturnType<typeof setTimeout> | null;
+	} | null>(null);
+
+	const clearEmptyPressTimer = useCallback(() => {
+		if (emptyPressRef.current?.timer) {
+			clearTimeout(emptyPressRef.current.timer);
+			emptyPressRef.current.timer = null;
+		}
+	}, []);
+
+	useEffect(() => {
+		return () => {
+			if (emptyPressRef.current?.timer) clearTimeout(emptyPressRef.current.timer);
+		};
+	}, []);
+
+	const isEmptyBackground = useCallback((target: EventTarget | null) => {
+		const el = target as HTMLElement | null;
+		if (!el || typeof el.closest !== 'function') return false;
+		return !el.closest('button, [data-app-id], input, textarea, [role="dialog"]');
+	}, []);
+
+	const handleEmptyPressStart = useCallback(
+		(e: React.PointerEvent) => {
+			if (currentApp || appToOpen || openFolderId) return;
+			if (isNotificationCenterOpen || isControlCenterOpen) return;
+			if (!isEmptyBackground(e.target)) return;
+			clearEmptyPressTimer();
+			// In edit mode the press is only tracked so a quick tap can leave;
+			// the long-press timer arms solely outside edit mode.
+			const rec: {
+				x: number;
+				y: number;
+				time: number;
+				moved: boolean;
+				timer: ReturnType<typeof setTimeout> | null;
+			} = { x: e.clientX, y: e.clientY, time: Date.now(), moved: false, timer: null };
+			if (!isEditing) {
+				rec.timer = setTimeout(() => {
+					emptyPressRef.current = null;
+					// A real drag already entered edit mode via dnd-kit; don't double-buzz.
+					if (!dragActiveRef.current) {
+						setIsEditing(true);
+						triggerHaptic('medium');
+					}
+				}, LONG_PRESS_MS);
+			}
+			emptyPressRef.current = rec;
+		},
+		[
+			isEditing,
+			currentApp,
+			appToOpen,
+			openFolderId,
+			isNotificationCenterOpen,
+			isControlCenterOpen,
+			isEmptyBackground,
+			clearEmptyPressTimer,
+		]
+	);
+
+	const handleEmptyPressMove = useCallback(
+		(e: React.PointerEvent) => {
+			const rec = emptyPressRef.current;
+			if (!rec) return;
+			if (
+				Math.abs(e.clientX - rec.x) > PRESS_TOLERANCE_PX ||
+				Math.abs(e.clientY - rec.y) > PRESS_TOLERANCE_PX
+			) {
+				rec.moved = true;
+				clearEmptyPressTimer();
+			}
+		},
+		[clearEmptyPressTimer]
+	);
+
+	const handleEmptyPressEnd = useCallback(() => {
+		const rec = emptyPressRef.current;
+		emptyPressRef.current = null;
+		clearEmptyPressTimer();
+		if (rec && !rec.moved && Date.now() - rec.time < TAP_MS && isEditing) {
+			setIsEditing(false);
+		}
+	}, [isEditing, clearEmptyPressTimer]);
+
 	// Home indicator: closes the open app, or leaves edit mode when idle.
 	const handleHomeIndicator = useCallback(() => {
 		if (currentApp || appToOpen) {
@@ -385,6 +488,15 @@ function HomeScreen() {
 
 	const openFolderView = useCallback((folderId: string) => {
 		triggerHaptic('light');
+		const iconElement = document.querySelector(
+			`[data-folder-id="${folderId}"]`
+		) as HTMLElement | null;
+		if (iconElement) {
+			const rect = iconElement.getBoundingClientRect();
+			setFolderOpenOrigin({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+		} else {
+			setFolderOpenOrigin(null);
+		}
 		setOpenFolderId(folderId);
 	}, []);
 
@@ -543,6 +655,10 @@ function HomeScreen() {
 
 					<div
 						className={`absolute inset-0 pb-32 overflow-hidden ${isEditing ? 'pt-24' : 'pt-12'}`}
+						onPointerDown={handleEmptyPressStart}
+						onPointerMove={handleEmptyPressMove}
+						onPointerUp={handleEmptyPressEnd}
+						onPointerCancel={handleEmptyPressEnd}
 					>
 						<div
 							className="flex h-full w-[200vw]"
@@ -582,6 +698,12 @@ function HomeScreen() {
 						</div>
 					</div>
 
+					<HomeScreenPagination
+						currentPage={currentPage}
+						totalPages={2}
+						visible={!currentApp && !appToOpen && !openFolderId}
+					/>
+
 					<DragOverlay>{activeId ? renderOverlayItem(activeId) : null}</DragOverlay>
 
 					<HomeScreenDock apps={dockApps} onAppClick={handleAppClick} isEditing={isEditing} />
@@ -591,7 +713,11 @@ function HomeScreen() {
 			{openFolder && (
 				<FolderView
 					folder={openFolder}
-					onClose={() => setOpenFolderId(null)}
+					origin={folderOpenOrigin}
+					onClose={() => {
+						setOpenFolderId(null);
+						setFolderOpenOrigin(null);
+					}}
 					onLaunchApp={launchFolderApp}
 					onRemoveApp={appId => openFolderId && removeFolderApp(openFolderId, appId)}
 				/>
