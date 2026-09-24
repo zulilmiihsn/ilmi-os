@@ -15,8 +15,8 @@ function HomeScreenPagination({
 }: HomeScreenPaginationProps) {
     if (!visible) return null;
 
-    return (
-        <div className="absolute bottom-[98px] left-0 right-0 flex justify-center gap-2 z-10 pointer-events-none">
+		return (
+			<div className="absolute bottom-[112px] left-0 right-0 flex justify-center gap-2 z-10 pointer-events-none">
             {Array.from({ length: totalPages }).map((_, index) => (
                 <div
                     key={index}
