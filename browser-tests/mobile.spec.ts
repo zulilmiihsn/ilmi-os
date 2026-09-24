@@ -274,18 +274,90 @@ test.describe('mobile shell', () => {
 		await page.keyboard.press('Escape');
 	});
 
+	test('fast flick starting on an icon never flips the page', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		const flick = async (x: number, y: number, dx: number) => {
+			const cdp = await page.context().newCDPSession(page);
+			const point = (px: number, py: number) => ({ x: Math.round(px), y: Math.round(py), id: 1 });
+			await cdp.send('Input.dispatchTouchEvent', {
+				type: 'touchStart',
+				touchPoints: [point(x, y)],
+			});
+			await cdp.send('Input.dispatchTouchEvent', {
+				type: 'touchMove',
+				touchPoints: [point(x + dx, y)],
+			});
+			// touchEnd must carry the released point: the handler reads it
+			// from changedTouches, like a real finger lift.
+			await cdp.send('Input.dispatchTouchEvent', {
+				type: 'touchEnd',
+				touchPoints: [point(x + dx, y)],
+			});
+			await cdp.detach();
+		};
+		const sliderTransform = () =>
+			page.evaluate(() => {
+				const el = document.querySelector('.ios-homescreen div[class*="200vw"]');
+				return el ? (el as HTMLElement).style.transform : 'missing';
+			});
+		const emptyPoint = (pageIndex = 0) =>
+			page.evaluate(idx => {
+				const blocked = Array.from(
+					document.querySelectorAll('.ios-app-grid-page [data-app-id], .ios-app-grid-page button')
+				).map(el => el.getBoundingClientRect());
+				const grids = Array.from(document.querySelectorAll('.ios-app-grid-page'));
+				const grid = grids[idx]?.getBoundingClientRect();
+				if (!grid) return null;
+				// Stay clear of the top strip: touches with y<=90 steer the
+				// notification/control-center tracking, never page swipes.
+				for (let y = Math.max(grid.top + 20, 130); y < grid.bottom - 20; y += 25) {
+					for (let x = grid.left + 20; x < grid.right - 20; x += 25) {
+						if (!blocked.some(r => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) {
+							return { x, y };
+						}
+					}
+				}
+				return null;
+			}, pageIndex);
+
+		// Control: a leftward flick from empty background DOES flip the page,
+		// proving raw touch reaches the gesture handlers.
+		const empty = await emptyPoint();
+		expect(empty).not.toBeNull();
+		await flick(empty!.x, empty!.y, -120);
+		await page.waitForTimeout(800);
+		expect(await sliderTransform()).toBe('translateX(-100vw)');
+
+		// Back to page 0, then the real assertion: an identical flick starting
+		// on an icon must not flip (it is faster than the dnd-kit sensor delay,
+		// so without icon-origin suppression the page would steal it).
+		const back = await emptyPoint(1);
+		await flick(back!.x, back!.y, 120);
+		await page.waitForTimeout(800);
+		expect(await sliderTransform()).toBe('translateX(0vw)');
+		const icon = page.locator('.ios-app-grid-page [data-app-id]').first();
+		const box = await icon.boundingBox();
+		await flick(box!.x + box!.width / 2, box!.y + box!.height / 2, -120);
+		await page.waitForTimeout(800);
+		expect(await sliderTransform()).toBe('translateX(0vw)');
+		await page.keyboard.press('Escape');
+	});
+
 	test('long-press on empty area enters edit mode, tap exits', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
 
-		// Find a background point inside the grid that hits no icon or button.
+		// Find a background point inside the grid that hits no icon or button,
+		// clear of the top strip (y<=90 belongs to the panel tracking).
 		const point = await page.evaluate(() => {
 			const blocked = Array.from(
 				document.querySelectorAll('.ios-app-grid-page [data-app-id], .ios-app-grid-page button')
 			).map(el => el.getBoundingClientRect());
 			const grid = document.querySelector('.ios-app-grid-page')?.getBoundingClientRect();
 			if (!grid) return null;
-			for (let y = grid.top + 20; y < grid.bottom - 20; y += 25) {
+			for (let y = Math.max(grid.top + 20, 130); y < grid.bottom - 20; y += 25) {
 				for (let x = grid.left + 20; x < grid.right - 20; x += 25) {
 					if (!blocked.some(r => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) {
 						return { x, y };

@@ -71,9 +71,7 @@ export function useHomeScreenGestures({
 		// iOS zooms the app back into its icon. Fall back to the generic
 		// shrink-and-fade when the icon rect is unavailable.
 		const activeApp = currentApp || appToOpen;
-		const icon = activeApp
-			? document.querySelector(`[data-app-id="${activeApp}"]`)
-			: null;
+		const icon = activeApp ? document.querySelector(`[data-app-id="${activeApp}"]`) : null;
 		if (icon) {
 			const rect = icon.getBoundingClientRect();
 			const scale = rect.width / window.innerWidth;
@@ -208,12 +206,17 @@ export function useHomeScreenGestures({
 		isTopRight: boolean;
 		isBottomSwipe: boolean;
 	} | null>(null);
+	// A touch that begins on an app/folder icon is an icon interaction
+	// (tap, hold, or drag) — never a page swipe — even before the dnd-kit
+	// sensor delay elapses and activates the drag guards.
+	const iconTouchRef = useRef(false);
 
 	const handleTouchStart = (e: React.TouchEvent) => {
 		if (isAnimatingCloseRef.current) return;
 		const touch = e.touches[0];
 		if (!touch) return;
 		const target = e.target as HTMLElement | null;
+		iconTouchRef.current = Boolean(target?.closest?.('[data-app-id],[data-folder-id]'));
 		const isBottomTarget = Boolean(target?.closest?.('.ios-bottom-bar'));
 		const isBottom = touch.clientY >= window.innerHeight - 85 || isBottomTarget;
 		const isTop = touch.clientY <= 90;
@@ -279,6 +282,8 @@ export function useHomeScreenGestures({
 	};
 
 	const handleTouchEnd = (e: React.TouchEvent) => {
+		const startedOnIcon = iconTouchRef.current;
+		iconTouchRef.current = false;
 		if (dragging() || !touchStartRef.current || isAnimatingCloseRef.current) {
 			touchStartRef.current = null;
 			return;
@@ -375,8 +380,10 @@ export function useHomeScreenGestures({
 			return;
 		}
 
-		// Page Swipe Logic (when on home screen)
-		if (!currentApp && !appToOpen) {
+		// Page Swipe Logic (when on home screen). Touches that began on an
+		// icon are icon interactions even when the dnd-kit sensor never fired,
+		// so they must not flip pages on release.
+		if (!currentApp && !appToOpen && !startedOnIcon) {
 			const SWIPE_THRESHOLD = window.innerWidth * 0.2;
 			if (deltaX < -SWIPE_THRESHOLD && currentPage < 1) setCurrentPage(1);
 			if (deltaX > SWIPE_THRESHOLD && currentPage > 0) setCurrentPage(0);
@@ -414,6 +421,7 @@ export function useHomeScreenGestures({
 	// start so a later touch cannot reuse stale tracking state.
 	const handleTouchCancel = useCallback(() => {
 		touchStartRef.current = null;
+		iconTouchRef.current = false;
 	}, []);
 
 	return {
