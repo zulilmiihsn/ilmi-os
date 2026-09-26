@@ -630,7 +630,7 @@ function HomeScreen() {
 						type="button"
 						onClick={exitEditing}
 						aria-label="Done editing home screen"
-						className="absolute top-12 right-4 z-40 px-4 py-1.5 rounded-full bg-white/25 text-white text-sm font-semibold backdrop-blur-md active:scale-95 transition-transform focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80"
+						className="absolute top-12 right-4 z-40 px-4 py-1.5 rounded-full bg-white/25 text-white text-sm font-semibold backdrop-blur-md active:scale-95 transition-transform focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 animate-in fade-in zoom-in-95 duration-200"
 					>
 						Done
 					</button>
@@ -654,7 +654,7 @@ function HomeScreen() {
 					/>
 
 					<div
-						className={`absolute inset-0 pb-32 overflow-hidden ${isEditing ? 'pt-24' : 'pt-12'}`}
+						className={`absolute inset-0 pb-32 overflow-hidden transition-[padding-top] duration-300 ease-out ${isEditing ? 'pt-24' : 'pt-12'}`}
 						onPointerDown={handleEmptyPressStart}
 						onPointerMove={handleEmptyPressMove}
 						onPointerUp={handleEmptyPressEnd}

@@ -48,7 +48,36 @@ test.describe('mobile shell', () => {
 		await expect(page.locator('.ios-jiggle, .ios-jiggle-reverse').first()).toBeVisible({
 			timeout: 5000,
 		});
-		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeVisible();
+		const doneButton = page.getByRole('button', { name: 'Done editing home screen' });
+		await expect(doneButton).toBeVisible();
+		// Done fades/scales in and the grid eases down to make room for it.
+		const doneAnimation = await doneButton.evaluate(el => getComputedStyle(el).animationName);
+		expect(doneAnimation).toMatch(/fadeIn|zoomIn/);
+		const gridPadding = () =>
+			page.evaluate(() => {
+				const slider = document.querySelector('.ios-homescreen div[class*="200vw"]');
+				const container = slider?.parentElement;
+				if (!container) return 'missing';
+				const style = getComputedStyle(container);
+				return `${style.paddingTop}|${style.transitionProperty}`;
+			});
+		// The grid eases down (not jumps) to make room; poll past the transition.
+		// pt-24 in rem units (the root font size here is 17px, not 16px).
+		const expectedPad = await page.evaluate(
+			() => 6 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
+		);
+		await expect
+			.poll(
+				async () =>
+					page.evaluate(() => {
+						const slider = document.querySelector('.ios-homescreen div[class*="200vw"]');
+						const container = slider?.parentElement;
+						return container ? getComputedStyle(container).paddingTop : 'missing';
+					}),
+				{ timeout: 3000 }
+			)
+			.toBe(`${expectedPad}px`);
+		expect(await gridPadding()).toContain('padding-top');
 
 		// Escape leaves edit mode.
 		await page.keyboard.press('Escape');
