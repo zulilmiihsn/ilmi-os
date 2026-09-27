@@ -58,6 +58,15 @@ export function triggerHaptic(type: HapticType = 'medium'): boolean {
 	const pattern = patterns[type];
 	
 	try {
+		// Skip without an active user gesture: calling vibrate anyway only
+		// litters the console with an Intervention (e.g. desktop browsers or
+		// devtools device emulation with a mobile UA but no vibrator).
+		if (
+			typeof navigator.userActivation !== 'undefined' &&
+			!navigator.userActivation.isActive
+		) {
+			return false;
+		}
 		// Check if vibrate is available and call it
 		// This will be blocked if not in user gesture context
 		const result = navigator.vibrate(pattern);
