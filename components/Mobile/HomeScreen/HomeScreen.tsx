@@ -150,8 +150,9 @@ function HomeScreen() {
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
 		useSensor(TouchSensor, {
-			// Delay 250ms mimics Long Press. Quick swipes are ignored by drag.
-			activationConstraint: { delay: 250, tolerance: 15 },
+			// Short hold before a touch becomes a drag: page swipes stay
+			// snappy and icon-origin touches never flip pages (see gestures).
+			activationConstraint: { delay: 120, tolerance: 15 },
 		}),
 		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
 	);
@@ -229,6 +230,11 @@ function HomeScreen() {
 
 	// Drag handlers with cross-container support.
 	// Any drag start enters edit mode (long-press to rearrange, like iOS).
+	// Latest pointer position over the grid, shared with the drag hook so a
+	// center drop (folder) can be told from an edge drop (reorder). Updated
+	// from the container's own pointer handlers, which demonstrably fire
+	// during drags (unlike listeners attached mid-drag).
+	const dropPointerRef = useRef<{ x: number; y: number; t: number } | null>(null);
 	const {
 		handleDragStart: handleDragStartInner,
 		handleDragOver,
@@ -255,11 +261,16 @@ function HomeScreen() {
 			if (ok) triggerHaptic('medium');
 			return ok;
 		}, []),
+		dropPointerRef,
 	});
 
 	const handleDragStart = useCallback(
 		(event: DragStartEvent) => {
 			dragActiveRef.current = true;
+			// Fresh gesture, fresh pointer: a stale position from an earlier
+			// drag (or a keyboard-driven drop with no pointer at all) must
+			// never classify this drop.
+			dropPointerRef.current = null;
 			setIsEditing(true);
 			handleDragStartInner(event);
 		},

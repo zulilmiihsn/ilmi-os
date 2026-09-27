@@ -21,6 +21,13 @@ interface UseDragHandlersProps {
 	onCreateFolder: (draggedAppId: string, targetAppId: string) => boolean;
 	/** Attempt moving a loose app into an open target folder. */
 	onMoveIntoFolder: (appId: string, folderId: string) => boolean;
+	/**
+	 * Latest pointer position over the grid, maintained by the owner from its
+	 * own pointer handlers (which demonstrably fire during drags). dnd-kit
+	 * reports collisions but not pointer coordinates, and this is how a
+	 * center drop (folder) is told from an edge drop (reorder).
+	 */
+	dropPointerRef: { current: { x: number; y: number; t: number } | null };
 }
 
 export function useDragHandlers({
@@ -36,6 +43,7 @@ export function useDragHandlers({
 	isFolderId,
 	onCreateFolder,
 	onMoveIntoFolder,
+	dropPointerRef,
 }: UseDragHandlersProps) {
 	// Use refs for Sets to avoid callback recreation
 	const page0SetRef = useRef(new Set<string>());
@@ -63,37 +71,31 @@ export function useDragHandlers({
 	const originalPosRef = useRef<number>(-1);
 	// Debounce cross-container moves to prevent rapid state updates
 	const lastMoveRef = useRef<string>('');
+	// Drop pointer tracking: dnd-kit reports collisions, not pointer
+	// coordinates. The listener lives for the whole component lifetime:
+	// listeners attached mid-drag demonstrably miss events, while
+	// mount-attached ones fire through the whole gesture. Stale points are
+	// rejected by timestamp against the drag start.
+	const trackDropPoint = useCallback(
+		(e: PointerEvent) => {
+			dropPointerRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+		},
+		[dropPointerRef]
+	);
+
+	useEffect(() => {
+		window.addEventListener('pointermove', trackDropPoint);
+		return () => {
+			window.removeEventListener('pointermove', trackDropPoint);
+		};
+	}, [trackDropPoint]);
+	const dragStartTimeRef = useRef(0);
 	// Throttle handleDragOver to max 30 updates per second
 	const lastDragOverTimeRef = useRef<number>(0);
 	const DRAG_OVER_THROTTLE_MS = 33; // ~30fps for state updates
 	// Haptic ticks on committed moves, rate-limited so they stay tactile.
 	const lastMoveHapticRef = useRef<number>(0);
 	const MOVE_HAPTIC_MIN_MS = 150;
-	// Hover-to-create-folder tracking: holding one app over another.
-	// A real timer (not event counting): no over events fire while the
-	// pointer holds still. The timer restarts if the dragged icon travels,
-	// so sweeping across icons never creates a folder by accident.
-	const hoverRef = useRef<{
-		id: string;
-		timer: ReturnType<typeof setTimeout> | null;
-		x: number;
-		y: number;
-	}>({
-		id: '',
-		timer: null,
-		x: 0,
-		y: 0,
-	});
-	const HOVER_CREATE_MS = 800;
-	const HOVER_TRAVEL_PX = 16;
-
-	const clearHoverTimer = useCallback(() => {
-		if (hoverRef.current.timer) {
-			clearTimeout(hoverRef.current.timer);
-		}
-		hoverRef.current = { id: '', timer: null, x: 0, y: 0 };
-	}, []);
-
 	const tickOnSnap = useCallback(() => {
 		const now = Date.now();
 		if (now - lastMoveHapticRef.current >= MOVE_HAPTIC_MIN_MS) {
@@ -120,15 +122,15 @@ export function useDragHandlers({
 				document.body.style.overflow = prevOverflowRef.current;
 				ownsOverflowRef.current = false;
 			}
-			clearHoverTimer();
 		};
-	}, [clearHoverTimer]);
+	}, []);
 
 	const handleDragStart = useCallback(
 		(event: DragStartEvent) => {
 			const id = event.active.id as string;
 			setActiveId(id);
 			triggerHaptic('medium');
+			dragStartTimeRef.current = Date.now();
 			prevOverflowRef.current = document.body.style.overflow;
 			ownsOverflowRef.current = true;
 			document.body.style.overflow = 'hidden';
@@ -155,9 +157,8 @@ export function useDragHandlers({
 		originalContainerRef.current = null;
 		originalPosRef.current = -1;
 		lastMoveRef.current = '';
-		clearHoverTimer();
 		restoreOverflow();
-	}, [restoreOverflow, clearHoverTimer]);
+	}, [restoreOverflow]);
 
 	const handleDragOver = useCallback(
 		(event: DragOverEvent) => {
@@ -187,54 +188,15 @@ export function useDragHandlers({
 			else if (dockSetRef.current.has(overId)) targetContainer = 'dock';
 
 			if (!targetContainer) {
-				clearHoverTimer();
 				return;
 			}
 
 			const sourceContainer = currentContainerRef.current;
 			if (!sourceContainer) return;
 
-			// HOVER-TO-CREATE-FOLDER: holding one page app over another app
-			// (same container, neither a folder nor an empty slot) creates a
-			// folder like iOS. Folders never nest and never enter the dock.
-			const overIsAppTarget =
-				(targetContainer === 'page0' || targetContainer === 'page1') &&
-				targetContainer === sourceContainer &&
-				!overId.startsWith('empty-') &&
-				!isFolderId(overId) &&
-				!isFolderId(activeId);
-			if (overIsAppTarget) {
-				const center = active.rect.current.translated;
-				const cx = center ? center.left + center.width / 2 : 0;
-				const cy = center ? center.top + center.height / 2 : 0;
-				const travelled = Math.hypot(cx - hoverRef.current.x, cy - hoverRef.current.y);
-				if (hoverRef.current.id !== overId || travelled > HOVER_TRAVEL_PX) {
-					clearHoverTimer();
-					const hoveredActiveId = activeId;
-					const hoveredOverId = overId;
-					hoverRef.current = {
-						id: overId,
-						x: cx,
-						y: cy,
-						timer: setTimeout(() => {
-							// Still hovering the same target (not a stale timer
-							// from an earlier pass over this icon)?
-							if (hoverRef.current.id !== hoveredOverId) return;
-							const created = onCreateFolder(hoveredActiveId, hoveredOverId);
-							if (created) {
-								// End the drag silently: the store changed, and
-								// the resync effect rebuilds local arrays.
-								resetRefs();
-								setActiveId(null);
-							} else {
-								clearHoverTimer();
-							}
-						}, HOVER_CREATE_MS),
-					};
-				}
-			} else {
-				clearHoverTimer();
-			}
+			// Folders form on DROP onto an app (like iOS), never on hover-dwell:
+			// holding still over an icon must not hijack a slow swap, so there
+			// is deliberately no hover timer here. See handleDragEnd.
 
 			// SAME CONTAINER: never reorder here. dnd-kit glides neighbors with
 			// transforms computed on the stable array; reordering state instead
@@ -258,7 +220,7 @@ export function useDragHandlers({
 				tickOnSnap();
 			}
 		},
-		[tickOnSnap, isFolderId, onCreateFolder, setActiveId, resetRefs, clearHoverTimer]
+		[tickOnSnap]
 	);
 
 	const handleDragCancel = useCallback(() => {
@@ -272,9 +234,20 @@ export function useDragHandlers({
 		(event: DragEndEvent) => {
 			const { active, over } = event;
 			restoreOverflow();
-			// A drop ends all hovering: without this, a pending folder
-			// timer could fire after the drop and create a folder by itself.
-			clearHoverTimer();
+			// Accept only a pointer position recorded after this drag
+			// started; anything older (or a keyboard-driven drop with no
+			// pointer at all) falls back to a plain reorder.
+			const tracked = dropPointerRef.current;
+			const dropPoint =
+				tracked && tracked.t >= dragStartTimeRef.current ? { x: tracked.x, y: tracked.y } : null;
+
+			if (!over) {
+				setActiveId(null);
+				return;
+			}
+
+			const activeId = active.id as string;
+			const overId = over.id as string;
 
 			const originalPos = originalPosRef.current;
 			const originalContainer = originalContainerRef.current;
@@ -285,14 +258,6 @@ export function useDragHandlers({
 			originalPosRef.current = -1;
 			lastMoveRef.current = '';
 			// restoreOverflow() already ran at the top of this handler.
-
-			if (!over) {
-				setActiveId(null);
-				return;
-			}
-
-			const activeId = active.id as string;
-			const overId = over.id as string;
 
 			// Zombie drag (e.g. a folder was created from the active item
 			// mid-drag): nothing left to commit.
@@ -314,6 +279,39 @@ export function useDragHandlers({
 				}
 				setActiveId(null);
 				return;
+			}
+
+			// Dropping an app onto another app creates a folder (like iOS) —
+			// but only when released near its center. Edge/gap drops reorder
+			// to that slot instead, so repositioning stays possible on dense
+			// grids. Same page, neither a folder nor an empty slot, not
+			// itself; folders never enter the dock so the target is paged.
+			const targetEl = document.querySelector(
+				`[data-app-id="${overId}"],[data-folder-id="${overId}"]`
+			);
+			const targetRect = targetEl?.getBoundingClientRect() ?? null;
+			const droppedOntoCenter = (() => {
+				if (!dropPoint || !targetRect) return false;
+				const px = (dropPoint.x - targetRect.left) / targetRect.width;
+				const py = (dropPoint.y - targetRect.top) / targetRect.height;
+				return px >= 0.25 && px <= 0.75 && py >= 0.25 && py <= 0.75;
+			})();
+			if (
+				droppedOntoCenter &&
+				!isFolderId(activeId) &&
+				!isFolderId(overId) &&
+				!overId.startsWith('empty-') &&
+				overId !== activeId &&
+				(finalContainer === 'page0' || finalContainer === 'page1')
+			) {
+				const created = onCreateFolder(activeId, overId);
+				console.warn(`[dbg10] center=${droppedOntoCenter} created=${created}`);
+				if (created) {
+					setActiveId(null);
+					return;
+				}
+				// Creation refused (e.g. dock app dragged in): fall through
+				// and reorder to the target slot instead.
 			}
 
 			// Folders can be reordered on pages but never enter the dock.
@@ -392,7 +390,8 @@ export function useDragHandlers({
 			restoreOverflow,
 			isFolderId,
 			onMoveIntoFolder,
-			clearHoverTimer,
+			onCreateFolder,
+			dropPointerRef,
 		]
 	);
 

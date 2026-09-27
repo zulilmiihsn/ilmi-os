@@ -96,9 +96,8 @@ test.describe('mobile shell', () => {
 				)
 			);
 		const before = await orderOf();
-		// Drag the first icon after the third via real mouse input.
-		// Fast travel: lingering 800ms over an icon would (correctly)
-		// create a folder instead of reordering.
+		// Drag the first icon after the third via real mouse input, landing
+		// near its corner: center drops fold into a folder, edge drops shift.
 		const first = page.locator('.ios-app-grid-page [data-app-id]').first();
 		const third = page.locator('.ios-app-grid-page [data-app-id]').nth(2);
 		const from = await first.boundingBox();
@@ -121,20 +120,46 @@ test.describe('mobile shell', () => {
 		await page.keyboard.press('Escape');
 	});
 
-	test('hovering an app over another creates a folder', async ({ page }) => {
+	test('dropping an app onto another creates a folder', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
 
 		const icons = page.locator('.ios-app-grid-page [data-app-id]');
 		const firstName = await icons.nth(0).getAttribute('data-app-id');
 		const secondName = await icons.nth(1).getAttribute('data-app-id');
+		// Settle edit mode FIRST with an empty-area long-press: entering edit
+		// mid-drag shifts the grid under the pointer (pt-12 to pt-24), so any
+		// aim taken before that goes stale. With edit pre-engaged the layout
+		// stays put for the whole drag, like a settled real finger.
+		const spot = await page.evaluate(() => {
+			const blocked = Array.from(
+				document.querySelectorAll('.ios-app-grid-page [data-app-id], .ios-app-grid-page button')
+			).map(el => el.getBoundingClientRect());
+			const grid = document.querySelector('.ios-app-grid-page')?.getBoundingClientRect();
+			if (!grid) return null;
+			for (let y = Math.max(grid.top + 20, 130); y < grid.bottom - 20; y += 25) {
+				for (let x = grid.left + 20; x < grid.right - 20; x += 25) {
+					if (!blocked.some(r => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) {
+						return { x, y };
+					}
+				}
+			}
+			return null;
+		});
+		expect(spot).not.toBeNull();
+		await page.mouse.move(spot!.x, spot!.y);
+		await page.mouse.down();
+		await page.waitForTimeout(700);
+		await page.mouse.up();
+		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeVisible({
+			timeout: 5000,
+		});
 		const from = await icons.nth(0).boundingBox();
-		const to = await icons.nth(1).boundingBox();
 		await page.mouse.move(from!.x + 10, from!.y + 10);
 		await page.mouse.down();
-		await page.mouse.move(to!.x + 10, to!.y + 10, { steps: 12 });
-		// Hold over the target past the 800ms folder timer, then drop.
-		await page.waitForTimeout(1400);
+		// Drop onto the target's center: center drops fold into a folder.
+		const to = await icons.nth(1).boundingBox();
+		await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
 		await page.mouse.up();
 		await page.waitForTimeout(800);
 
@@ -253,16 +278,42 @@ test.describe('mobile shell', () => {
 		await page.goto('/');
 		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
 
-		// Build a folder by hovering one app over another.
+		// Build a folder with a center drop. Pre-engage edit mode with an
+		// empty-area long-press first (pressing an icon would launch it):
+		// entering edit mid-drag shifts the grid under the pointer, so aim
+		// only once the layout is settled, like a real finger would.
+		const spot = await page.evaluate(() => {
+			const blocked = Array.from(
+				document.querySelectorAll('.ios-app-grid-page [data-app-id], .ios-app-grid-page button')
+			).map(el => el.getBoundingClientRect());
+			const grid = document.querySelector('.ios-app-grid-page')?.getBoundingClientRect();
+			if (!grid) return null;
+			for (let y = Math.max(grid.top + 20, 130); y < grid.bottom - 20; y += 25) {
+				for (let x = grid.left + 20; x < grid.right - 20; x += 25) {
+					if (!blocked.some(r => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) {
+						return { x, y };
+					}
+				}
+			}
+			return null;
+		});
+		expect(spot).not.toBeNull();
+		await page.mouse.move(spot!.x, spot!.y);
+		await page.mouse.down();
+		await page.waitForTimeout(700);
+		await page.mouse.up();
+		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeVisible({
+			timeout: 5000,
+		});
 		const first = page.locator('.ios-app-grid-page [data-app-id]').first();
 		const second = page.locator('.ios-app-grid-page [data-app-id]').nth(1);
 		const from = await first.boundingBox();
 		const to = await second.boundingBox();
 		await page.mouse.move(from!.x + 10, from!.y + 10);
 		await page.mouse.down();
-		await page.mouse.move(to!.x + 10, to!.y + 10, { steps: 5 });
-		await page.waitForTimeout(1000);
+		await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
 		await page.mouse.up();
+		await page.waitForTimeout(800);
 		const folderButton = page.getByLabel('Open folder Folder, 2 apps');
 		await expect(folderButton).toBeVisible({ timeout: 5000 });
 		// Settle out of the post-drag state first (a click issued in the same
