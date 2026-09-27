@@ -2,7 +2,6 @@
 
 import { useRef, useCallback, useEffect } from 'react';
 import { DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
 import { triggerHaptic } from '../../../utils/haptic';
 import { IOS_LAYOUT } from '../../../constants';
 
@@ -237,122 +236,29 @@ export function useDragHandlers({
 				clearHoverTimer();
 			}
 
-			// SAME CONTAINER: arrayMove for animation
+			// SAME CONTAINER: never reorder here. dnd-kit glides neighbors with
+			// transforms computed on the stable array; reordering state instead
+			// makes it disable transitions and teleport items. Tick on new
+			// targets so the drag still feels tactile.
 			if (sourceContainer === targetContainer) {
-				const items =
-					sourceContainer === 'page0'
-						? page0Items
-						: sourceContainer === 'page1'
-							? page1Items
-							: dockItemIds;
-
-				const oldIndex = items.indexOf(activeId);
-				const newIndex = items.indexOf(overId);
-
-				// Only update if indices are valid and different
-				if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-					const setItems =
-						sourceContainer === 'page0'
-							? setPage0Items
-							: sourceContainer === 'page1'
-								? setPage1Items
-								: setDockItemIds;
-					setItems(arrayMove(items, oldIndex, newIndex));
+				const overKey = `${targetContainer}:${overId}`;
+				if (lastMoveRef.current !== overKey) {
+					lastMoveRef.current = overKey;
 					tickOnSnap();
 				}
 				return;
 			}
 
-			// CROSS-CONTAINER: Move item between containers
-			// Debounce: only process if this is a new move
-			const moveKey = `${sourceContainer}->${targetContainer}`;
-			if (lastMoveRef.current === moveKey) return;
-
-			// O(1) check using refs
-			const sourceSet =
-				sourceContainer === 'page0'
-					? page0SetRef.current
-					: sourceContainer === 'page1'
-						? page1SetRef.current
-						: dockSetRef.current;
-
-			if (!sourceSet.has(activeId)) {
-				currentContainerRef.current = targetContainer;
-				return;
-			}
-
-			const targetSet =
-				targetContainer === 'page0'
-					? page0SetRef.current
-					: targetContainer === 'page1'
-						? page1SetRef.current
-						: dockSetRef.current;
-
-			if (targetSet.has(activeId)) {
-				currentContainerRef.current = targetContainer;
-				return;
-			}
-
-			// Need array for indexOf (to get insert position)
-			const targetItems =
-				targetContainer === 'page0'
-					? page0Items
-					: targetContainer === 'page1'
-						? page1Items
-						: dockItemIds;
-			const targetIndex = targetItems.indexOf(overId);
-
-			// Mark this move
-			lastMoveRef.current = moveKey;
-
-			// Perform the move
-			if (sourceContainer === 'page0') {
-				setPage0Items(prev => prev.filter(id => id !== activeId));
-			} else if (sourceContainer === 'page1') {
-				setPage1Items(prev => prev.filter(id => id !== activeId));
-			} else if (sourceContainer === 'dock') {
-				setDockItemIds(prev => prev.filter(id => id !== activeId));
-			}
-
-			if (targetContainer === 'page0') {
-				setPage0Items(prev => {
-					const newItems = [...prev];
-					newItems.splice(targetIndex >= 0 ? targetIndex : newItems.length, 0, activeId);
-					return newItems;
-				});
-			} else if (targetContainer === 'page1') {
-				setPage1Items(prev => {
-					const newItems = [...prev];
-					newItems.splice(targetIndex >= 0 ? targetIndex : newItems.length, 0, activeId);
-					return newItems;
-				});
-			} else if (targetContainer === 'dock') {
-				setDockItemIds(prev => {
-					const newItems = [...prev];
-					newItems.splice(targetIndex >= 0 ? targetIndex : newItems.length, 0, activeId);
-					return newItems;
-				});
-			}
-
-			// Update ref to new container and reset debounce
+			// CROSS-CONTAINER: track only; the drop commits. Live-migrating
+			// arrays teleports the same way (see above).
 			currentContainerRef.current = targetContainer;
-			lastMoveRef.current = '';
-			tickOnSnap();
+			const crossKey = `${targetContainer}:${overId}`;
+			if (lastMoveRef.current !== crossKey) {
+				lastMoveRef.current = crossKey;
+				tickOnSnap();
+			}
 		},
-		[
-			page0Items,
-			page1Items,
-			dockItemIds,
-			setPage0Items,
-			setPage1Items,
-			setDockItemIds,
-			tickOnSnap,
-			isFolderId,
-			onCreateFolder,
-			setActiveId,
-			resetRefs,
-			clearHoverTimer,
-		]
+		[tickOnSnap, isFolderId, onCreateFolder, setActiveId, resetRefs, clearHoverTimer]
 	);
 
 	const handleDragCancel = useCallback(() => {
@@ -416,18 +322,26 @@ export function useDragHandlers({
 				return;
 			}
 
-			// Calculate NEW absolute position based on where the item ended up in the local state
+			// Resolve the drop target from the live collision. Local arrays
+			// stay pristine during drag (see above), so committed coordinates
+			// apply: empty slots decode to base+index, real items and folders
+			// use their store position.
 			let overStorePos: number = -1;
-
-			if (finalContainer === 'page0') {
-				const index = page0Items.indexOf(activeId);
-				if (index !== -1) overStorePos = index;
-			} else if (finalContainer === 'page1') {
-				const index = page1Items.indexOf(activeId);
-				if (index !== -1) overStorePos = IOS_LAYOUT.PAGE1_BASE + index;
-			} else if (finalContainer === 'dock') {
-				const index = dockItemIds.indexOf(activeId);
-				if (index !== -1) overStorePos = IOS_LAYOUT.DOCK_BASE + index;
+			if (overId === activeId) {
+				overStorePos = originalPos;
+			} else if (
+				finalContainer === 'page0' ||
+				finalContainer === 'page1' ||
+				finalContainer === 'dock'
+			) {
+				const emptySlot = /^empty-(\d+)-(\d+)$/.exec(overId);
+				if (emptySlot?.[1] !== undefined && emptySlot?.[2] !== undefined) {
+					const slotPage = Number(emptySlot[1]);
+					const slotIndex = Number(emptySlot[2]);
+					overStorePos = slotPage === 0 ? slotIndex : IOS_LAYOUT.PAGE1_BASE + slotIndex;
+				} else {
+					overStorePos = iosAppPositions[overId] ?? -1;
+				}
 			}
 
 			if (overStorePos === -1) {
@@ -435,56 +349,17 @@ export function useDragHandlers({
 				return;
 			}
 
-			// ENFORCE CONSTRAINTS on final commit
+			// ENFORCE CONSTRAINTS on final commit. Local counts are committed
+			// (never live-mutated), so the incoming/outgoing item is folded in:
+			// a dock move-in is refused past 5, a move-out below 4. Reverting
+			// is just clearing the drag: arrays already match the store.
 			const movingToDock = overStorePos >= IOS_LAYOUT.DOCK_BASE || finalContainer === 'dock';
 			const movingFromDock = originalContainer === 'dock';
 			const currentDockCount = dockItemIds.length;
 
-			// Helper function to revert item to original container
-			const revertToOriginal = () => {
-				const activeId = active.id as string;
-
-				// Remove from current container
-				if (finalContainer === 'page0') {
-					setPage0Items(prev => prev.filter(id => id !== activeId));
-				} else if (finalContainer === 'page1') {
-					setPage1Items(prev => prev.filter(id => id !== activeId));
-				} else if (finalContainer === 'dock') {
-					setDockItemIds(prev => prev.filter(id => id !== activeId));
-				}
-
-				// Add back to original container at original position
-				if (originalContainer === 'page0') {
-					setPage0Items(prev => {
-						if (prev.includes(activeId)) return prev;
-						const newItems = [...prev];
-						const insertPos = Math.min(originalPos, newItems.length);
-						newItems.splice(insertPos, 0, activeId);
-						return newItems;
-					});
-				} else if (originalContainer === 'page1') {
-					setPage1Items(prev => {
-						if (prev.includes(activeId)) return prev;
-						const newItems = [...prev];
-						const insertPos = Math.min(originalPos - IOS_LAYOUT.PAGE1_BASE, newItems.length);
-						newItems.splice(insertPos, 0, activeId);
-						return newItems;
-					});
-				} else if (originalContainer === 'dock') {
-					setDockItemIds(prev => {
-						if (prev.includes(activeId)) return prev;
-						const newItems = [...prev];
-						const insertPos = Math.min(originalPos - IOS_LAYOUT.DOCK_BASE, newItems.length);
-						newItems.splice(insertPos, 0, activeId);
-						return newItems;
-					});
-				}
-			};
-
 			// Max 5: If moving TO dock and wasn't FROM dock
 			if (movingToDock && !movingFromDock) {
-				if (currentDockCount > 5) {
-					revertToOriginal();
+				if (currentDockCount + 1 > 5) {
 					setActiveId(null);
 					return;
 				}
@@ -492,8 +367,7 @@ export function useDragHandlers({
 
 			// Min 4: If moving FROM dock and not staying in dock
 			if (movingFromDock && !movingToDock) {
-				if (currentDockCount < 4) {
-					revertToOriginal();
+				if (currentDockCount - 1 < 4) {
 					setActiveId(null);
 					return;
 				}
@@ -509,6 +383,7 @@ export function useDragHandlers({
 			page0Items,
 			page1Items,
 			dockItemIds,
+			iosAppPositions,
 			reorderIosApps,
 			setActiveId,
 			setPage0Items,

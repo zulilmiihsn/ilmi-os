@@ -374,6 +374,43 @@ test.describe('mobile shell', () => {
 		await page.keyboard.press('Escape');
 	});
 
+	test('neighbours glide, not teleport, during reorder', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		// Sample the second icon's x every frame while the first is dragged
+		// over the third: dnd-kit must interpolate, never jump a full slot.
+		await page.evaluate(() => {
+			const arr: number[] = [];
+			(window as unknown as { __xs: number[] }).__xs = arr;
+			const tick = () => {
+				const els = document.querySelectorAll('.ios-app-grid-page [data-app-id]');
+				const el = els[1] as HTMLElement | undefined;
+				if (el) arr.push(el.getBoundingClientRect().x);
+				requestAnimationFrame(tick);
+			};
+			requestAnimationFrame(tick);
+		});
+		const first = page.locator('.ios-app-grid-page [data-app-id]').first();
+		const third = page.locator('.ios-app-grid-page [data-app-id]').nth(2);
+		const from = await first.boundingBox();
+		const to = await third.boundingBox();
+		await page.mouse.move(from!.x + 10, from!.y + 10);
+		await page.mouse.down();
+		await page.mouse.move(to!.x + 10, to!.y + 10, { steps: 12 });
+		await page.waitForTimeout(700);
+		await page.mouse.up();
+		await page.waitForTimeout(400);
+		const xs: number[] = await page.evaluate(() => (window as unknown as { __xs: number[] }).__xs);
+		let maxStep = 0;
+		for (let i = 1; i < xs.length; i++) {
+			maxStep = Math.max(maxStep, Math.abs(xs[i]! - xs[i - 1]!));
+		}
+		// One grid slot is ~94px: anything near that in a single frame is a teleport.
+		expect(maxStep).toBeLessThan(30);
+		await page.keyboard.press('Escape');
+	});
+
 	test('long-press on empty area enters edit mode, tap exits', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
