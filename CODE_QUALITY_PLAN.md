@@ -237,7 +237,7 @@ Terverifikasi 2026-09-23 pada HEAD `c153e5f`: type-check, lint, 55 unit test, pr
 
 Pemilik memilih menghapus seluruh fitur grup/folder aplikasi dari simulasi iOS. Catatan Tahap 9 dan riwayat folder di atas merupakan sejarah, **bukan spesifikasi yang masih berlaku**. Store aplikasi kembali hanya mengelola ikon dan posisi (tidak ada persistensi folder/posisi iOS); UI, gesture hold, sorotan, preview folder, dialog, aksi store, dan tes folder ikon dihapus. Drag di atas ikon lain, termasuk drop tengah dan hold lama, hanya mengatur ulang susunan seperti preview. Folder pada Finder/Files adalah fitur filesystem berbeda dan tetap ada.
 
-Verifikasi: type-check ketat, lint nol warning, 107 unit test, production build, dan 36/37 browser test lolos; satu visual Finder berbeda hanya pada teks dan lolos saat rerun terarah tanpa mengubah baseline. Tes mobile mencakup mouse/touch, preview sebelum drop, cancel, drop tengah setelah tahan lama pada grid/dock, dan keutuhan jumlah ikon.
+Verifikasi: type-check ketat, lint nol warning, 107 unit test, production build, dan 36/37 browser test lolos; satu visual Finder berbeda hanya pada teks dan lolos saat rerun terarah tanpa mengubah baseline. Tes mobile mencakup mouse/touch, preview sebelum drop, cancel, drop tengah setelah tahan lama pada grid/dock, dan keutuhan jumlah ikon. Uji sentuh fisik oleh pemilik pada 2026-09-29: pindah layout ikon lolos.
 
 Tidak perlu menuntaskan seluruh refactor, fitur demo, atau optimasi aset untuk menutup bug yang sudah diperbaiki.
 
