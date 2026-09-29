@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect, type HTMLAttributes } from 'react';
 import Image from 'next/image';
 import {
 	DndContext,
 	DragOverlay,
 	closestCenter,
+	pointerWithin,
 	KeyboardSensor,
 	useSensor,
 	useSensors,
+	useDndContext,
 	TouchSensor,
 	MouseSensor,
 	MeasuringStrategy,
@@ -27,7 +29,6 @@ import AppIcon from '../AppIcon';
 import SortableAppIcon from './SortableAppIcon';
 import Widget from '../Widget';
 import { useAppsStore } from '../../../stores/apps';
-import FolderView from './FolderView';
 import { isIosApp } from '../../../types';
 import { useSettingsStore } from '../../../stores/settings';
 import { getAppComponent } from '../../../utils/appComponents';
@@ -46,12 +47,10 @@ import { useHomeScreenGestures } from './useHomeScreenGestures';
 const getEmptySlotId = (page: number, index: number) => `empty-${page}-${index}`;
 
 // Helper to generate page items (pure function, no hooks).
-// Folder ids share the position map and occupy slots like apps.
 const computePageItems = (
 	pageIndex: number,
 	positions: Record<string, number>,
-	appsList: { id: string }[],
-	folderIds: string[]
+	appsList: { id: string }[]
 ) => {
 	const items: string[] = [];
 	const PAGE_SIZE = pageIndex === 0 ? IOS_LAYOUT.PAGE0_SIZE : IOS_LAYOUT.PAGE1_SIZE;
@@ -65,8 +64,7 @@ const computePageItems = (
 			items.push(app.id);
 			continue;
 		}
-		const folderId = folderIds.find(id => positions[id] === absoluteIndex);
-		items.push(folderId ?? getEmptySlotId(pageIndex, i));
+		items.push(getEmptySlotId(pageIndex, i));
 	}
 	return items;
 };
@@ -81,23 +79,37 @@ const computeDockItems = (positions: Record<string, number>) => {
 	return dock.map(d => d.id);
 };
 
+function HomeScreenGrid({
+	isEditing,
+	...props
+}: HTMLAttributes<HTMLDivElement> & { isEditing: boolean }) {
+	const { measureDroppableContainers } = useDndContext();
+	return (
+		<div
+			{...props}
+			className={`absolute inset-0 pb-32 overflow-hidden transition-[padding-top] duration-300 ease-out ${isEditing ? 'pt-24' : 'pt-12'}`}
+			onTransitionEnd={event => {
+				// Padding and page sliding move slots without resizing them, so
+				// dnd-kit's per-icon ResizeObserver cannot refresh these rects.
+				if (
+					(event.target === event.currentTarget && event.propertyName === 'padding-top') ||
+					(event.target === event.currentTarget.firstElementChild &&
+						event.propertyName === 'transform')
+				) {
+					measureDroppableContainers([]);
+				}
+			}}
+		/>
+	);
+}
+
 function HomeScreen() {
 	const allApps = useAppsStore(state => state.apps);
 	const { wallpaper, darkMode } = useSettingsStore();
 
 	const iosAppPositions = useAppsStore(state => state.iosAppPositions);
-	const folders = useAppsStore(state => state.folders);
 	const launchApp = useAppsStore(state => state.launchApp);
 	const closeApp = useAppsStore(state => state.closeApp);
-	const [openFolderId, setOpenFolderId] = useState<string | null>(null);
-	const [folderOpenOrigin, setFolderOpenOrigin] = useState<{
-		x: number;
-		y: number;
-		width: number;
-		height: number;
-	} | null>(null);
-
-	const openFolder = openFolderId ? folders[openFolderId] : undefined;
 	const reorderIosApps = useAppsStore(state => state.reorderIosApps);
 
 	const apps = useMemo(() => allApps.filter(isIosApp), [allApps]);
@@ -116,35 +128,18 @@ function HomeScreen() {
 	// home indicator, app launch, or Escape.
 	const [isEditing, setIsEditing] = useState(false);
 
-	// Lazy initial state (computed once on mount)
-	const [page0Items, setPage0Items] = useState<string[]>(() =>
-		computePageItems(0, iosAppPositions, apps, [])
+	// Derive the committed order in the drop's render. Syncing a second copy
+	// in an effect lets dnd-kit clear its transforms against the old order,
+	// making neighbours jump back before the new order is rendered.
+	const page0Items = useMemo(
+		() => computePageItems(0, iosAppPositions, apps),
+		[iosAppPositions, apps]
 	);
-	const [page1Items, setPage1Items] = useState<string[]>(() =>
-		computePageItems(1, iosAppPositions, apps, [])
+	const page1Items = useMemo(
+		() => computePageItems(1, iosAppPositions, apps),
+		[iosAppPositions, apps]
 	);
-	const [dockItemIds, setDockItemIds] = useState<string[]>(() => computeDockItems(iosAppPositions));
-
-	// Refs to avoid stale closures and prevent infinite loops
-	const appsRef = useRef(apps);
-	appsRef.current = apps; // Always keep current
-
-	// Sync only when store POSITIONS change AND not dragging
-	useEffect(() => {
-		// Skip if dragging
-		if (isDragging) return;
-
-		// Use ref for apps to avoid it being a dependency
-		const currentApps = appsRef.current;
-		const currentFolderIds = Object.keys(folders);
-		const newPage0 = computePageItems(0, iosAppPositions, currentApps, currentFolderIds);
-		const newPage1 = computePageItems(1, iosAppPositions, currentApps, currentFolderIds);
-		const newDock = computeDockItems(iosAppPositions);
-
-		setPage0Items(prev => (JSON.stringify(prev) === JSON.stringify(newPage0) ? prev : newPage0));
-		setPage1Items(prev => (JSON.stringify(prev) === JSON.stringify(newPage1) ? prev : newPage1));
-		setDockItemIds(prev => (JSON.stringify(prev) === JSON.stringify(newDock) ? prev : newDock));
-	}, [iosAppPositions, isDragging, folders]);
+	const dockItemIds = useMemo(() => computeDockItems(iosAppPositions), [iosAppPositions]);
 
 	// --- Sensors ---
 	const sensors = useSensors(
@@ -230,11 +225,6 @@ function HomeScreen() {
 
 	// Drag handlers with cross-container support.
 	// Any drag start enters edit mode (long-press to rearrange, like iOS).
-	// Latest pointer position over the grid, shared with the drag hook so a
-	// center drop (folder) can be told from an edge drop (reorder). Updated
-	// from the container's own pointer handlers, which demonstrably fire
-	// during drags (unlike listeners attached mid-drag).
-	const dropPointerRef = useRef<{ x: number; y: number; t: number } | null>(null);
 	const {
 		handleDragStart: handleDragStartInner,
 		handleDragOver,
@@ -246,31 +236,12 @@ function HomeScreen() {
 		page1Items,
 		dockItemIds,
 		setActiveId,
-		setPage0Items,
-		setPage1Items,
-		setDockItemIds,
 		reorderIosApps,
-		isFolderId: useCallback((id: string) => useAppsStore.getState().isFolderId(id), []),
-		onCreateFolder: useCallback((draggedAppId: string, targetAppId: string) => {
-			const folderId = useAppsStore.getState().createFolder(draggedAppId, targetAppId);
-			if (folderId) triggerHaptic('medium');
-			return folderId !== null;
-		}, []),
-		onMoveIntoFolder: useCallback((appId: string, folderId: string) => {
-			const ok = useAppsStore.getState().moveAppIntoFolder(appId, folderId);
-			if (ok) triggerHaptic('medium');
-			return ok;
-		}, []),
-		dropPointerRef,
 	});
 
 	const handleDragStart = useCallback(
 		(event: DragStartEvent) => {
 			dragActiveRef.current = true;
-			// Fresh gesture, fresh pointer: a stale position from an earlier
-			// drag (or a keyboard-driven drop with no pointer at all) must
-			// never classify this drop.
-			dropPointerRef.current = null;
 			setIsEditing(true);
 			handleDragStartInner(event);
 		},
@@ -331,7 +302,7 @@ function HomeScreen() {
 
 	const handleEmptyPressStart = useCallback(
 		(e: React.PointerEvent) => {
-			if (currentApp || appToOpen || openFolderId) return;
+			if (currentApp || appToOpen) return;
 			if (isNotificationCenterOpen || isControlCenterOpen) return;
 			if (!isEmptyBackground(e.target)) return;
 			clearEmptyPressTimer();
@@ -360,7 +331,6 @@ function HomeScreen() {
 			isEditing,
 			currentApp,
 			appToOpen,
-			openFolderId,
 			isNotificationCenterOpen,
 			isControlCenterOpen,
 			isEmptyBackground,
@@ -431,6 +401,13 @@ function HomeScreen() {
 			const filteredContainers = droppableContainers.filter(container => {
 				return allValidIds.includes(container.id as string);
 			});
+			// Edit mode moves the grid down while the drag is active. Prefer
+			// the pointer's slot, not the dragged rect with that layout offset.
+			const pointerCollisions = pointerWithin({
+				...rest,
+				droppableContainers: filteredContainers,
+			});
+			if (pointerCollisions.length) return pointerCollisions;
 
 			return closestCenter({
 				...rest,
@@ -497,52 +474,8 @@ function HomeScreen() {
 		[isDragging, launchApp, cancelPendingClose]
 	);
 
-	const openFolderView = useCallback((folderId: string) => {
-		triggerHaptic('light');
-		const iconElement = document.querySelector(
-			`[data-folder-id="${folderId}"]`
-		) as HTMLElement | null;
-		if (iconElement) {
-			const rect = iconElement.getBoundingClientRect();
-			setFolderOpenOrigin({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
-		} else {
-			setFolderOpenOrigin(null);
-		}
-		setOpenFolderId(folderId);
-	}, []);
-
-	const launchFolderApp = useCallback(
-		(appId: string) => {
-			setOpenFolderId(null);
-			handleAppClick(appId);
-		},
-		[handleAppClick]
-	);
-
-	const removeFolderApp = useCallback((folderId: string, appId: string) => {
-		const ok = useAppsStore.getState().removeAppFromFolder(appId, folderId);
-		if (ok) triggerHaptic('medium');
-		if (!useAppsStore.getState().folders[folderId]) {
-			setOpenFolderId(null);
-		}
-	}, []);
-
 	// --- Render Helpers ---
 	const renderGridItem = (id: string, _index: number) => {
-		const folder = folders[id];
-		if (folder) {
-			return (
-				<SortableAppIcon
-					key={id}
-					id={id}
-					app={{ id, name: folder.name, icon: '', platform: 'ios', component: 'placeholder' }}
-					onClick={() => openFolderView(id)}
-					isEditing={isEditing}
-					folder={folder}
-					onOpenFolder={openFolderView}
-				/>
-			);
-		}
 		const isApp = !id.startsWith('empty-');
 		if (isApp) {
 			const app = appsMap.get(id);
@@ -664,8 +597,8 @@ function HomeScreen() {
 						}}
 					/>
 
-					<div
-						className={`absolute inset-0 pb-32 overflow-hidden transition-[padding-top] duration-300 ease-out ${isEditing ? 'pt-24' : 'pt-12'}`}
+					<HomeScreenGrid
+						isEditing={isEditing}
 						onPointerDown={handleEmptyPressStart}
 						onPointerMove={handleEmptyPressMove}
 						onPointerUp={handleEmptyPressEnd}
@@ -707,12 +640,12 @@ function HomeScreen() {
 								</SortableContext>
 							</div>
 						</div>
-					</div>
+					</HomeScreenGrid>
 
 					<HomeScreenPagination
 						currentPage={currentPage}
 						totalPages={2}
-						visible={!currentApp && !appToOpen && !openFolderId}
+						visible={!currentApp && !appToOpen}
 					/>
 
 					<DragOverlay>{activeId ? renderOverlayItem(activeId) : null}</DragOverlay>
@@ -720,19 +653,6 @@ function HomeScreen() {
 					<HomeScreenDock apps={dockApps} onAppClick={handleAppClick} isEditing={isEditing} />
 				</DndContext>
 			</div>
-
-			{openFolder && (
-				<FolderView
-					folder={openFolder}
-					origin={folderOpenOrigin}
-					onClose={() => {
-						setOpenFolderId(null);
-						setFolderOpenOrigin(null);
-					}}
-					onLaunchApp={launchFolderApp}
-					onRemoveApp={appId => openFolderId && removeFolderApp(openFolderId, appId)}
-				/>
-			)}
 
 			<HomeScreenAppContainer
 				Component={Component}

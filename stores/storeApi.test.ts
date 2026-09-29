@@ -45,60 +45,6 @@ describe('store APIs (Tahap 7)', () => {
 		expect(new Set(values).size).toBe(values.length);
 	});
 
-	it('creates a folder from two apps at the target slot', () => {
-		useAppsStore.setState({ iosAppPositions: { a: 0, b: 1, c: 2 }, folders: {} });
-		const folderId = useAppsStore.getState().createFolder('a', 'c');
-		expect(folderId).not.toBeNull();
-		const state = useAppsStore.getState();
-		expect(state.folders[folderId!]).toMatchObject({ appIds: ['c', 'a'] });
-		expect(state.iosAppPositions[folderId!]).toBe(2);
-		expect(state.iosAppPositions.a).toBeUndefined();
-		expect(state.iosAppPositions.c).toBeUndefined();
-		// b compacts into the vacated slot 0: no holes, no duplicates.
-		expect(state.iosAppPositions.b).toBe(0);
-		const values = Object.values(state.iosAppPositions);
-		expect(new Set(values).size).toBe(values.length);
-	});
-
-	it('rejects folder creation involving folders, self, or dock apps', () => {
-		useAppsStore.setState({
-			iosAppPositions: { a: 0, b: 1, d: 100 },
-			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x'] } },
-		});
-		const store = useAppsStore.getState();
-		expect(store.createFolder('a', 'a')).toBeNull();
-		expect(store.createFolder('a', 'f1')).toBeNull();
-		expect(store.createFolder('f1', 'b')).toBeNull();
-		expect(store.createFolder('d', 'b')).toBeNull();
-		expect(store.createFolder('a', 'missing')).toBeNull();
-	});
-
-	it('moves apps into folders and dissolves on last removal', () => {
-		useAppsStore.setState({
-			iosAppPositions: { a: 0, b: 1, c: 2, f1: 5 },
-			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x'] } },
-		});
-		expect(useAppsStore.getState().moveAppIntoFolder('c', 'f1')).toBe(true);
-		let state = useAppsStore.getState();
-		expect(state.folders.f1?.appIds).toEqual(['x', 'c']);
-		expect(state.iosAppPositions.c).toBeUndefined();
-
-		expect(useAppsStore.getState().removeAppFromFolder('x', 'f1')).toBe(true);
-		state = useAppsStore.getState();
-		// One app left: folder dissolves and it inherits the folder slot.
-		// (Slot 5 compacted to 4 when c left the page, then inherited.)
-		expect(state.folders.f1).toBeUndefined();
-		expect(state.iosAppPositions.c).toBe(4);
-	});
-
-	it('renames folders within limits', () => {
-		useAppsStore.setState({ folders: { f1: { id: 'f1', name: 'Folder', appIds: ['a'] } } });
-		expect(useAppsStore.getState().renameFolder('f1', '  Games  ')).toBe(true);
-		expect(useAppsStore.getState().folders.f1?.name).toBe('Games');
-		expect(useAppsStore.getState().renameFolder('f1', '   ')).toBe(false);
-		expect(useAppsStore.getState().renameFolder('missing', 'x')).toBe(false);
-	});
-
 	it('refuses moves into a full page instead of overflowing regions', () => {
 		const fullPage: Record<string, number> = {};
 		for (let i = 0; i < 24; i++) fullPage[`app${i}`] = i;
@@ -153,7 +99,7 @@ describe('store APIs (Tahap 7)', () => {
 
 describe('store coverage (Tahap 6)', () => {
 	beforeEach(() => {
-		useAppsStore.setState({ runningApps: [], iosAppPositions: { a: 0, b: 1 }, folders: {} });
+		useAppsStore.setState({ runningApps: [], iosAppPositions: { a: 0, b: 1 } });
 		useWindowsStore.setState({ windows: [], nextZIndex: 1000 });
 		useControlCenterStore.setState({
 			isOpen: false,
@@ -279,83 +225,12 @@ describe('store coverage (Tahap 6)', () => {
 		expect(useAppsStore.getState().iosAppPositions).toEqual({ a: 0, b: 1 });
 		expect(useAppsStore.getState().getAppById('missing')).toBeUndefined();
 		expect(useAppsStore.getState().getAppById('a')).toBeUndefined();
-		expect(useAppsStore.getState().getFolderById('missing')).toBeUndefined();
-		expect(useAppsStore.getState().isFolderId('missing')).toBe(false);
-	});
-
-	it('refuses invalid folder moves and removals', () => {
-		useAppsStore.setState({
-			iosAppPositions: { a: 0, b: 1, c: 2, d: 100, f1: 5 },
-			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x', 'y', 'z'] } },
-		});
-		const store = useAppsStore.getState();
-		expect(store.moveAppIntoFolder('a', 'missing')).toBe(false);
-		expect(store.moveAppIntoFolder('missing', 'f1')).toBe(false);
-		expect(store.moveAppIntoFolder('f1', 'f1')).toBe(false);
-		expect(store.moveAppIntoFolder('d', 'f1')).toBe(false);
-		// A valid move lands the app in the folder and frees its slot.
-		expect(store.moveAppIntoFolder('a', 'f1')).toBe(true);
-		expect(useAppsStore.getState().folders.f1?.appIds).toEqual(['x', 'y', 'z', 'a']);
-		expect(useAppsStore.getState().iosAppPositions.a).toBeUndefined();
-		expect(store.removeAppFromFolder('a', 'missing')).toBe(false);
-		expect(store.removeAppFromFolder('nope', 'f1')).toBe(false);
-		// Non-dissolving removal keeps the folder with the rest.
-		expect(store.removeAppFromFolder('x', 'f1')).toBe(true);
-		expect(useAppsStore.getState().folders.f1).toMatchObject({ appIds: ['y', 'z', 'a'] });
-	});
-
-	it('refuses moves into a full folder', () => {
-		const members = Array.from({ length: 9 }, (_, i) => `m${i}`);
-		useAppsStore.setState({
-			iosAppPositions: { newcomer: 3 },
-			folders: { full: { id: 'full', name: 'Full', appIds: members } },
-		});
-		expect(useAppsStore.getState().moveAppIntoFolder('newcomer', 'full')).toBe(false);
-	});
-
-	it('compacts distant drops and leaves other regions alone', () => {
-		useAppsStore.setState({ iosAppPositions: { a: 0, b: 1, c: 2, t: 5, d: 100 } });
-		const folderId = useAppsStore.getState().createFolder('a', 't');
-		expect(folderId).not.toBeNull();
-		// Apps strictly between the slots shift toward the dragged gap.
-		const positions = useAppsStore.getState().iosAppPositions;
-		expect(positions).toMatchObject({ b: 0, c: 1, d: 100, [folderId!]: 5 });
-		expect('a' in positions).toBe(false);
-		expect('t' in positions).toBe(false);
-	});
-
-	it('compacts the other direction when the target sits before the drag', () => {
-		useAppsStore.setState({ iosAppPositions: { t: 0, b: 1, c: 2, a: 5, d: 100 } });
-		const folderId = useAppsStore.getState().createFolder('a', 't');
-		expect(folderId).not.toBeNull();
-		const positions = useAppsStore.getState().iosAppPositions;
-		expect(positions).toMatchObject({ b: 2, c: 3, d: 100, [folderId!]: 0 });
-		expect('a' in positions).toBe(false);
-		expect('t' in positions).toBe(false);
 	});
 
 	it('skips foreign regions when shifting a reorder', () => {
 		useAppsStore.setState({ iosAppPositions: { a: 0, b: 1, d: 100 } });
 		useAppsStore.getState().reorderIosApps(0, 1);
 		expect(useAppsStore.getState().iosAppPositions).toEqual({ a: 1, b: 0, d: 100 });
-	});
-
-	it('rejects duplicate moves and removals without a free slot', () => {
-		useAppsStore.setState({
-			iosAppPositions: { a: 0, f1: 5 },
-			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x'] } },
-		});
-		expect(useAppsStore.getState().moveAppIntoFolder('a', 'f1')).toBe(true);
-		expect(useAppsStore.getState().moveAppIntoFolder('a', 'f1')).toBe(false);
-		// Fill both pages (0-23, 24-51): no slot left to release the app into.
-		const packed: Record<string, number> = {};
-		for (let i = 0; i < 51; i++) packed[`app${i}`] = i;
-		packed.f1 = 51;
-		useAppsStore.setState({
-			iosAppPositions: packed,
-			folders: { f1: { id: 'f1', name: 'Folder', appIds: ['x', 'y'] } },
-		});
-		expect(useAppsStore.getState().removeAppFromFolder('x', 'f1')).toBe(false);
 	});
 
 	it('selects ios apps for the mobile shell', () => {

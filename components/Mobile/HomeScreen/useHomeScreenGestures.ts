@@ -206,7 +206,7 @@ export function useHomeScreenGestures({
 		isTopRight: boolean;
 		isBottomSwipe: boolean;
 	} | null>(null);
-	// A touch that begins on an app/folder icon is an icon interaction
+	// A touch that begins on an app icon is an icon interaction
 	// (tap, hold, or drag) — never a page swipe — even before the dnd-kit
 	// sensor delay elapses and activates the drag guards.
 	const iconTouchRef = useRef(false);
@@ -216,7 +216,7 @@ export function useHomeScreenGestures({
 		const touch = e.touches[0];
 		if (!touch) return;
 		const target = e.target as HTMLElement | null;
-		iconTouchRef.current = Boolean(target?.closest?.('[data-app-id],[data-folder-id]'));
+		iconTouchRef.current = Boolean(target?.closest?.('[data-app-id]'));
 		const isBottomTarget = Boolean(target?.closest?.('.ios-bottom-bar'));
 		const isBottom = touch.clientY >= window.innerHeight - 85 || isBottomTarget;
 		const isTop = touch.clientY <= 90;

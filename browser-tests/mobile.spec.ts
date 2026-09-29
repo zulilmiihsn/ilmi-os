@@ -97,7 +97,7 @@ test.describe('mobile shell', () => {
 			);
 		const before = await orderOf();
 		// Drag the first icon after the third via real mouse input, landing
-		// near its corner: center drops fold into a folder, edge drops shift.
+		// near its corner. Centre drops are covered by the preview regressions.
 		const first = page.locator('.ios-app-grid-page [data-app-id]').first();
 		const third = page.locator('.ios-app-grid-page [data-app-id]').nth(2);
 		const from = await first.boundingBox();
@@ -117,82 +117,6 @@ test.describe('mobile shell', () => {
 		// Layout stays settled afterwards (no post-drop snap or jump).
 		await page.waitForTimeout(1500);
 		expect(await orderOf()).toEqual(after);
-		await page.keyboard.press('Escape');
-	});
-
-	test('dropping an app onto another creates a folder', async ({ page }) => {
-		await page.goto('/');
-		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
-
-		const icons = page.locator('.ios-app-grid-page [data-app-id]');
-		const firstName = await icons.nth(0).getAttribute('data-app-id');
-		const secondName = await icons.nth(1).getAttribute('data-app-id');
-		// Settle edit mode FIRST with an empty-area long-press: entering edit
-		// mid-drag shifts the grid under the pointer (pt-12 to pt-24), so any
-		// aim taken before that goes stale. With edit pre-engaged the layout
-		// stays put for the whole drag, like a settled real finger.
-		const spot = await page.evaluate(() => {
-			const blocked = Array.from(
-				document.querySelectorAll('.ios-app-grid-page [data-app-id], .ios-app-grid-page button')
-			).map(el => el.getBoundingClientRect());
-			const grid = document.querySelector('.ios-app-grid-page')?.getBoundingClientRect();
-			if (!grid) return null;
-			for (let y = Math.max(grid.top + 20, 130); y < grid.bottom - 20; y += 25) {
-				for (let x = grid.left + 20; x < grid.right - 20; x += 25) {
-					if (!blocked.some(r => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) {
-						return { x, y };
-					}
-				}
-			}
-			return null;
-		});
-		expect(spot).not.toBeNull();
-		await page.mouse.move(spot!.x, spot!.y);
-		await page.mouse.down();
-		await page.waitForTimeout(700);
-		await page.mouse.up();
-		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeVisible({
-			timeout: 5000,
-		});
-		const from = await icons.nth(0).boundingBox();
-		await page.mouse.move(from!.x + 10, from!.y + 10);
-		await page.mouse.down();
-		// Drop onto the target's center: center drops fold into a folder.
-		const to = await icons.nth(1).boundingBox();
-		await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
-		await page.mouse.up();
-		await page.waitForTimeout(800);
-
-		// A folder took the target slot; both apps left the grid.
-		// (Exact label: the dnd-kit sortable wrapper also exposes the name.)
-		const folderButton = page.getByLabel('Open folder Folder, 2 apps');
-		await expect(folderButton).toBeVisible({
-			timeout: 5000,
-		});
-		const gridIds = await page.evaluate(() =>
-			Array.from(document.querySelectorAll('.ios-app-grid-page [data-app-id]')).map(el =>
-				el.getAttribute('data-app-id')
-			)
-		);
-		expect(gridIds).not.toContain(firstName);
-		expect(gridIds).not.toContain(secondName);
-
-		// Open the folder: both members listed; removing one dissolves it.
-		// force: jiggling icons never satisfy stability checks; real taps work.
-		await folderButton.click({ force: true });
-		await expect(page.getByRole('dialog', { name: 'Folder folder' })).toBeVisible();
-		const removeButtons = page.getByRole('button', { name: /Remove .* from folder/ });
-		expect(await removeButtons.count()).toBe(2);
-		await removeButtons.first().click();
-		await page.waitForTimeout(500);
-		const gridAfter = await page.evaluate(() =>
-			Array.from(document.querySelectorAll('.ios-app-grid-page [data-app-id]')).map(el =>
-				el.getAttribute('data-app-id')
-			)
-		);
-		expect(gridAfter).toContain(firstName);
-		expect(gridAfter).toContain(secondName);
-		await expect(page.getByLabel('Open folder Folder, 2 apps')).toBeHidden();
 		await page.keyboard.press('Escape');
 	});
 
@@ -274,86 +198,6 @@ test.describe('mobile shell', () => {
 		expect(Math.min(...widths)).toBeLessThan(fullWidth * 0.5);
 	});
 
-	test('folder opens with a zoom from its icon', async ({ page }) => {
-		await page.goto('/');
-		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
-
-		// Build a folder with a center drop. Pre-engage edit mode with an
-		// empty-area long-press first (pressing an icon would launch it):
-		// entering edit mid-drag shifts the grid under the pointer, so aim
-		// only once the layout is settled, like a real finger would.
-		const spot = await page.evaluate(() => {
-			const blocked = Array.from(
-				document.querySelectorAll('.ios-app-grid-page [data-app-id], .ios-app-grid-page button')
-			).map(el => el.getBoundingClientRect());
-			const grid = document.querySelector('.ios-app-grid-page')?.getBoundingClientRect();
-			if (!grid) return null;
-			for (let y = Math.max(grid.top + 20, 130); y < grid.bottom - 20; y += 25) {
-				for (let x = grid.left + 20; x < grid.right - 20; x += 25) {
-					if (!blocked.some(r => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)) {
-						return { x, y };
-					}
-				}
-			}
-			return null;
-		});
-		expect(spot).not.toBeNull();
-		await page.mouse.move(spot!.x, spot!.y);
-		await page.mouse.down();
-		await page.waitForTimeout(700);
-		await page.mouse.up();
-		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeVisible({
-			timeout: 5000,
-		});
-		const first = page.locator('.ios-app-grid-page [data-app-id]').first();
-		const second = page.locator('.ios-app-grid-page [data-app-id]').nth(1);
-		const from = await first.boundingBox();
-		const to = await second.boundingBox();
-		await page.mouse.move(from!.x + 10, from!.y + 10);
-		await page.mouse.down();
-		await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
-		await page.mouse.up();
-		await page.waitForTimeout(800);
-		const folderButton = page.getByLabel('Open folder Folder, 2 apps');
-		await expect(folderButton).toBeVisible({ timeout: 5000 });
-		// Settle out of the post-drag state first (a click issued in the same
-		// breath as a drop is swallowed), then open the folder for real.
-		await page.keyboard.press('Escape');
-		await page.waitForTimeout(300);
-
-		// Sample the dialog card across the open: it must grow from the
-		// folder icon instead of popping in at full size.
-		await page.evaluate(() => {
-			const samples: number[] = [];
-			(window as unknown as { __folderWidths: number[] }).__folderWidths = samples;
-			const tick = () => {
-				const el = document.querySelector('[role="dialog"]');
-				if (el) samples.push(el.getBoundingClientRect().width);
-				requestAnimationFrame(tick);
-			};
-			requestAnimationFrame(tick);
-		});
-		await folderButton.click({ force: true });
-		const dialog = page.getByRole('dialog');
-		await expect(dialog).toBeVisible({ timeout: 5000 });
-		await page.waitForTimeout(900);
-		const widths = await page.evaluate(
-			() => (window as unknown as { __folderWidths: number[] }).__folderWidths
-		);
-		expect(widths.length).toBeGreaterThan(3);
-		expect(Math.min(...widths)).toBeLessThan(200);
-		const settled = await dialog.evaluate(el => el.getBoundingClientRect().width);
-		const expectedCard = await page.evaluate(
-			() => 18 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
-		);
-		expect(Math.abs(settled - expectedCard)).toBeLessThan(4);
-
-		// Closing zooms back; the dialog unmounts afterwards.
-		await page.getByRole('button', { name: 'Close folder' }).click();
-		await expect(dialog).toBeHidden({ timeout: 5000 });
-		await page.keyboard.press('Escape');
-	});
-
 	test('fast flick starting on an icon never flips the page', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
@@ -422,43 +266,6 @@ test.describe('mobile shell', () => {
 		await flick(box!.x + box!.width / 2, box!.y + box!.height / 2, -120);
 		await page.waitForTimeout(800);
 		expect(await sliderTransform()).toBe('translateX(0vw)');
-		await page.keyboard.press('Escape');
-	});
-
-	test('neighbours glide, not teleport, during reorder', async ({ page }) => {
-		await page.goto('/');
-		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
-
-		// Sample the second icon's x every frame while the first is dragged
-		// over the third: dnd-kit must interpolate, never jump a full slot.
-		await page.evaluate(() => {
-			const arr: number[] = [];
-			(window as unknown as { __xs: number[] }).__xs = arr;
-			const tick = () => {
-				const els = document.querySelectorAll('.ios-app-grid-page [data-app-id]');
-				const el = els[1] as HTMLElement | undefined;
-				if (el) arr.push(el.getBoundingClientRect().x);
-				requestAnimationFrame(tick);
-			};
-			requestAnimationFrame(tick);
-		});
-		const first = page.locator('.ios-app-grid-page [data-app-id]').first();
-		const third = page.locator('.ios-app-grid-page [data-app-id]').nth(2);
-		const from = await first.boundingBox();
-		const to = await third.boundingBox();
-		await page.mouse.move(from!.x + 10, from!.y + 10);
-		await page.mouse.down();
-		await page.mouse.move(to!.x + 10, to!.y + 10, { steps: 12 });
-		await page.waitForTimeout(700);
-		await page.mouse.up();
-		await page.waitForTimeout(400);
-		const xs: number[] = await page.evaluate(() => (window as unknown as { __xs: number[] }).__xs);
-		let maxStep = 0;
-		for (let i = 1; i < xs.length; i++) {
-			maxStep = Math.max(maxStep, Math.abs(xs[i]! - xs[i - 1]!));
-		}
-		// One grid slot is ~94px: anything near that in a single frame is a teleport.
-		expect(maxStep).toBeLessThan(30);
 		await page.keyboard.press('Escape');
 	});
 

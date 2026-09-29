@@ -11,23 +11,7 @@ interface UseDragHandlersProps {
 	page1Items: string[];
 	dockItemIds: string[];
 	setActiveId: (id: string | null) => void;
-	setPage0Items: React.Dispatch<React.SetStateAction<string[]>>;
-	setPage1Items: React.Dispatch<React.SetStateAction<string[]>>;
-	setDockItemIds: React.Dispatch<React.SetStateAction<string[]>>;
 	reorderIosApps: (fromIndex: number, toIndex: number) => void;
-	/** True for folder slot ids (folders are sortable but never nest). */
-	isFolderId: (id: string) => boolean;
-	/** Attempt drop-onto-app folder creation. Returns true when a folder was made. */
-	onCreateFolder: (draggedAppId: string, targetAppId: string) => boolean;
-	/** Attempt moving a loose app into an open target folder. */
-	onMoveIntoFolder: (appId: string, folderId: string) => boolean;
-	/**
-	 * Latest pointer position over the grid, maintained by the owner from its
-	 * own pointer handlers (which demonstrably fire during drags). dnd-kit
-	 * reports collisions but not pointer coordinates, and this is how a
-	 * center drop (folder) is told from an edge drop (reorder).
-	 */
-	dropPointerRef: { current: { x: number; y: number; t: number } | null };
 }
 
 export function useDragHandlers({
@@ -36,14 +20,7 @@ export function useDragHandlers({
 	page1Items,
 	dockItemIds,
 	setActiveId,
-	setPage0Items,
-	setPage1Items,
-	setDockItemIds,
 	reorderIosApps,
-	isFolderId,
-	onCreateFolder,
-	onMoveIntoFolder,
-	dropPointerRef,
 }: UseDragHandlersProps) {
 	// Use refs for Sets to avoid callback recreation
 	const page0SetRef = useRef(new Set<string>());
@@ -71,25 +48,6 @@ export function useDragHandlers({
 	const originalPosRef = useRef<number>(-1);
 	// Debounce cross-container moves to prevent rapid state updates
 	const lastMoveRef = useRef<string>('');
-	// Drop pointer tracking: dnd-kit reports collisions, not pointer
-	// coordinates. The listener lives for the whole component lifetime:
-	// listeners attached mid-drag demonstrably miss events, while
-	// mount-attached ones fire through the whole gesture. Stale points are
-	// rejected by timestamp against the drag start.
-	const trackDropPoint = useCallback(
-		(e: PointerEvent) => {
-			dropPointerRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
-		},
-		[dropPointerRef]
-	);
-
-	useEffect(() => {
-		window.addEventListener('pointermove', trackDropPoint);
-		return () => {
-			window.removeEventListener('pointermove', trackDropPoint);
-		};
-	}, [trackDropPoint]);
-	const dragStartTimeRef = useRef(0);
 	// Throttle handleDragOver to max 30 updates per second
 	const lastDragOverTimeRef = useRef<number>(0);
 	const DRAG_OVER_THROTTLE_MS = 33; // ~30fps for state updates
@@ -130,7 +88,6 @@ export function useDragHandlers({
 			const id = event.active.id as string;
 			setActiveId(id);
 			triggerHaptic('medium');
-			dragStartTimeRef.current = Date.now();
 			prevOverflowRef.current = document.body.style.overflow;
 			ownsOverflowRef.current = true;
 			document.body.style.overflow = 'hidden';
@@ -173,8 +130,7 @@ export function useDragHandlers({
 			const activeId = active.id as string;
 			const overId = over.id as string;
 
-			// The active item may have been consumed mid-drag (e.g. a folder
-			// was just created from it): ignore further events for it.
+			// Ignore events for items no longer present in the layout.
 			const activeKnown =
 				page0SetRef.current.has(activeId) ||
 				page1SetRef.current.has(activeId) ||
@@ -193,10 +149,6 @@ export function useDragHandlers({
 
 			const sourceContainer = currentContainerRef.current;
 			if (!sourceContainer) return;
-
-			// Folders form on DROP onto an app (like iOS), never on hover-dwell:
-			// holding still over an icon must not hijack a slow swap, so there
-			// is deliberately no hover timer here. See handleDragEnd.
 
 			// SAME CONTAINER: never reorder here. dnd-kit glides neighbors with
 			// transforms computed on the stable array; reordering state instead
@@ -224,8 +176,7 @@ export function useDragHandlers({
 	);
 
 	const handleDragCancel = useCallback(() => {
-		// Cancellation discards the provisional layout: clearing activeId lets
-		// HomeScreen resync its local arrays from committed store positions.
+		// The store order never changed; dnd-kit clears the preview transforms.
 		resetRefs();
 		setActiveId(null);
 	}, [resetRefs, setActiveId]);
@@ -234,12 +185,6 @@ export function useDragHandlers({
 		(event: DragEndEvent) => {
 			const { active, over } = event;
 			restoreOverflow();
-			// Accept only a pointer position recorded after this drag
-			// started; anything older (or a keyboard-driven drop with no
-			// pointer at all) falls back to a plain reorder.
-			const tracked = dropPointerRef.current;
-			const dropPoint =
-				tracked && tracked.t >= dragStartTimeRef.current ? { x: tracked.x, y: tracked.y } : null;
 
 			if (!over) {
 				setActiveId(null);
@@ -259,8 +204,7 @@ export function useDragHandlers({
 			lastMoveRef.current = '';
 			// restoreOverflow() already ran at the top of this handler.
 
-			// Zombie drag (e.g. a folder was created from the active item
-			// mid-drag): nothing left to commit.
+			// Ignore a drag whose active item is no longer in the layout.
 			const activeKnown =
 				page0Items.includes(activeId) ||
 				page1Items.includes(activeId) ||
@@ -270,59 +214,9 @@ export function useDragHandlers({
 				return;
 			}
 
-			// Dropping a loose app onto a folder moves it inside.
-			if (isFolderId(overId) && !isFolderId(activeId)) {
-				if (onMoveIntoFolder(activeId, overId)) {
-					for (const setItems of [setPage0Items, setPage1Items, setDockItemIds]) {
-						setItems(prev => prev.filter(id => id !== activeId));
-					}
-				}
-				setActiveId(null);
-				return;
-			}
-
-			// Dropping an app onto another app creates a folder (like iOS) —
-			// but only when released near its center. Edge/gap drops reorder
-			// to that slot instead, so repositioning stays possible on dense
-			// grids. Same page, neither a folder nor an empty slot, not
-			// itself; folders never enter the dock so the target is paged.
-			const targetEl = document.querySelector(
-				`[data-app-id="${overId}"],[data-folder-id="${overId}"]`
-			);
-			const targetRect = targetEl?.getBoundingClientRect() ?? null;
-			const droppedOntoCenter = (() => {
-				if (!dropPoint || !targetRect) return false;
-				const px = (dropPoint.x - targetRect.left) / targetRect.width;
-				const py = (dropPoint.y - targetRect.top) / targetRect.height;
-				return px >= 0.25 && px <= 0.75 && py >= 0.25 && py <= 0.75;
-			})();
-			if (
-				droppedOntoCenter &&
-				!isFolderId(activeId) &&
-				!isFolderId(overId) &&
-				!overId.startsWith('empty-') &&
-				overId !== activeId &&
-				(finalContainer === 'page0' || finalContainer === 'page1')
-			) {
-				const created = onCreateFolder(activeId, overId);
-				console.warn(`[dbg10] center=${droppedOntoCenter} created=${created}`);
-				if (created) {
-					setActiveId(null);
-					return;
-				}
-				// Creation refused (e.g. dock app dragged in): fall through
-				// and reorder to the target slot instead.
-			}
-
-			// Folders can be reordered on pages but never enter the dock.
-			if (isFolderId(activeId) && finalContainer === 'dock') {
-				setActiveId(null);
-				return;
-			}
-
 			// Resolve the drop target from the live collision. Local arrays
 			// stay pristine during drag (see above), so committed coordinates
-			// apply: empty slots decode to base+index, real items and folders
+			// apply: empty slots decode to base+index, real items
 			// use their store position.
 			let overStorePos: number = -1;
 			if (overId === activeId) {
@@ -374,7 +268,7 @@ export function useDragHandlers({
 			// Commit to store
 			reorderIosApps(originalPos, overStorePos);
 
-			// Set activeId null AFTER commit so useEffect syncs from updated store
+			// Clear the overlay together with the committed order.
 			setActiveId(null);
 		},
 		[
@@ -384,14 +278,7 @@ export function useDragHandlers({
 			iosAppPositions,
 			reorderIosApps,
 			setActiveId,
-			setPage0Items,
-			setPage1Items,
-			setDockItemIds,
 			restoreOverflow,
-			isFolderId,
-			onMoveIntoFolder,
-			onCreateFolder,
-			dropPointerRef,
 		]
 	);
 

@@ -17,7 +17,7 @@ describe('generateId (Tahap 6)', () => {
 
 	it('prefers crypto.randomUUID when available', () => {
 		vi.stubGlobal('crypto', { randomUUID: () => 'fixed-uuid' });
-		expect(generateId('folder')).toBe('folder-fixed-uuid');
+		expect(generateId('item')).toBe('item-fixed-uuid');
 	});
 
 	it('falls back to timestamp randomness without randomUUID', () => {
