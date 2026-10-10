@@ -41,7 +41,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 			<div className="flex items-center gap-1.5">
 				<div className="flex items-center bg-gray-200/70 dark:bg-white/10 rounded-md p-0.5">
 					<button
-						className="w-7 h-6 flex items-center justify-center rounded hover:bg-white dark:hover:bg-white/20 disabled:opacity-30 transition-colors"
+						className="relative w-7 h-6 flex items-center justify-center rounded hover:bg-white dark:hover:bg-white/20 disabled:opacity-30 transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
 						onClick={goBack}
 						disabled={historyIndex === 0}
 						title="Back"
@@ -52,7 +52,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 						</svg>
 					</button>
 					<button
-						className="w-7 h-6 flex items-center justify-center rounded hover:bg-white dark:hover:bg-white/20 disabled:opacity-30 transition-colors"
+						className="relative w-7 h-6 flex items-center justify-center rounded hover:bg-white dark:hover:bg-white/20 disabled:opacity-30 transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
 						onClick={goForward}
 						disabled={historyIndex >= historyLength - 1}
 						title="Forward"
@@ -67,7 +67,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 				{/* View mode toggle */}
 				<div className="flex items-center bg-gray-200/70 dark:bg-white/10 rounded-md p-0.5 ml-2">
 					<button
-						className={`w-7 h-6 flex items-center justify-center rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-white/20 shadow-xs' : 'hover:bg-white/50'}`}
+						className={`relative w-7 h-6 flex items-center justify-center rounded transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-[''] ${viewMode === 'grid' ? 'bg-white dark:bg-white/20 shadow-xs' : 'hover:bg-white/50'}`}
 						onClick={() => setViewMode('grid')}
 						title="Icons View"
 						aria-label="Icons View"
@@ -80,7 +80,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 						</svg>
 					</button>
 					<button
-						className={`w-7 h-6 flex items-center justify-center rounded transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-white/20 shadow-xs' : 'hover:bg-white/50'}`}
+						className={`relative w-7 h-6 flex items-center justify-center rounded transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-[''] ${viewMode === 'list' ? 'bg-white dark:bg-white/20 shadow-xs' : 'hover:bg-white/50'}`}
 						onClick={() => setViewMode('list')}
 						title="List View"
 						aria-label="List View"
@@ -100,7 +100,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 			{/* Breadcrumb Path Bar */}
 			<div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300 overflow-x-auto px-2 py-1 bg-white/70 dark:bg-white/5 rounded-md border border-gray-300/40 dark:border-white/5 max-w-[280px]">
 				<button
-					className="hover:underline font-medium hover:text-blue-500"
+					className="hover:underline font-medium hover:text-ios-blue"
 					onClick={() => navigateTo(null)}
 				>
 					Home
@@ -109,7 +109,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 					<div key={crumb.id ?? 'root'} className="flex items-center gap-1.5">
 						<span className="text-gray-400">/</span>
 						<button
-							className="hover:underline font-medium hover:text-blue-500 truncate max-w-[80px]"
+							className="hover:underline font-medium hover:text-ios-blue truncate max-w-[80px]"
 							onClick={() => navigateTo(crumb.id)}
 						>
 							{crumb.name}
@@ -129,7 +129,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 					title="New Folder"
 					aria-label="New Folder"
 				>
-					<svg className="w-3.5 h-3.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+					<svg className="w-3.5 h-3.5 text-ios-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 						<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
 						<line x1="12" y1="11" x2="12" y2="17" />
 						<line x1="9" y1="14" x2="15" y2="14" />
@@ -146,7 +146,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 					title="New File"
 					aria-label="New File"
 				>
-					<svg className="w-3.5 h-3.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+					<svg className="w-3.5 h-3.5 text-ios-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 						<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
 						<polyline points="14 2 14 8 20 8" />
 						<line x1="12" y1="18" x2="12" y2="12" />
@@ -158,7 +158,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 				{selectedItem && (
 					<>
 						<button
-							className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors"
+							className="relative p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors after:absolute after:-inset-2.5 after:content-['']"
 							onClick={() => {
 								setDialogInput(selectedItem.name);
 								setDialog({ type: 'rename', targetItem: selectedItem });
@@ -173,7 +173,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 						</button>
 
 						<button
-							className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-colors"
+							className="relative p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-ios-red transition-colors after:absolute after:-inset-2.5 after:content-['']"
 							onClick={() => setDialog({ type: 'delete', targetItem: selectedItem })}
 							title="Delete"
 							aria-label="Delete"
@@ -193,7 +193,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 						placeholder="Search"
 						value={searchQuery}
 						onChange={e => setSearchQuery(e.target.value)}
-						className="w-full bg-white dark:bg-white/10 border border-gray-300/70 dark:border-white/10 rounded-md px-2.5 py-1 text-xs outline-none focus:border-blue-500"
+						className="w-full bg-white dark:bg-white/10 border border-gray-300/70 dark:border-white/10 rounded-md px-2.5 py-1 text-xs outline-none focus:border-ios-blue"
 					/>
 					{searchQuery && (
 						<button

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterDisplayEmails, getMailboxCounts } from './mailSelectors';
+import { filterDisplayEmails, getMailboxCounts, parseMailDate } from './mailSelectors';
 import { MOCK_MAILBOXES_STATIC } from './utils';
 import type { Email } from './types';
 
@@ -71,5 +71,20 @@ describe('mail selectors (Tahap 7)', () => {
 			unreadOnly: false,
 		});
 		expect(result.map(e => e.id)).toEqual(['1']);
+	});
+
+	it('parses seed dates and pushes garbage last', () => {
+		expect(parseMailDate('9/14/21')).toBe(new Date(2021, 8, 14).getTime());
+		expect(parseMailDate('not a date')).toBe(0);
+		const emails: Email[] = [
+			{ ...base, id: '1', date: 'not a date' },
+			{ ...base, id: '2', date: '9/14/21' },
+		];
+		const result = filterDisplayEmails(emails, {
+			mailboxId: 'all_inboxes',
+			searchQuery: '',
+			unreadOnly: false,
+		});
+		expect(result.map(e => e.id)).toEqual(['2', '1']);
 	});
 });

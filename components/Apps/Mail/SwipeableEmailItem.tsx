@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, memo } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
+import { Trash2, Archive, Check, Flag, Star } from 'lucide-react';
 import { Email } from './types';
 import { triggerHaptic } from '../../../utils/haptic';
 
@@ -27,27 +28,26 @@ function SwipeableEmailItem({
 }: SwipeableEmailItemProps) {
     const [offset, setOffset] = useState(0);
     const startX = useRef<number | null>(null);
+    const mouseDown = useRef(false);
+    const dragDistance = useRef(0);
 
-    const handleTouchStart = (e: React.TouchEvent) => {
+    const swipeStart = (clientX: number) => {
         if (isEditing) return;
-        const touch = e.touches[0];
-        if (!touch) return;
-        startX.current = touch.clientX;
+        startX.current = clientX;
+        dragDistance.current = 0;
     };
 
-    const handleTouchMove = (e: React.TouchEvent) => {
+    const swipeMove = (clientX: number) => {
         if (startX.current === null || isEditing) return;
-        const touch = e.touches[0];
-        if (!touch) return;
-        const currentX = touch.clientX;
-        const diff = currentX - startX.current;
+        const diff = clientX - startX.current;
+        dragDistance.current = Math.max(dragDistance.current, Math.abs(diff));
         // Only allow swiping left
         if (diff < 0) {
             setOffset(Math.max(diff, -140)); // Max swipe distance
         }
     };
 
-    const handleTouchEnd = () => {
+    const swipeEnd = () => {
         if (startX.current === null || isEditing) return;
         if (offset < -70) {
             triggerHaptic('light');
@@ -58,10 +58,48 @@ function SwipeableEmailItem({
         startX.current = null;
     };
 
+    const handleTouchStart = (e: React.TouchEvent) => {
+        const touch = e.touches[0];
+        if (!touch) return;
+        swipeStart(touch.clientX);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        const touch = e.touches[0];
+        if (!touch) return;
+        swipeMove(touch.clientX);
+    };
+
+    const handleTouchEnd = () => {
+        swipeEnd();
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (e.button !== 0) return;
+        mouseDown.current = true;
+        swipeStart(e.clientX);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (mouseDown.current) swipeMove(e.clientX);
+    };
+
+    const handleMouseUp = () => {
+        if (!mouseDown.current) return;
+        mouseDown.current = false;
+        swipeEnd();
+    };
+
+    const handleMouseLeave = () => {
+        mouseDown.current = false;
+    };
+
     // Reset swipe when editing or selection changes
-    if ((isEditing || isSelected) && offset !== 0) {
-        setOffset(0);
-    }
+    useEffect(() => {
+        if ((isEditing || isSelected) && offset !== 0) {
+            setOffset(0);
+        }
+    }, [isEditing, isSelected, offset]);
 
     return (
         <div className="relative overflow-hidden border-b border-gray-100 dark:border-white/10 last:border-b-0">
@@ -73,9 +111,10 @@ function SwipeableEmailItem({
                         triggerHaptic('medium');
                         onDelete();
                     }}
-                    className="h-full w-[70px] bg-[#ff3b30] text-white flex flex-col items-center justify-center active:brightness-90 transition-all"
+                    tabIndex={offset === 0 ? -1 : 0}
+                    className="h-full w-[70px] bg-ios-red text-white flex flex-col items-center justify-center active:brightness-90 transition-all"
                 >
-                    <i className="fas fa-trash-alt text-base mb-1"></i>
+                    <Trash2 aria-hidden="true" size={16} className="mb-1" />
                     <span className="text-[11px] font-medium">Trash</span>
                 </button>
                 <button
@@ -85,23 +124,44 @@ function SwipeableEmailItem({
                         onArchive();
                         setOffset(0);
                     }}
-                    className="h-full w-[70px] bg-[#5856d6] text-white flex flex-col items-center justify-center active:brightness-90 transition-all"
+                    tabIndex={offset === 0 ? -1 : 0}
+                    className="h-full w-[70px] bg-ios-indigo text-white flex flex-col items-center justify-center active:brightness-90 transition-all"
                 >
-                    <i className="fas fa-archive text-base mb-1"></i>
+                    <Archive aria-hidden="true" size={16} className="mb-1" />
                     <span className="text-[11px] font-medium">Archive</span>
                 </button>
             </div>
 
             {/* Foreground Content */}
             <div
+                role="button"
+                tabIndex={0}
+                aria-label={`${email.from}, ${email.subject}`}
+                onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (offset === 0) onClick();
+                        else setOffset(0);
+                    }
+                }}
                 className={`relative transition-transform duration-200 ease-out select-none ${
                     darkMode ? 'bg-black active:bg-[#1c1c1e]' : 'bg-white active:bg-gray-50'
-                } ${isSelected && !isEditing ? (darkMode ? 'bg-[#1c1c1e]' : 'bg-[#e8f0fe]') : ''}`}
+                } ${isSelected && !isEditing ? (darkMode ? 'bg-[#1c1c1e]' : 'bg-ios-blue/10') : ''}`}
                 style={{ transform: `translateX(${offset}px)` }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
                 onClick={() => {
+                    // A real drag ends with a click: swallow it so the
+                    // revealed actions stay visible instead of toggling.
+                    if (dragDistance.current > 10) {
+                        dragDistance.current = 0;
+                        return;
+                    }
                     if (offset === 0) onClick();
                     else setOffset(0);
                 }}
@@ -110,7 +170,7 @@ function SwipeableEmailItem({
                     {/* Left Unread Indicator Dot */}
                     <div className="w-4 pt-1.5 shrink-0 flex items-center justify-start">
                         {!email.read && (
-                            <div className="w-2.5 h-2.5 rounded-full bg-[#007aff] shadow-sm"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-ios-blue shadow-sm"></div>
                         )}
                     </div>
 
@@ -120,13 +180,13 @@ function SwipeableEmailItem({
                             <div
                                 className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
                                     isChecked
-                                        ? 'bg-[#007aff] border-[#007aff] text-white'
+                                        ? 'bg-ios-blue border-ios-blue text-white'
                                         : darkMode
                                         ? 'border-gray-600'
                                         : 'border-gray-300'
                                 }`}
                             >
-                                {isChecked && <i className="fas fa-check text-[10px]"></i>}
+                                {isChecked && <Check aria-hidden="true" size={10} />}
                             </div>
                         </div>
                     )}
@@ -144,8 +204,8 @@ function SwipeableEmailItem({
                                 {email.from}
                             </h3>
                             <div className="flex items-center gap-1.5 shrink-0">
-                                {email.isFlagged && <i className="fas fa-flag text-[#ff9500] text-xs"></i>}
-                                {email.isVip && <i className="fas fa-star text-[#ffcc00] text-xs"></i>}
+                                {email.isFlagged && <Flag aria-hidden="true" size={12} className="text-ios-orange" />}
+                                {email.isVip && <Star aria-hidden="true" size={12} className="text-ios-yellow" />}
                                 <span className="text-[13px] text-gray-400 font-normal">
                                     {email.date}
                                 </span>

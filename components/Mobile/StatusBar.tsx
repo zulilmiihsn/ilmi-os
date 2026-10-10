@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, memo } from 'react';
+import { Wifi } from 'lucide-react';
 import {
 	getBatteryInfo,
 	getNetworkInfo,
@@ -32,10 +33,10 @@ function StatusBar({
 
 	// Computed battery color based on level
 	const batteryColor = useMemo(() => {
-		if (batteryLevel === null) return '#34c759'; // Green default
-		if (batteryLevel <= 20) return '#ff3b30'; // Red
-		if (batteryLevel <= 50) return '#ff9500'; // Orange
-		return '#34c759'; // Green
+		if (batteryLevel === null) return 'var(--color-ios-green)'; // Green default
+		if (batteryLevel <= 20) return 'var(--color-ios-red)'; // Red
+		if (batteryLevel <= 50) return 'var(--color-ios-orange)'; // Orange
+		return 'var(--color-ios-green)'; // Green
 	}, [batteryLevel]);
 
 	// Computed battery fill width
@@ -160,7 +161,7 @@ function StatusBar({
 				)}
 
 				{/* WiFi Icon */}
-				{isWifi && <i className="fas fa-wifi text-xs" style={{ color: statusTextColor }}></i>}
+				{isWifi && <Wifi aria-hidden="true" size={12} style={{ color: statusTextColor }}></Wifi>}
 
 				{/* Battery */}
 				<div className="flex items-center">
@@ -177,7 +178,7 @@ function StatusBar({
 								}`}
 								style={{
 									width: `${batteryFillWidth}%`,
-									backgroundColor: batteryCharging ? '#34c759' : batteryColor,
+									backgroundColor: batteryCharging ? 'var(--color-ios-green)' : batteryColor,
 								}}
 							></div>
 						</div>

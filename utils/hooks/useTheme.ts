@@ -34,11 +34,6 @@ export interface ThemeTokens {
     activeItem: string;
     hoverItem: string;
 
-    // Tab bar
-    tabBarBg: string;
-    tabActive: string;
-    tabInactive: string;
-
     // Modal/Dialog
     modalBg: string;
     modalOverlay: string;
@@ -109,11 +104,6 @@ export function useTheme(): ThemeTokens {
             activeItem: darkMode ? 'active:bg-gray-900' : 'active:bg-gray-100',
             hoverItem: darkMode ? 'hover:bg-gray-900' : 'hover:bg-gray-100',
 
-            // Tab bar
-            tabBarBg: darkMode ? 'bg-black' : 'bg-[#F9F9F9]',
-            tabActive: darkMode ? 'text-yellow-400' : 'text-[#FF9500]',
-            tabInactive: darkMode ? 'text-gray-400' : 'text-gray-500',
-
             // Modal/Dialog
             modalBg: darkMode ? 'bg-[#1C1C1E]/90' : 'bg-white/90',
             modalOverlay: 'bg-black/30',
@@ -134,30 +124,4 @@ export function useTheme(): ThemeTokens {
         }),
         [darkMode]
     );
-}
-
-/**
- * Get theme-aware color value for inline styles.
- * Useful when you need actual color values instead of Tailwind classes.
- *
- * @example
- * ```tsx
- * const theme = useTheme();
- * const colors = getThemeColors(theme.isDarkMode);
- *
- * return <div style={{ backgroundColor: colors.background }}>...</div>;
- * ```
- */
-export function getThemeColors(isDarkMode: boolean) {
-    return {
-        background: isDarkMode ? '#000000' : '#ffffff',
-        backgroundSecondary: isDarkMode ? '#1C1C1E' : '#F2F2F7',
-        text: isDarkMode ? '#ffffff' : '#000000',
-        textSecondary: isDarkMode ? '#8E8E93' : '#6B7280',
-        border: isDarkMode ? '#38383A' : '#E5E5EA',
-        accent: '#007AFF',
-        danger: '#FF3B30',
-        success: '#34C759',
-        warning: '#FF9500',
-    };
 }

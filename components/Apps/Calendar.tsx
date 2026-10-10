@@ -3,6 +3,9 @@
 import React, { useState, useRef, useLayoutEffect, useMemo, memo } from 'react';
 import { useSettingsStore } from '../../stores/settings';
 import { triggerHaptic } from '../../utils/haptic';
+import { ChevronLeft, Plus, Search, X } from 'lucide-react';
+import { useRestoreFocus } from '../../utils/hooks/useRestoreFocus';
+import { useFocusTrap } from '../../utils/hooks/useFocusTrap';
 
 interface CalendarEvent {
 	date: string; // YYYY-MM-DD
@@ -16,14 +19,6 @@ const getDaysInMonth = (year: number, month: number) => {
 
 const getFirstDayOfMonth = (year: number, month: number) => {
 	return new Date(year, month, 1).getDay();
-};
-
-const getWeekNumber = (d: Date) => {
-	const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-	target.setUTCDate(target.getUTCDate() + 4 - (target.getUTCDay() || 7));
-	const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-	const weekNo = Math.ceil(((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-	return weekNo;
 };
 
 const isSameDay = (d1: Date, d2: Date) => {
@@ -62,11 +57,19 @@ const Day = memo(
 		return (
 			<div
 				ref={isToday && setTodayRef ? setTodayRef : null}
+				data-date={formatDateStr(date)}
 				className="flex flex-col items-center justify-center relative cursor-pointer py-1 select-none"
-				onClick={() => {
+			onClick={() => {
+				triggerHaptic('light');
+				onClick(date);
+			}}
+			onKeyDown={e => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
 					triggerHaptic('light');
 					onClick(date);
-				}}
+				}
+			}}
 				role="gridcell"
 				tabIndex={0}
 				aria-label={`${date.toLocaleDateString(undefined, { dateStyle: 'full' })}${hasEvent ? ', has events' : ''}`}
@@ -76,7 +79,7 @@ const Day = memo(
 					className={`w-8 h-8 flex items-center justify-center rounded-full text-base font-normal transition-all active:scale-90
                 ${
 					isToday
-						? 'bg-[#ff3b30] text-white font-bold shadow-[0_2px_8px_rgba(255,59,48,0.4)]'
+						? 'bg-ios-red text-white font-bold shadow-[0_2px_8px_rgba(255,59,48,0.4)]'
 						: isSelected
 						? darkMode
 							? 'bg-white text-black font-semibold'
@@ -91,10 +94,12 @@ const Day = memo(
 				{hasEvent && (
 					<div
 						className={`w-1 h-1 rounded-full mt-0.5 ${
-							isToday || isSelected
+							isToday
+								? 'bg-white/80'
+								: isSelected
 								? darkMode
-									? 'bg-black/50'
-									: 'bg-white/50'
+									? 'bg-black/80'
+									: 'bg-white/80'
 								: darkMode
 								? 'bg-gray-500'
 								: 'bg-gray-400'
@@ -109,7 +114,8 @@ const Day = memo(
 			prev.isToday === next.isToday &&
 			prev.isSelected === next.isSelected &&
 			prev.hasEvent === next.hasEvent &&
-			prev.darkMode === next.darkMode
+			prev.darkMode === next.darkMode &&
+			prev.date?.getTime() === next.date?.getTime()
 		);
 	}
 );
@@ -134,14 +140,8 @@ const Week = memo(
 		setTodayRef: (el: HTMLDivElement | null) => void;
 		darkMode: boolean;
 	}) => {
-		const firstValidDate = weekDates.find(d => d !== null);
-		const weekNo = firstValidDate ? getWeekNumber(firstValidDate) : '';
-
 		return (
 			<div className="flex border-b border-gray-100 dark:border-white/5 py-1">
-				<div className="w-9 flex items-center justify-center text-[10px] text-gray-400 select-none">
-					{weekNo}
-				</div>
 				<div className="flex-1 grid grid-cols-7">
 					{weekDates.map((date, i) => {
 						if (!date) return <div key={`empty-${i}`} className="flex-1"></div>;
@@ -199,7 +199,9 @@ const Month = memo(
 			const result: (Date | null)[][] = [];
 			let currentWeek: (Date | null)[] = [];
 
-			for (let i = 0; i < firstDay; i++) {
+			// Monday-first weeks (ID locale), like iOS Calendar.
+			const leadingBlanks = (firstDay + 6) % 7;
+			for (let i = 0; i < leadingBlanks; i++) {
 				currentWeek.push(null);
 			}
 
@@ -223,7 +225,7 @@ const Month = memo(
 
 		return (
 			<div className="mb-6 px-3">
-				<h2 className="text-xl font-bold px-3 py-2 text-[#ff3b30]">
+				<h2 className="text-xl font-bold px-3 py-2 text-ios-red">
 					{name} {year !== today.getFullYear() ? year : ''}
 				</h2>
 				<div className="rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 shadow-xs">
@@ -287,12 +289,59 @@ function Calendar() {
 		}
 	}, []);
 
-	const [events] = useState<CalendarEvent[]>([
-		{ date: '2026-08-25', title: 'iOS 26 Liquid Glass Launch' },
-		{ date: '2026-09-15', title: 'Apple Keynote' },
-		{ date: '2026-12-25', title: 'Christmas' },
-		{ date: '2027-01-01', title: 'New Year' },
-	]);
+	const toISODate = (d: Date) =>
+		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+	// Real recurring holidays, computed for the current year so the dots
+	// never go stale (no hardcoded years).
+	const [events, setEvents] = useState<CalendarEvent[]>(() => {
+		const now = new Date();
+		return [
+			{ date: toISODate(new Date(now.getFullYear(), 11, 25)), title: 'Christmas' },
+			{ date: toISODate(new Date(now.getFullYear() + 1, 0, 1)), title: 'New Year' },
+		];
+	});
+	const [showSearch, setShowSearch] = useState(false);
+	const [searchQuery, setSearchQuery] = useState('');
+	const [searchMiss, setSearchMiss] = useState(false);
+	const [showAddSheet, setShowAddSheet] = useState(false);
+	const [newTitle, setNewTitle] = useState('');
+	const sheetRef = useRef<HTMLDivElement>(null);
+	useRestoreFocus(showAddSheet, sheetRef);
+	useFocusTrap(showAddSheet, sheetRef);
+
+	const scrollToDate = (iso: string) => {
+		setSelectedDate(new Date(`${iso}T12:00:00`));
+		requestAnimationFrame(() => {
+			document
+				.querySelector(`[data-date="${iso}"]`)
+				?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		});
+	};
+
+	const jumpToEvent = (query: string) => {
+		const q = query.trim().toLowerCase();
+		if (!q) return;
+		const hit = events.find(e => e.title.toLowerCase().includes(q));
+		if (!hit) {
+			setSearchMiss(true);
+			return;
+		}
+		setSearchMiss(false);
+		scrollToDate(hit.date);
+	};
+
+	const handleAddEvent = () => {
+		const title = newTitle.trim();
+		if (!title) return;
+		const iso = formatDateStr(selectedDate);
+		setEvents(prev =>
+			prev.some(e => e.date === iso && e.title === title) ? prev : [...prev, { date: iso, title }]
+		);
+		setNewTitle('');
+		setShowAddSheet(false);
+		scrollToDate(iso);
+	};
 
 	return (
 		<div className={`w-full h-full flex flex-col font-sans select-none ${darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'}`}>
@@ -300,32 +349,87 @@ function Calendar() {
 			<div className={`pt-10 px-4 pb-2 flex justify-between items-center z-20 shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
 				<button
 					onClick={scrollToToday}
-					className="flex items-center text-[#ff3b30] gap-1 active:opacity-50 transition-opacity"
+					className="relative flex items-center text-ios-red gap-1 active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 				>
-					<i className="fas fa-chevron-left text-lg"></i>
+					<ChevronLeft aria-hidden="true" size={18} />
 					<span className="text-base font-semibold">{selectedDate.getFullYear()}</span>
 				</button>
 
-				<div className="flex items-center gap-4 text-[#ff3b30]">
-					<button onClick={() => triggerHaptic('light')} className="p-1 active:scale-95 transition-transform" aria-label="Search Events">
-						<i className="fas fa-search text-base"></i>
+				<div className="flex items-center gap-4 text-ios-red">
+					<button
+						onClick={() => {
+							triggerHaptic('light');
+							setSearchMiss(false);
+							setShowSearch(prev => !prev);
+						}}
+						className="relative p-1 active:scale-95 transition-transform after:absolute after:-inset-2.5 after:content-['']"
+						aria-label="Search Events"
+						aria-expanded={showSearch}
+					>
+						<Search aria-hidden="true" size={16} />
 					</button>
-					<button onClick={() => triggerHaptic('light')} className="p-1 active:scale-95 transition-transform" aria-label="Add Event">
-						<i className="fas fa-plus text-lg"></i>
+					<button
+						onClick={() => {
+							triggerHaptic('light');
+							setNewTitle('');
+							setShowAddSheet(true);
+						}}
+						className="relative p-1 active:scale-95 transition-transform after:absolute after:-inset-2.5 after:content-['']"
+						aria-label="Add Event"
+					>
+						<Plus aria-hidden="true" size={18} />
 					</button>
 				</div>
 			</div>
 
+			{showSearch && (
+				<div className={`px-4 pb-2 shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
+					<div className="flex items-center rounded-xl px-3 py-2 border bg-[#e3e3e8]/70 dark:bg-[#1c1c1e] border-black/5 dark:border-white/10">
+						<Search aria-hidden="true" size={12} className="text-gray-400 mr-2 shrink-0" />
+						<input
+							type="text"
+							value={searchQuery}
+							onChange={e => {
+								setSearchQuery(e.target.value);
+								setSearchMiss(false);
+							}}
+							onKeyDown={e => {
+								if (e.key === 'Enter') jumpToEvent(searchQuery);
+								if (e.key === 'Escape') setShowSearch(false);
+							}}
+							placeholder="Search events"
+							aria-label="Search events"
+							autoFocus
+							className="flex-1 bg-transparent border-none outline-none text-sm placeholder-gray-400"
+						/>
+						{searchQuery && (
+							<button
+								onClick={() => {
+									setSearchQuery('');
+									setSearchMiss(false);
+								}}
+								aria-label="Clear search"
+								className="text-gray-400"
+							>
+								<X aria-hidden="true" size={12} />
+							</button>
+						)}
+					</div>
+					{searchMiss && (
+						<p className="text-xs text-gray-400 pt-1.5 px-1">No events found</p>
+					)}
+				</div>
+			)}
+
 			{/* Days Header */}
 			<div className={`flex text-[11px] font-bold text-gray-400 py-1.5 px-3 select-none ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
-				<div className="w-9 text-center">Wk</div>
 				<div className="flex-1 grid grid-cols-7 text-center">
-					<div>S</div>
 					<div>M</div>
 					<div>T</div>
 					<div>W</div>
 					<div>T</div>
 					<div>F</div>
+					<div>S</div>
 					<div>S</div>
 				</div>
 			</div>
@@ -349,9 +453,68 @@ function Calendar() {
 				))}
 			</div>
 
+			{/* Add-event sheet */}
+			{showAddSheet && (
+				<div
+					className="absolute inset-0 z-50 flex items-center justify-center bg-black/30"
+					onClick={() => setShowAddSheet(false)}
+				>
+					<div
+						ref={sheetRef}
+						onKeyDown={e => {
+							if (e.key === 'Escape') setShowAddSheet(false);
+						}}
+						onClick={e => e.stopPropagation()}
+						role="dialog"
+						aria-label="Add event"
+						className="w-72 rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 shadow-2xl overflow-hidden"
+					>
+						<div className="px-4 py-3 border-b border-black/5 dark:border-white/10">
+							<h2 className="text-base font-semibold text-center">New Event</h2>
+							<p className="text-xs text-center text-gray-400 mt-0.5">
+								{selectedDate.toLocaleDateString(undefined, {
+									weekday: 'long',
+									month: 'long',
+									day: 'numeric',
+								})}
+							</p>
+						</div>
+						<div className="p-4">
+							<input
+								type="text"
+								value={newTitle}
+								onChange={e => setNewTitle(e.target.value)}
+								onKeyDown={e => {
+									if (e.key === 'Enter') handleAddEvent();
+								}}
+								placeholder="Event title"
+								aria-label="Event title"
+								autoFocus
+								className="w-full bg-black/5 dark:bg-white/10 rounded-lg px-3 py-2 text-sm outline-none placeholder-gray-400"
+							/>
+						</div>
+						<div className="flex divide-x divide-black/5 dark:divide-white/10 border-t border-black/5 dark:border-white/10">
+							<button
+								onClick={() => setShowAddSheet(false)}
+								className="flex-1 py-3 text-sm text-ios-blue font-medium active:bg-black/5 dark:active:bg-white/10 transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={handleAddEvent}
+								disabled={!newTitle.trim()}
+								className="flex-1 py-3 text-sm text-ios-blue font-semibold active:bg-black/5 dark:active:bg-white/10 transition-colors disabled:opacity-40"
+							>
+								Add
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{/* iOS 26 Floating Liquid Glass Action Toolbar */}
-			<div className="absolute bottom-5 left-4 right-4 z-20 flex justify-center pointer-events-none">
-				<div className="w-full max-w-[340px] px-6 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 text-[#ff3b30] pointer-events-auto">
+			<div className="absolute bottom-[max(env(safe-area-inset-bottom),1.25rem)] left-4 right-4 z-20 flex justify-center pointer-events-none">
+				<div className="w-full max-w-[340px] px-6 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 text-ios-red pointer-events-auto">
 					<button
 						onClick={scrollToToday}
 						className="font-semibold text-sm active:scale-95 transition-transform"

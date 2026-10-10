@@ -63,7 +63,7 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							value={dialogInput}
 							onChange={e => setDialogInput(e.target.value)}
 							onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
-							className="w-full bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/10 rounded-md px-3 py-1.5 text-sm outline-none focus:border-blue-500 mb-4"
+							className="w-full bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/10 rounded-md px-3 py-1.5 text-sm outline-none focus:border-ios-blue mb-4"
 						/>
 						<div className="flex justify-end gap-2">
 							<button
@@ -74,7 +74,7 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							</button>
 							<button
 								onClick={handleCreateFolder}
-								className="px-3 py-1 text-xs rounded-md bg-blue-500 text-white hover:bg-blue-600 font-medium"
+								className="px-3 py-1 text-xs rounded-md bg-ios-blue text-white hover:brightness-110 font-medium"
 							>
 								Create
 							</button>
@@ -91,7 +91,7 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							value={dialogInput}
 							onChange={e => setDialogInput(e.target.value)}
 							onKeyDown={e => e.key === 'Enter' && handleCreateFile()}
-							className="w-full bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/10 rounded-md px-3 py-1.5 text-sm outline-none focus:border-blue-500 mb-4"
+							className="w-full bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/10 rounded-md px-3 py-1.5 text-sm outline-none focus:border-ios-blue mb-4"
 						/>
 						<div className="flex justify-end gap-2">
 							<button
@@ -102,7 +102,7 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							</button>
 							<button
 								onClick={handleCreateFile}
-								className="px-3 py-1 text-xs rounded-md bg-blue-500 text-white hover:bg-blue-600 font-medium"
+								className="px-3 py-1 text-xs rounded-md bg-ios-blue text-white hover:brightness-110 font-medium"
 							>
 								Create
 							</button>
@@ -119,7 +119,7 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							value={dialogInput}
 							onChange={e => setDialogInput(e.target.value)}
 							onKeyDown={e => e.key === 'Enter' && handleRename()}
-							className="w-full bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/10 rounded-md px-3 py-1.5 text-sm outline-none focus:border-blue-500 mb-4"
+							className="w-full bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/10 rounded-md px-3 py-1.5 text-sm outline-none focus:border-ios-blue mb-4"
 						/>
 						<div className="flex justify-end gap-2">
 							<button
@@ -130,7 +130,7 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							</button>
 							<button
 								onClick={handleRename}
-								className="px-3 py-1 text-xs rounded-md bg-blue-500 text-white hover:bg-blue-600 font-medium"
+								className="px-3 py-1 text-xs rounded-md bg-ios-blue text-white hover:brightness-110 font-medium"
 							>
 								Rename
 							</button>
@@ -140,7 +140,7 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 
 				{dialog.type === 'delete' && (
 					<>
-						<h3 className="font-semibold text-sm mb-2 text-red-500">Delete Item?</h3>
+						<h3 className="font-semibold text-sm mb-2 text-ios-red">Delete Item?</h3>
 						<p className="text-xs text-gray-500 mb-4">
 							Are you sure you want to delete &quot;{dialog.targetItem?.name}&quot;?
 						</p>
@@ -153,7 +153,7 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							</button>
 							<button
 								onClick={handleDelete}
-								className="px-3 py-1 text-xs rounded-md bg-red-500 text-white hover:bg-red-600 font-medium"
+								className="px-3 py-1 text-xs rounded-md bg-ios-red text-white hover:brightness-110 font-medium"
 							>
 								Delete
 							</button>
@@ -180,7 +180,7 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							<span>Size: {formatFileSize(dialog.targetItem.size || 0)}</span>
 							<button
 								onClick={() => setDialog({ type: null })}
-								className="px-3 py-1 text-xs rounded-md bg-blue-500 text-white"
+								className="px-3 py-1 text-xs rounded-md bg-ios-blue text-white"
 							>
 								Done
 							</button>

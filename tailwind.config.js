@@ -15,8 +15,8 @@ module.exports = {
 				'ios-green': '#34C759',
 				'ios-red': '#FF3B30',
 				'ios-yellow': '#FFCC00',
-				'ios-notes-yellow': '#DCA326',
 				'ios-orange': '#FF9500',
+				'ios-indigo': '#5856D6',
 				// Calculator specific
 				'ios-calc-num': '#333333',
 				'ios-calc-func': '#A5A5A5',

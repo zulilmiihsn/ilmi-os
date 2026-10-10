@@ -19,7 +19,7 @@ const MOCK_PHOTOS = [
 ];
 
 export function usePhotos() {
-	const [activeTab, setActiveTab] = useState<PhotosTab>('albums');
+	const [activeTab, setActiveTab] = useState<PhotosTab>('library');
 	const [viewMode, setViewMode] = useState<ViewMode>('all');
 	const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
 	const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -66,13 +66,18 @@ export function usePhotos() {
 		// Fixed 12-photo mock above: covers are always present; defaults only
 		// satisfy the index checker and never trigger at runtime.
 		const [c0 = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = ''] = MOCK_PHOTOS;
+		// Counts reflect the photos each album actually displays (see
+		// currentDisplayPhotos below), not vanity numbers.
+		const greatShots = MOCK_PHOTOS.slice(5, 10);
+		const favorites = MOCK_PHOTOS.slice(0, 5);
+		const triple = MOCK_PHOTOS.slice(0, 3);
 		return [
-			{ title: 'Recents', count: allPhotos.length + 461, image: allPhotos[0] ?? c0 },
-			{ title: 'Great Shots', count: 36, image: c1 },
-			{ title: 'Favorites', count: 72, image: c2 },
-			{ title: 'HDR Video', count: 23, image: c3 },
-			{ title: 'Instagram', count: 105, image: c4 },
-			{ title: 'WhatsApp', count: 890, image: c5 },
+			{ title: 'Recents', count: allPhotos.length, image: allPhotos[0] ?? c0 },
+			{ title: 'Great Shots', count: greatShots.length, image: c1 },
+			{ title: 'Favorites', count: favorites.length, image: c2 },
+			{ title: 'HDR Video', count: triple.length, image: c3 },
+			{ title: 'Instagram', count: triple.length, image: c4 },
+			{ title: 'WhatsApp', count: triple.length, image: c5 },
 		];
 	}, [allPhotos]);
 

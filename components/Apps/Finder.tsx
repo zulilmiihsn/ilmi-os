@@ -38,7 +38,7 @@ export default function Finder() {
 	} = useFinder();
 
 	return (
-		<div className="finder flex flex-col w-full h-full bg-white dark:bg-[#1E1E1E] text-gray-800 dark:text-gray-200 select-none">
+		<div className="finder flex flex-col w-full h-full font-sans bg-white dark:bg-[#1E1E1E] text-gray-800 dark:text-gray-200 select-none">
 			<FinderToolbar
 				goBack={goBack}
 				goForward={goForward}

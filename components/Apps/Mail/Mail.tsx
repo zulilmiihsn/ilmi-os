@@ -1,6 +1,16 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import {
+    ChevronLeft,
+    ChevronRight,
+    CircleX,
+    Funnel,
+    Inbox,
+    MailOpen,
+    Search,
+    SquarePen,
+} from 'lucide-react';
 import { useSettingsStore } from '../../../stores/settings';
 import { generateId } from '../../../utils/id';
 import { triggerHaptic } from '../../../utils/haptic';
@@ -36,6 +46,32 @@ export default function Mail() {
 
 	// Edit Mode State
 	const [isEditing, setIsEditing] = useState(false);
+
+	// Mailboxes hidden in edit mode. Best-effort UI pref (separate from the
+	// validated email payload, so a corrupt value only resets visibility).
+	const [hiddenMailboxes, setHiddenMailboxes] = useState<string[]>(() => {
+		try {
+			const raw = window.localStorage.getItem('ilmi_mail_hidden_v1');
+			const parsed: unknown = raw ? JSON.parse(raw) : [];
+			return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+		} catch {
+			return [];
+		}
+	});
+	useEffect(() => {
+		try {
+			window.localStorage.setItem('ilmi_mail_hidden_v1', JSON.stringify(hiddenMailboxes));
+		} catch {
+			console.warn('[Mail] failed to persist hidden mailboxes');
+		}
+	}, [hiddenMailboxes]);
+
+	const toggleHiddenMailbox = (key: string) => {
+		triggerHaptic('light');
+		setHiddenMailboxes(prev =>
+			prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+		);
+	};
 	const [selectedForAction, setSelectedForAction] = useState<Set<string>>(new Set());
 
 	// Navigation State for Mobile
@@ -272,13 +308,11 @@ export default function Mail() {
 				>
 					{/* Mailboxes Navigation Bar */}
 					<div
-						className={`pt-10 px-4 pb-2 flex items-center justify-between shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}
+						className={`pt-10 px-4 pb-2 flex items-center justify-end shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}
 					>
-						<div className="w-12"></div>
-						<div className="text-sm font-semibold tracking-tight opacity-0">Mailboxes</div>
 						<button
 							onClick={toggleEditMode}
-							className="text-[#007aff] text-base font-normal active:opacity-50 transition-opacity"
+							className="relative text-ios-blue text-base font-normal active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 						>
 							{isEditing ? 'Done' : 'Edit'}
 						</button>
@@ -286,7 +320,7 @@ export default function Mail() {
 
 					{/* Mailboxes Large Title */}
 					<div className={`px-4 pb-3 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
-						<h1 className="text-3xl font-bold tracking-tight">Mailboxes</h1>
+						<h1 className="text-ios-large-title">Mailboxes</h1>
 					</div>
 
 					{/* Mailboxes Grouped Content */}
@@ -297,16 +331,18 @@ export default function Mail() {
 						>
 							{mailboxesWithCounts
 								.filter(m => m.type !== 'account')
+								.filter(m => isEditing || !hiddenMailboxes.includes(m.id))
 								.map(mailbox => (
 									<MailboxItem
 										key={mailbox.id}
 										item={mailbox}
-										isActive={
-											selectedMailbox === mailbox.id &&
-											typeof window !== 'undefined' &&
-											window.innerWidth >= 768
+										isActive={selectedMailbox === mailbox.id}
+										dimmed={hiddenMailboxes.includes(mailbox.id)}
+										onClick={() =>
+											isEditing
+												? toggleHiddenMailbox(mailbox.id)
+												: navigateToMailbox(mailbox.id)
 										}
-										onClick={() => !isEditing && navigateToMailbox(mailbox.id)}
 										darkMode={darkMode}
 									/>
 								))}
@@ -320,34 +356,49 @@ export default function Mail() {
 									<div
 										className="flex items-center justify-between px-6 cursor-pointer select-none"
 										onClick={() => toggleAccount(account.id)}
+										onKeyDown={e => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												e.preventDefault();
+												toggleAccount(account.id);
+											}
+										}}
+										role="button"
+										tabIndex={0}
+										aria-expanded={expandedAccounts.has(account.id)}
+										aria-label={`${account.name} folders`}
 									>
 										<span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
 											{account.name}
 										</span>
-										<i
-											className={`fas fa-chevron-right text-[10px] text-gray-400 transition-transform duration-200 ${
+										<ChevronRight
+											aria-hidden="true"
+											size={10}
+											className={`text-gray-400 transition-transform duration-200 ${
 												expandedAccounts.has(account.id) ? 'rotate-90' : ''
 											}`}
-										></i>
+										/>
 									</div>
 
 									{expandedAccounts.has(account.id) && (
 										<div
 											className={`mx-4 rounded-xl overflow-hidden shadow-xs border ${darkMode ? 'bg-[#1c1c1e] border-white/10' : 'bg-white border-black/5'}`}
 										>
-											{ACCOUNT_FOLDERS.map(folder => (
+											{ACCOUNT_FOLDERS.filter(folder =>
+												isEditing ? true : !hiddenMailboxes.includes(`${account.id}-${folder.id}`)
+											).map(folder => (
 												<MailboxItem
 													key={`${account.id}-${folder.id}`}
 													item={{
 														...folder,
 														count: emails.filter(e => e.mailbox === folder.id && !e.read).length,
 													}}
-													isActive={
-														selectedMailbox === folder.id &&
-														typeof window !== 'undefined' &&
-														window.innerWidth >= 768
+													isActive={selectedMailbox === folder.id}
+													dimmed={hiddenMailboxes.includes(`${account.id}-${folder.id}`)}
+													onClick={() =>
+														isEditing
+															? toggleHiddenMailbox(`${account.id}-${folder.id}`)
+															: navigateToMailbox(folder.id)
 													}
-													onClick={() => !isEditing && navigateToMailbox(folder.id)}
 													darkMode={darkMode}
 												/>
 											))}
@@ -358,7 +409,7 @@ export default function Mail() {
 					</div>
 
 					{/* Mailboxes Floating Liquid Glass Toolbar */}
-					<div className="shrink-0 p-4 pb-8 flex items-center justify-center">
+					<div className="shrink-0 p-4 pb-[max(env(safe-area-inset-bottom),2rem)] flex items-center justify-center">
 						<div
 							className={`w-full max-w-[340px] px-5 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] transition-all ${
 								darkMode
@@ -373,10 +424,10 @@ export default function Mail() {
 									triggerHaptic('light');
 									setIsComposeOpen(true);
 								}}
-								className="text-[#007aff] text-base p-1 active:scale-95 transition-transform"
+								className="relative text-ios-blue active:scale-95 transition-transform after:absolute after:-inset-2.5 after:content-['']"
 								aria-label="Compose Email"
 							>
-								<i className="far fa-edit"></i>
+								<SquarePen aria-hidden="true" size={24} />
 							</button>
 						</div>
 					</div>
@@ -396,16 +447,16 @@ export default function Mail() {
 					>
 						<button
 							onClick={handleBack}
-							className="flex items-center text-[#007aff] text-base font-normal md:hidden active:opacity-50 transition-opacity"
+							className="relative flex items-center text-ios-blue text-base font-normal md:hidden active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 						>
-							<i className="fas fa-chevron-left text-lg mr-1.5"></i>
+							<ChevronLeft aria-hidden="true" size={18} className="mr-1.5" />
 							<span>Mailboxes</span>
 						</button>
 						<div className="hidden md:block w-8"></div>
 
 						<button
 							onClick={toggleEditMode}
-							className="text-[#007aff] text-base font-normal active:opacity-50 transition-opacity"
+							className="relative text-ios-blue text-base font-normal active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 						>
 							{isEditing ? 'Done' : 'Edit'}
 						</button>
@@ -413,7 +464,7 @@ export default function Mail() {
 
 					{/* Large Title */}
 					<div className={`px-4 pb-2 ${darkMode ? 'bg-black' : 'bg-white'}`}>
-						<h1 className="text-3xl font-bold tracking-tight capitalize">{mailboxTitle}</h1>
+						<h1 className="text-ios-large-title capitalize">{mailboxTitle}</h1>
 					</div>
 
 					{/* Search Bar */}
@@ -423,7 +474,7 @@ export default function Mail() {
 								darkMode ? 'bg-[#1c1c1e] border-white/10' : 'bg-[#e3e3e8]/70 border-black/5'
 							}`}
 						>
-							<i className="fas fa-search text-gray-400 mr-2 text-xs"></i>
+							<Search aria-hidden="true" size={12} className="text-gray-400 mr-2" />
 							<input
 								type="text"
 								placeholder="Search"
@@ -432,8 +483,8 @@ export default function Mail() {
 								className="flex-1 bg-transparent border-none outline-none text-sm placeholder-gray-400"
 							/>
 							{searchQuery && (
-								<button onClick={() => setSearchQuery('')} className="text-gray-400 text-xs">
-									<i className="fas fa-times-circle"></i>
+								<button onClick={() => setSearchQuery('')} aria-label="Clear search" className="text-gray-400 text-xs">
+									<CircleX aria-hidden="true" size={12} />
 								</button>
 							)}
 						</div>
@@ -443,7 +494,7 @@ export default function Mail() {
 					<div className="flex-1 overflow-y-auto pb-4">
 						{displayEmails.length === 0 ? (
 							<div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
-								<i className="fas fa-inbox text-4xl mb-2 opacity-40"></i>
+								<Inbox aria-hidden="true" size={36} className="mb-2 opacity-40" />
 								<p className="text-sm font-medium">
 									{isUnreadFilterActive ? 'No Unread Mail' : 'No Mail'}
 								</p>
@@ -466,7 +517,7 @@ export default function Mail() {
 					</div>
 
 					{/* List Floating Liquid Glass Toolbar */}
-					<div className="shrink-0 p-4 pb-8 flex items-center justify-center">
+					<div className="shrink-0 p-4 pb-[max(env(safe-area-inset-bottom),2rem)] flex items-center justify-center">
 						<div
 							className={`w-full max-w-[340px] px-5 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] transition-all ${
 								darkMode
@@ -479,7 +530,7 @@ export default function Mail() {
 									<button
 										onClick={handleBatchArchive}
 										disabled={selectedForAction.size === 0}
-										className={`text-sm font-medium ${selectedForAction.size > 0 ? 'text-[#007aff]' : 'text-gray-400'}`}
+										className={`text-sm font-medium ${selectedForAction.size > 0 ? 'text-ios-blue' : 'text-gray-400'}`}
 									>
 										Archive
 									</button>
@@ -491,7 +542,7 @@ export default function Mail() {
 									<button
 										onClick={handleBatchDelete}
 										disabled={selectedForAction.size === 0}
-										className={`text-sm font-medium ${selectedForAction.size > 0 ? 'text-[#ff3b30]' : 'text-gray-400'}`}
+										className={`text-sm font-medium ${selectedForAction.size > 0 ? 'text-ios-red' : 'text-gray-400'}`}
 									>
 										Delete
 									</button>
@@ -503,12 +554,12 @@ export default function Mail() {
 											triggerHaptic('light');
 											setIsUnreadFilterActive(!isUnreadFilterActive);
 										}}
-										className={`w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-											isUnreadFilterActive ? 'bg-[#007aff] text-white shadow-xs' : 'text-[#007aff]'
+										className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-95 after:absolute after:-inset-2 after:content-[''] ${
+											isUnreadFilterActive ? 'bg-ios-blue text-white shadow-xs' : 'text-ios-blue'
 										}`}
 										aria-label="Filter Unread"
 									>
-										<i className="fas fa-filter text-xs"></i>
+										<Funnel aria-hidden="true" size={12} />
 									</button>
 
 									<div className="text-xs text-gray-400 font-medium">
@@ -524,10 +575,10 @@ export default function Mail() {
 											triggerHaptic('light');
 											setIsComposeOpen(true);
 										}}
-										className="text-[#007aff] text-base p-1 active:scale-95 transition-transform"
+										className="relative text-ios-blue active:scale-95 transition-transform after:absolute after:-inset-2.5 after:content-['']"
 										aria-label="Compose Email"
 									>
-										<i className="far fa-edit"></i>
+										<SquarePen aria-hidden="true" size={24} />
 									</button>
 								</>
 							)}
@@ -557,7 +608,7 @@ export default function Mail() {
 							className={`flex-1 flex items-center justify-center ${darkMode ? 'bg-black text-gray-500' : 'bg-white text-gray-400'}`}
 						>
 							<div className="text-center">
-								<i className="fas fa-envelope-open text-5xl mb-3 opacity-30"></i>
+								<MailOpen aria-hidden="true" size={48} className="mb-3 opacity-30" />
 								<p className="text-base font-medium">No Message Selected</p>
 							</div>
 						</div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { TriangleAlert } from 'lucide-react';
 import { generateId } from '../../utils/id';
 import { TIMING } from '../../constants';
 import { CameraMode, FilterType } from './Camera/types';
@@ -316,7 +317,7 @@ export default function Camera() {
 	};
 
 	return (
-		<div className="flex flex-col h-full w-full bg-black text-white overflow-hidden relative select-none">
+		<div className="flex flex-col h-full w-full font-sans bg-black text-white overflow-hidden relative select-none">
 			<CameraTopControls
 				flashEnabled={flashEnabled}
 				toggleFlash={toggleFlash}
@@ -331,7 +332,7 @@ export default function Camera() {
 
 			{/* Flash Effect Overlay */}
 			{isFlashing && (
-				<div className="absolute inset-0 bg-white z-30 pointer-events-none animate-out fade-out duration-200"></div>
+				<div className="absolute inset-0 bg-white z-30 pointer-events-none fade-out duration-200"></div>
 			)}
 
 			{/* Countdown Overlay */}
@@ -343,7 +344,7 @@ export default function Camera() {
 
 			{/* Recording Indicator */}
 			{isRecording && (
-				<div className="absolute top-24 left-5 z-30 flex items-center gap-2 bg-[#ff3b30] px-3 py-1 rounded-full shadow-lg">
+				<div className="absolute top-24 left-5 z-30 flex items-center gap-2 bg-ios-red px-3 py-1 rounded-full shadow-lg">
 					<div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
 					<span className="text-[11px] font-bold text-white tracking-wider">REC</span>
 				</div>
@@ -363,7 +364,7 @@ export default function Camera() {
 			<div className="flex-1 flex items-center justify-center bg-black overflow-hidden">
 				{error ? (
 					<div className="flex flex-col items-center justify-center gap-2 text-white/70">
-						<i className="fas fa-exclamation-triangle text-4xl mb-4"></i>
+						<TriangleAlert aria-hidden="true" size={36} className="mb-4" />
 						<p className="text-sm">{error}</p>
 					</div>
 				) : (

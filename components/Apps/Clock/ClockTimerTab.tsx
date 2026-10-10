@@ -74,7 +74,7 @@ function ClockTimerTab({
                                     max="59"
                                     value={timerMinutes}
                                     onChange={handleMinutesChange}
-                                    className={`w-24 h-24 text-4xl font-light text-center rounded-xl border focus:border-yellow-400 focus:outline-none transition-colors ${theme.input} disabled:opacity-50`}
+                                    className={`w-24 h-24 text-4xl font-light text-center rounded-xl border focus:border-ios-orange focus:outline-none transition-colors ${theme.input} disabled:opacity-50`}
                                     disabled={timerRunning}
                                     aria-label="Minutes"
                                 />
@@ -90,7 +90,7 @@ function ClockTimerTab({
                                     max="59"
                                     value={timerSeconds}
                                     onChange={handleSecondsChange}
-                                    className={`w-24 h-24 text-4xl font-light text-center rounded-xl border focus:border-yellow-400 focus:outline-none transition-colors ${theme.input} disabled:opacity-50`}
+                                    className={`w-24 h-24 text-4xl font-light text-center rounded-xl border focus:border-ios-orange focus:outline-none transition-colors ${theme.input} disabled:opacity-50`}
                                     disabled={timerRunning}
                                     aria-label="Seconds"
                                 />
@@ -115,9 +115,9 @@ function ClockTimerTab({
                         onClick={onStart}
                         disabled={isStartDisabled}
                         className={`w-20 h-20 rounded-full text-lg font-medium transition-all active:scale-95 ${timerRunning
-                            ? 'bg-red-900/50 text-red-400'
+                            ? 'bg-red-500/15 text-red-600 dark:bg-red-900/50 dark:text-red-400'
                             : timerMinutes > 0 || timerSeconds > 0 || timerRemaining > 0
-                                ? 'bg-green-900/50 text-green-400'
+                                ? 'bg-green-500/15 text-green-600 dark:bg-green-900/50 dark:text-green-400'
                                 : theme.disabledBtn
                             }`}
                         aria-label={timerRunning ? 'Pause timer' : 'Start timer'}

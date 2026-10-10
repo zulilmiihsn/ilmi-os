@@ -1,6 +1,17 @@
 'use client';
 
 import { memo } from 'react';
+import {
+    ChevronDown,
+    ChevronLeft,
+    ChevronUp,
+    Flag,
+    FolderOpen,
+    Reply,
+    SquarePen,
+    Star,
+    Trash2,
+} from 'lucide-react';
 import { Email } from './types';
 import { triggerHaptic } from '../../../utils/haptic';
 
@@ -36,17 +47,17 @@ function EmailDetail({
                         triggerHaptic('light');
                         onBack();
                     }}
-                    className="flex items-center text-[#007aff] text-base font-normal active:opacity-60 transition-opacity"
+                    className="relative flex items-center text-ios-blue text-base font-normal active:opacity-60 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
                 >
-                    <i className="fas fa-chevron-left text-lg mr-1.5"></i>
+                    <ChevronLeft aria-hidden="true" size={18} className="mr-1.5" />
                     <span>{mailboxName}</span>
                 </button>
-                <div className="flex items-center gap-5 text-[#007aff] text-base">
-                    <button onClick={() => triggerHaptic('light')} className="active:opacity-60 transition-opacity">
-                        <i className="fas fa-chevron-up"></i>
+                <div className="flex items-center gap-5 text-ios-blue text-base">
+                    <button onClick={() => triggerHaptic('light')} aria-label="Previous email" className="relative p-1 active:opacity-60 transition-opacity after:absolute after:-inset-2.5 after:content-['']">
+                        <ChevronUp aria-hidden="true" size={16} />
                     </button>
-                    <button onClick={() => triggerHaptic('light')} className="active:opacity-60 transition-opacity">
-                        <i className="fas fa-chevron-down"></i>
+                    <button onClick={() => triggerHaptic('light')} aria-label="Next email" className="relative p-1 active:opacity-60 transition-opacity after:absolute after:-inset-2.5 after:content-['']">
+                        <ChevronDown aria-hidden="true" size={16} />
                     </button>
                 </div>
             </div>
@@ -69,7 +80,7 @@ function EmailDetail({
                                 <span className={`font-semibold text-base ${darkMode ? 'text-white' : 'text-black'}`}>
                                     {email.from}
                                 </span>
-                                {email.isVip && <i className="fas fa-star text-[#ffcc00] text-xs"></i>}
+                                {email.isVip && <Star aria-hidden="true" size={12} className="text-ios-yellow" />}
                             </div>
                             <div className="text-xs text-gray-400 font-medium">To: Me</div>
                         </div>
@@ -81,7 +92,7 @@ function EmailDetail({
                 </div>
 
                 {/* Subject Title */}
-                <h1 className={`text-xl font-bold tracking-tight mb-2 ${darkMode ? 'text-white' : 'text-black'}`}>
+                <h1 className={`text-ios-title1 mb-2 ${darkMode ? 'text-white' : 'text-black'}`}>
                     {email.subject}
                 </h1>
 
@@ -99,8 +110,6 @@ function EmailDetail({
                 <div className={`text-[15px] leading-relaxed whitespace-pre-wrap ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                     {email.preview}
                     {'\n\n'}
-                    Hi, Ashley found this photo from back in 2018. Can you believe it's been years? Let's start planning our reunion!
-                    {'\n\n'}
                     Best regards,
                     {'\n'}
                     {email.from}
@@ -108,7 +117,7 @@ function EmailDetail({
             </div>
 
             {/* Floating Liquid Glass Action Toolbar (iOS 26 Style 5 Actions) */}
-            <div className="shrink-0 p-4 pb-8 flex items-center justify-center">
+            <div className="shrink-0 p-4 pb-[max(env(safe-area-inset-bottom),2rem)] flex items-center justify-center">
                 <div
                     className={`w-full max-w-[340px] px-6 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] transition-all ${
                         darkMode
@@ -122,10 +131,10 @@ function EmailDetail({
                             triggerHaptic('medium');
                             onDelete(email.id);
                         }}
-                        className="text-[#007aff] p-1.5 text-base active:scale-90 transition-transform"
+                        className="relative text-ios-blue p-1.5 text-base active:scale-90 transition-transform after:absolute after:-inset-2 after:content-['']"
                         aria-label="Delete Email"
                     >
-                        <i className="fas fa-trash-alt"></i>
+                        <Trash2 aria-hidden="true" size={16} />
                     </button>
 
                     {/* Archive / Folder */}
@@ -134,10 +143,10 @@ function EmailDetail({
                             triggerHaptic('light');
                             onArchive(email.id);
                         }}
-                        className="text-[#007aff] p-1.5 text-base active:scale-90 transition-transform"
+                        className="relative text-ios-blue p-1.5 text-base active:scale-90 transition-transform after:absolute after:-inset-2 after:content-['']"
                         aria-label="Archive Email"
                     >
-                        <i className="fas fa-folder-open"></i>
+                        <FolderOpen aria-hidden="true" size={16} />
                     </button>
 
                     {/* Reply */}
@@ -146,19 +155,19 @@ function EmailDetail({
                             triggerHaptic('light');
                             onReply();
                         }}
-                        className="text-[#007aff] p-1.5 text-base active:scale-90 transition-transform"
+                        className="relative text-ios-blue p-1.5 text-base active:scale-90 transition-transform after:absolute after:-inset-2 after:content-['']"
                         aria-label="Reply Email"
                     >
-                        <i className="fas fa-reply"></i>
+                        <Reply aria-hidden="true" size={16} />
                     </button>
 
                     {/* Flag */}
                     <button
                         onClick={() => triggerHaptic('light')}
-                        className="text-[#007aff] p-1.5 text-base active:scale-90 transition-transform"
+                        className="relative text-ios-blue p-1.5 text-base active:scale-90 transition-transform after:absolute after:-inset-2 after:content-['']"
                         aria-label="Flag Email"
                     >
-                        <i className="fas fa-flag"></i>
+                        <Flag aria-hidden="true" size={16} />
                     </button>
 
                     {/* Compose */}
@@ -167,10 +176,10 @@ function EmailDetail({
                             triggerHaptic('light');
                             onReply();
                         }}
-                        className="text-[#007aff] p-1.5 text-base active:scale-90 transition-transform"
+                        className="relative text-ios-blue p-1.5 text-base active:scale-90 transition-transform after:absolute after:-inset-2 after:content-['']"
                         aria-label="New Email"
                     >
-                        <i className="far fa-edit"></i>
+                        <SquarePen aria-hidden="true" size={16} />
                     </button>
                 </div>
             </div>

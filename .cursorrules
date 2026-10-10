@@ -47,7 +47,7 @@
 - **UI Library**: React 18.3.1
 - **State Management**: Zustand 5.0.8
 - **Styling**: Tailwind CSS 4.1.17
-- **Icons**: Font Awesome 6.7.2 (@fortawesome/fontawesome-free)
+- **Icons**: lucide-react (outline, 24-grid; `size={n}` + `aria-hidden`, no FA)
 - **Language**: TypeScript 5.9.3 (strict mode)
 - **Package Manager**: pnpm
 

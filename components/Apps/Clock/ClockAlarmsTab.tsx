@@ -87,7 +87,7 @@ function ClockAlarmsTab({
                                         onChange={() => onToggleAlarm(alarm.id)}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-12 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                                    <div className="w-12 h-7 bg-[#e9e9ea] dark:bg-[#39393d] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-ios-green"></div>
                                 </label>
 
                                 {deletableAlarmId === alarm.id && (
@@ -97,7 +97,7 @@ function ClockAlarmsTab({
                                             onDeleteAlarm(alarm.id);
                                             onClearDeletable();
                                         }}
-                                        className="text-red-500 p-2 delete-btn-enter hover:bg-red-900/20 rounded-full transition-colors"
+                                        className="text-ios-red p-2 delete-btn-enter hover:bg-red-900/20 rounded-full transition-colors"
                                         aria-label="Delete alarm"
                                     >
                                         <svg

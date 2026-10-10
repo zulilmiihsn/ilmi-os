@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { triggerHaptic } from '../../../utils/haptic';
 import { CameraMode } from './types';
 
@@ -23,10 +24,13 @@ export const CameraBottomControls: React.FC<CameraBottomControlsProps> = ({
 	const isVideoMode = mode === 'VIDEO' || mode === 'SLO-MO';
 
 	return (
-		<div className="absolute bottom-0 left-0 right-0 z-20 pb-8 pt-4">
+		<div className="absolute bottom-0 left-0 right-0 z-20 pb-[max(env(safe-area-inset-bottom),2rem)] pt-4">
 			<div className="flex items-center justify-center gap-14">
 				{/* Gallery Thumbnail */}
 				<button
+					onClick={() => {
+						window.dispatchEvent(new CustomEvent<string>('ilmi:open-app', { detail: 'photos' }));
+					}}
 					className="w-12 h-12 rounded-xl border border-white/30 overflow-hidden flex items-center justify-center bg-white/10 backdrop-blur-md active:scale-90 transition-transform shadow-md"
 					aria-label="View recent photos"
 				>
@@ -40,7 +44,7 @@ export const CameraBottomControls: React.FC<CameraBottomControlsProps> = ({
 							unoptimized={true}
 						/>
 					) : (
-						<i className="fas fa-image text-white/60 text-base"></i>
+						<ImageIcon aria-hidden="true" size={16} className="text-white/60" />
 					)}
 				</button>
 
@@ -52,9 +56,9 @@ export const CameraBottomControls: React.FC<CameraBottomControlsProps> = ({
 				>
 					{isVideoMode ? (
 						isRecording ? (
-							<div className="w-[28px] h-[28px] bg-[#ff3b30] rounded-md transition-all"></div>
+							<div className="w-[28px] h-[28px] bg-ios-red rounded-md transition-all"></div>
 						) : (
-							<div className="w-[56px] h-[56px] rounded-full bg-[#ff3b30] transition-all"></div>
+							<div className="w-[56px] h-[56px] rounded-full bg-ios-red transition-all"></div>
 						)
 					) : (
 						<div className="w-[56px] h-[56px] rounded-full bg-white transition-all shadow-inner"></div>
@@ -70,7 +74,7 @@ export const CameraBottomControls: React.FC<CameraBottomControlsProps> = ({
 					className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center active:scale-90 transition-transform shadow-md"
 					aria-label="Switch camera"
 				>
-					<i className="fas fa-sync-alt text-white text-base"></i>
+					<RefreshCw aria-hidden="true" size={16} className="text-white" />
 				</button>
 			</div>
 		</div>

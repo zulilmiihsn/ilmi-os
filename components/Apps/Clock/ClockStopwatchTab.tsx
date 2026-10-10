@@ -3,7 +3,7 @@
 import { memo } from 'react';
 
 interface LapTime {
-    id: number;
+    id: string;
     time: number;
     lapDiff: number;
 }
@@ -68,8 +68,8 @@ function ClockStopwatchTab({
                         <button
                             onClick={onStartStop}
                             className={`w-20 h-20 rounded-full text-lg font-medium transition-all active:scale-95 ${stopwatchRunning
-                                ? 'bg-red-900/50 text-red-400'
-                                : 'bg-green-900/50 text-green-400'
+                                ? 'bg-red-500/15 text-red-600 dark:bg-red-900/50 dark:text-red-400'
+                                : 'bg-green-500/15 text-green-600 dark:bg-green-900/50 dark:text-green-400'
                                 }`}
                             aria-label={stopwatchRunning ? 'Stop stopwatch' : 'Start stopwatch'}
                         >

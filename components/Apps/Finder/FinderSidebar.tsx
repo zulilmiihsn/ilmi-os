@@ -33,11 +33,11 @@ export const FinderSidebar: React.FC<FinderSidebarProps> = ({
 										onClick={() => navigateTo(item.folderId)}
 										className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
 											isActive
-												? 'bg-blue-500 text-white'
+												? 'bg-ios-blue text-white'
 												: 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300'
 										}`}
 									>
-										<span className={isActive ? 'text-white' : 'text-blue-500'}>
+										<span className={isActive ? 'text-white' : 'text-ios-blue'}>
 											{item.icon === 'desktop' && (
 												<svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 													<rect x="2" y="3" width="20" height="14" rx="2" ry="2" />

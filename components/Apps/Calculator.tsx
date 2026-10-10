@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useCallback, useMemo, memo } from 'react';
+import { Delete } from 'lucide-react';
+import { calculateResult } from './Calculator/calculate';
 import { useSettingsStore } from '../../stores/settings';
 import { triggerHaptic } from '../../utils/haptic';
 
@@ -33,7 +35,7 @@ function Calculator() {
 	const inputNumber = useCallback(
 		(num: string) => {
 			triggerHaptic('light');
-			if (waitingForNewValue) {
+			if (waitingForNewValue || display === 'Error') {
 				setDisplay(num);
 				setWaitingForNewValue(false);
 			} else {
@@ -44,22 +46,9 @@ function Calculator() {
 		[display, waitingForNewValue]
 	);
 
-	const calculate = useCallback((): number => {
+	const calculate = useCallback((): number | 'Error' => {
 		if (previousValue === null) return parseFloat(display);
-		const currentValue = parseFloat(display);
-
-		switch (operation) {
-			case '+':
-				return previousValue + currentValue;
-			case '-':
-				return previousValue - currentValue;
-			case '*':
-				return previousValue * currentValue;
-			case '/':
-				return currentValue !== 0 ? previousValue / currentValue : 0;
-			default:
-				return currentValue;
-		}
+		return calculateResult(previousValue, parseFloat(display), operation ?? '');
 	}, [previousValue, display, operation]);
 
 	const inputOperation = useCallback(
@@ -72,9 +61,16 @@ function Calculator() {
 				setCalculationHistory(`${formatNumber(display)}${op}`);
 			} else if (operation) {
 				const result = calculate();
-				setDisplay(String(result));
-				setPreviousValue(result);
-				setCalculationHistory(`${formatNumber(result)}${op}`);
+				if (result === 'Error') {
+					setDisplay('Error');
+					setPreviousValue(null);
+					setOperation(null);
+					setCalculationHistory('');
+				} else {
+					setDisplay(String(result));
+					setPreviousValue(result);
+					setCalculationHistory(`${formatNumber(result)}${op}`);
+				}
 			} else {
 				setCalculationHistory(`${formatNumber(display)}${op}`);
 			}
@@ -89,8 +85,11 @@ function Calculator() {
 		triggerHaptic('medium');
 		if (operation && previousValue !== null) {
 			const result = calculate();
-			const formattedResult = String(result);
-			setDisplay(formattedResult);
+			if (result === 'Error') {
+				setDisplay('Error');
+			} else {
+				setDisplay(String(result));
+			}
 			setCalculationHistory('');
 			setPreviousValue(null);
 			setOperation(null);
@@ -123,7 +122,9 @@ function Calculator() {
 
 	const backspace = useCallback(() => {
 		triggerHaptic('light');
-		if (display.length > 1) {
+		if (display === 'Error') {
+			setDisplay('0');
+		} else if (display.length > 1) {
 			setDisplay(display.slice(0, -1));
 		} else {
 			setDisplay('0');
@@ -142,7 +143,7 @@ function Calculator() {
 	const btnOperatorActive = 'bg-white text-[#ff9f0a] shadow-[0_0_15px_rgba(255,159,10,0.5)]';
 
 	return (
-		<div className={`calculator-app flex flex-col justify-end h-full px-5 pb-10 pt-10 select-none ${
+		<div className={`calculator-app flex flex-col justify-end h-full font-sans px-5 pb-[max(env(safe-area-inset-bottom),2.5rem)] pt-10 select-none ${
 			darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'
 		}`}>
 			{/* Display Area */}
@@ -153,7 +154,7 @@ function Calculator() {
 					</div>
 				)}
 				<div
-					className="text-right font-light tracking-tighter leading-none overflow-x-auto w-full scrollbar-none"
+					className="text-right font-light tracking-tighter leading-none overflow-x-auto w-full scrollbar-hide tabular-nums"
 					style={{
 						fontSize: formattedDisplay.length > 8 ? '2.5rem' : formattedDisplay.length > 5 ? '3.5rem' : '4.5rem',
 					}}
@@ -234,7 +235,7 @@ function Calculator() {
 
 				{/* Row 5 */}
 				<button className={`${btnBase} ${btnNumber}`} onClick={backspace} aria-label="Backspace">
-					<i className="fas fa-delete-left text-xl"></i>
+					<Delete aria-hidden="true" size={20} />
 				</button>
 				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('0')}>
 					0

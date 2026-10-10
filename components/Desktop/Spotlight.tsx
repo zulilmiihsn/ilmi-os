@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Search } from 'lucide-react';
 import { useRestoreFocus } from '../../utils/hooks/useRestoreFocus';
 
 interface SpotlightProps {
@@ -99,9 +100,9 @@ export default function Spotlight({ isOpen, onClose }: SpotlightProps) {
 							<div className="text-[11px] font-semibold text-gray-500 uppercase px-3 py-1.5 tracking-wider">
 								Top Hit
 							</div>
-							<div className="group mx-1 px-3 py-2 bg-[#007AFF]/10 rounded-lg flex items-center gap-3 cursor-default transition-colors">
-								<div className="w-7 h-7 bg-[#007AFF] rounded-[6px] flex items-center justify-center text-white shadow-sm">
-									<i className="fas fa-search text-xs"></i>
+							<div className="group mx-1 px-3 py-2 bg-ios-blue/10 rounded-lg flex items-center gap-3 cursor-default transition-colors">
+								<div className="w-7 h-7 bg-ios-blue rounded-[6px] flex items-center justify-center text-white shadow-sm">
+									<Search aria-hidden="true" size={12} />
 								</div>
 								<div>
 									<div className="text-[13px] font-medium text-gray-900 dark:text-white leading-tight">

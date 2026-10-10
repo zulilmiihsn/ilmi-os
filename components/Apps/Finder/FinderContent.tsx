@@ -48,6 +48,19 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 										e.stopPropagation();
 										setSelectedItemId(item.id);
 									}}
+									onKeyDown={e => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											if (item.type === 'folder') {
+												navigateTo(item.id);
+											} else {
+												setDialog({ type: 'preview', targetItem: item });
+											}
+										}
+									}}
+									role="button"
+									tabIndex={0}
+									aria-label={item.name}
 									onDoubleClick={() => {
 										if (item.type === 'folder') {
 											navigateTo(item.id);
@@ -57,12 +70,12 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 									}}
 									className={`group flex flex-col items-center p-2 rounded-lg cursor-pointer transition-colors ${
 										isSelected
-											? 'bg-blue-500 text-white'
+											? 'bg-ios-blue text-white'
 											: 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-800 dark:text-gray-200'
 									}`}
 								>
 									{item.type === 'folder' ? (
-										<svg className={`w-12 h-12 mb-1.5 ${isSelected ? 'text-white' : 'text-blue-400'}`} viewBox="0 0 24 24" fill="currentColor">
+										<svg className={`w-12 h-12 mb-1.5 ${isSelected ? 'text-white' : 'text-ios-blue'}`} viewBox="0 0 24 24" fill="currentColor">
 											<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
 										</svg>
 									) : (
@@ -98,6 +111,19 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 											e.stopPropagation();
 											setSelectedItemId(item.id);
 										}}
+										onKeyDown={e => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												e.preventDefault();
+												if (item.type === 'folder') {
+													navigateTo(item.id);
+												} else {
+													setDialog({ type: 'preview', targetItem: item });
+												}
+											}
+										}}
+										role="button"
+										tabIndex={0}
+										aria-label={item.name}
 										onDoubleClick={() => {
 											if (item.type === 'folder') {
 												navigateTo(item.id);
@@ -107,13 +133,13 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 										}}
 										className={`grid grid-cols-12 items-center px-2 py-1.5 rounded text-xs cursor-pointer ${
 											isSelected
-												? 'bg-blue-500 text-white'
+												? 'bg-ios-blue text-white'
 												: 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
 										}`}
 									>
 										<div className="col-span-6 flex items-center gap-2 truncate">
 											{item.type === 'folder' ? (
-												<svg className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-blue-400'}`} viewBox="0 0 24 24" fill="currentColor">
+												<svg className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-ios-blue'}`} viewBox="0 0 24 24" fill="currentColor">
 													<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
 												</svg>
 											) : (

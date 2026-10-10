@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, forwardRef, memo, useImperativeHandle } from 'react';
+import { Bell, X } from 'lucide-react';
 import Image from 'next/image';
 import { useNotificationsStore } from '../../../stores/notifications';
 import { useControlCenterStore } from '../../../stores/controlCenter';
@@ -204,7 +205,7 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 														unoptimized
 													/>
 												) : (
-													<i className={`fas ${item.appIcon} text-xs text-white`}></i>
+													<Bell aria-hidden="true" size={12} className="text-white" />
 												)}
 											</div>
 											<span className="text-xs font-semibold text-white/90 uppercase tracking-wide">
@@ -222,7 +223,7 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 												className="w-4 h-4 rounded-full bg-white/20 text-white/80 hover:bg-white/40 flex items-center justify-center text-[10px]"
 												aria-label="Dismiss notification"
 											>
-												<i className="fas fa-times"></i>
+												<X aria-hidden="true" size={10} />
 											</button>
 										</div>
 									</div>

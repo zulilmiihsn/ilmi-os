@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import '@fortawesome/fontawesome-free/css/all.min.css';
 import '../styles/ios.css';
 import '../styles/macos.css';
 import './globals.css';

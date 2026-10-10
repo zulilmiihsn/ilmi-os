@@ -2,6 +2,7 @@
 
 import type { Note } from '../types';
 import NoteItem from './NoteItem';
+import { CircleX, SquarePen } from 'lucide-react';
 import { triggerHaptic } from '../../../../utils/haptic';
 
 interface NoteListProps {
@@ -35,43 +36,44 @@ export default function NoteList({
 		<div className="flex flex-col h-full select-none bg-[#f2f2f7] dark:bg-black text-black dark:text-white">
 			{/* Sticky Header */}
 			<div className="px-4 pt-10 pb-2 shrink-0 bg-[#f2f2f7] dark:bg-black">
-				<div className="flex justify-between items-center mb-2">
-					<div className="w-12"></div>
+				<div className="flex justify-end items-center mb-2">
 					<button
 						onClick={() => {
 							triggerHaptic('light');
 							toggleSelectionMode();
 						}}
-						className="text-[#e3a824] font-normal text-base active:opacity-50 transition-opacity"
+						className="relative text-ios-yellow font-normal text-base active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 					>
 						{selectionMode ? 'Done' : 'Select'}
 					</button>
 				</div>
 
 				{/* Large Title */}
-				<h1 className="text-3xl font-bold tracking-tight mb-3">
+				<h1 className="text-ios-large-title mb-3">
 					{selectionMode ? `${selectedCount} Selected` : 'Notes'}
 				</h1>
 
 				{/* Search Bar Capsule */}
 				<div className="relative mb-2">
 					<div className="flex items-center rounded-xl px-3 py-2 border bg-[#e3e3e8]/70 dark:bg-[#1c1c1e] border-black/5 dark:border-white/10">
-						<svg className="h-4 w-4 text-gray-400 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<svg aria-hidden="true" className="h-4 w-4 text-gray-400 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 						</svg>
 						<input
 							type="text"
 							className="flex-1 bg-transparent border-none outline-none text-sm placeholder-gray-400"
 							placeholder="Search"
+							aria-label="Search notes"
 							value={searchQuery}
 							onChange={e => setSearchQuery(e.target.value)}
 						/>
 						{searchQuery && (
 							<button
 								onClick={() => setSearchQuery('')}
-								className="text-gray-400 text-xs"
+								aria-label="Clear search"
+								className="relative text-gray-400 text-xs after:absolute after:-inset-2.5 after:content-['']"
 							>
-								<i className="fas fa-times-circle"></i>
+								<CircleX aria-hidden="true" size={12} />
 							</button>
 						)}
 					</div>
@@ -127,7 +129,7 @@ export default function NoteList({
 			</div>
 
 			{/* Floating Liquid Glass Toolbar */}
-			<div className="shrink-0 p-4 pb-8 flex items-center justify-center">
+			<div className="shrink-0 p-4 pb-[max(env(safe-area-inset-bottom),2rem)] flex items-center justify-center">
 				<div className="w-full max-w-[340px] px-5 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 transition-all">
 					{selectionMode ? (
 						<>
@@ -155,10 +157,10 @@ export default function NoteList({
 									triggerHaptic('light');
 									createNewNote();
 								}}
-								className="text-[#e3a824] p-1 active:scale-95 transition-transform"
+								className="relative text-ios-yellow p-1 active:scale-95 transition-transform after:absolute after:-inset-2 after:content-['']"
 								aria-label="New Note"
 							>
-								<i className="far fa-edit text-lg"></i>
+								<SquarePen aria-hidden="true" size={24} />
 							</button>
 						</>
 					)}

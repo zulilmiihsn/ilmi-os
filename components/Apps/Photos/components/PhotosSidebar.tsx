@@ -43,7 +43,7 @@ export default function PhotosSidebar({
 									}}
 									className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-2.5 transition-colors ${
 										isActive
-											? 'bg-blue-500 text-white'
+											? 'bg-ios-blue text-white'
 											: 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300'
 									}`}
 								>
@@ -74,7 +74,7 @@ export default function PhotosSidebar({
 									}}
 									className={`w-full text-left px-2 py-1.5 rounded-md text-xs font-medium flex items-center gap-2.5 transition-colors ${
 										isSelected
-											? 'bg-blue-500 text-white'
+											? 'bg-ios-blue text-white'
 											: 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300'
 									}`}
 								>

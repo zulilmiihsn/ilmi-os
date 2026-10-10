@@ -251,7 +251,7 @@ export default function Window({ window: windowProp, exposeTile, onExposeSelect 
 
 			{!windowState.isMaximized && !exposeTile && (
 				<button
-					className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize z-50 opacity-0 focus-visible:opacity-100 focus-visible:bg-[#007AFF]/40 focus-visible:rounded-tl-lg focus:outline-none"
+					className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize z-50 opacity-0 focus-visible:opacity-100 focus-visible:bg-ios-blue/40 focus-visible:rounded-tl-lg focus:outline-none"
 					onMouseDown={e => handleResizeStart(e, windowState)}
 					onKeyDown={e => {
 						if (e.key !== 'Enter' && e.key !== ' ') return;

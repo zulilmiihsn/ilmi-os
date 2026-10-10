@@ -18,13 +18,13 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "lucide-react": "^1.49.0",
     "next": "^15.5.9",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "@fortawesome/fontawesome-free": "^6.5.1",
     "@next/eslint-plugin-next": "16.3.6",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.1.17",

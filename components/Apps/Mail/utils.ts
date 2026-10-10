@@ -66,26 +66,26 @@ export const SEED_EMAILS: Email[] = [
 ];
 
 export const MOCK_MAILBOXES_STATIC: Mailbox[] = [
-	{ id: 'all_inboxes', name: 'All Inboxes', icon: 'fa-layer-group', type: 'smart' },
-	{ id: 'icloud', name: 'iCloud', icon: 'fa-cloud', type: 'account' },
-	{ id: 'gmail', name: 'Gmail', icon: 'fa-google', type: 'account' },
-	{ id: 'yahoo', name: 'Yahoo!', icon: 'fa-yahoo', type: 'account' },
-	{ id: 'vip', name: 'VIP', icon: 'fa-star', type: 'smart' },
-	{ id: 'flagged', name: 'Flagged', icon: 'fa-flag', type: 'smart' },
-	{ id: 'drafts', name: 'Drafts', icon: 'fa-file-alt', type: 'folder' },
-	{ id: 'sent', name: 'Sent', icon: 'fa-paper-plane', type: 'folder' },
-	{ id: 'junk', name: 'Junk', icon: 'fa-times-circle', type: 'folder' },
-	{ id: 'trash', name: 'Trash', icon: 'fa-trash-alt', type: 'folder' },
-	{ id: 'archive', name: 'Archive', icon: 'fa-archive', type: 'folder' },
+	{ id: 'all_inboxes', name: 'All Inboxes', icon: 'layer-group', type: 'smart' },
+	{ id: 'icloud', name: 'iCloud', icon: 'cloud', type: 'account' },
+	{ id: 'gmail', name: 'Gmail', icon: 'google', type: 'account' },
+	{ id: 'yahoo', name: 'Yahoo!', icon: 'yahoo', type: 'account' },
+	{ id: 'vip', name: 'VIP', icon: 'star', type: 'smart' },
+	{ id: 'flagged', name: 'Flagged', icon: 'flag', type: 'smart' },
+	{ id: 'drafts', name: 'Drafts', icon: 'file-alt', type: 'folder' },
+	{ id: 'sent', name: 'Sent', icon: 'paper-plane', type: 'folder' },
+	{ id: 'junk', name: 'Junk', icon: 'times-circle', type: 'folder' },
+	{ id: 'trash', name: 'Trash', icon: 'trash-alt', type: 'folder' },
+	{ id: 'archive', name: 'Archive', icon: 'archive', type: 'folder' },
 ];
 
 export const ACCOUNT_FOLDERS: Mailbox[] = [
-	{ id: 'inbox', name: 'Inbox', icon: 'fa-inbox', type: 'folder' },
-	{ id: 'drafts', name: 'Drafts', icon: 'fa-file', type: 'folder' },
-	{ id: 'sent', name: 'Sent', icon: 'fa-paper-plane', type: 'folder' },
-	{ id: 'junk', name: 'Junk', icon: 'fa-times-circle', type: 'folder' },
-	{ id: 'trash', name: 'Trash', icon: 'fa-trash-alt', type: 'folder' },
-	{ id: 'archive', name: 'Archive', icon: 'fa-archive', type: 'folder' },
+	{ id: 'inbox', name: 'Inbox', icon: 'inbox', type: 'folder' },
+	{ id: 'drafts', name: 'Drafts', icon: 'file', type: 'folder' },
+	{ id: 'sent', name: 'Sent', icon: 'paper-plane', type: 'folder' },
+	{ id: 'junk', name: 'Junk', icon: 'times-circle', type: 'folder' },
+	{ id: 'trash', name: 'Trash', icon: 'trash-alt', type: 'folder' },
+	{ id: 'archive', name: 'Archive', icon: 'archive', type: 'folder' },
 ];
 
 function isValidEmail(record: unknown): record is Email {

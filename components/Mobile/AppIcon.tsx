@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, memo } from 'react';
+import { AppWindow } from 'lucide-react';
 import Image from 'next/image';
 import type { AppMetadata } from '../../types';
 
@@ -105,7 +106,7 @@ function AppIcon({
 						/>
 					) : (
 						<div className="ios-app-box w-16 h-16 flex items-center justify-center">
-							<i className={`fas ${app.icon} text-3xl text-white drop-shadow-lg`}></i>
+							<AppWindow aria-hidden="true" size={30} className="text-white drop-shadow-lg" />
 						</div>
 					)
 				) : (
@@ -128,7 +129,7 @@ function AppIcon({
 						) : (
 							<>
 								<div className="ios-app-box w-full aspect-square flex items-center justify-center mb-1.5 max-w-[64px] mx-auto">
-									<i className={`fas ${app.icon} text-3xl text-white drop-shadow-lg`}></i>
+									<AppWindow aria-hidden="true" size={30} className="text-white drop-shadow-lg" />
 								</div>
 								<span className="text-xs font-medium text-white drop-shadow-md text-center leading-tight w-full">
 									{app.name}

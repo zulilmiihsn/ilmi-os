@@ -1,6 +1,21 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import {
+	Bluetooth,
+	Monitor,
+	Pause,
+	Play,
+	RadioTower,
+	SkipBack,
+	SkipForward,
+	Sun,
+	Volume1,
+	Volume2,
+	VolumeX,
+	Zap,
+	type LucideIcon,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useControlCenterStore } from '../../stores/controlCenter';
 import { getBatteryInfo } from '../../utils/deviceInfo';
@@ -13,11 +28,22 @@ interface SmoothSliderProps {
 	endIcon?: string;
 }
 
+const SLIDER_ICONS: Record<string, LucideIcon> = {
+	'sun': Sun,
+	'desktop': Monitor,
+	'volume-mute': VolumeX,
+	'volume-down': Volume1,
+	'volume-up': Volume2,
+	'broadcast-tower': RadioTower,
+};
+
 const SmoothSlider = ({ value, onChange, icon, label: _label, endIcon }: SmoothSliderProps) => {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const fillRef = useRef<HTMLDivElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
 	const dragStartRef = useRef({ x: 0, initialValue: 0, width: 0 });
+	const Icon = SLIDER_ICONS[icon] ?? Sun;
+	const EndIcon = endIcon ? (SLIDER_ICONS[endIcon] ?? null) : null;
 
 	// Update fill width visually when value changes externally (and not dragging)
 	useEffect(() => {
@@ -136,7 +162,7 @@ const SmoothSlider = ({ value, onChange, icon, label: _label, endIcon }: SmoothS
 			aria-valuemax={100}
 			aria-valuenow={Math.round(value)}
 			// Use pointer-events-auto to capture clicks
-			className="relative h-11 w-full bg-black/20 dark:bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden cursor-pointer group select-none touch-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#007AFF]"
+			className="relative h-11 w-full bg-black/20 dark:bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden cursor-pointer group select-none touch-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue"
 			onMouseDown={e => {
 				e.preventDefault(); // Prevent text selection
 				handleStart(e.clientX);
@@ -158,13 +184,13 @@ const SmoothSlider = ({ value, onChange, icon, label: _label, endIcon }: SmoothS
 			{/* Content Overlay */}
 			<div className="absolute inset-0 px-3 flex items-center justify-between pointer-events-none mix-blend-exclusion filter invert dark:invert-0">
 				<div className="flex items-center justify-center w-6 h-6">
-					<i className={`fas ${icon} text-lg text-black dark:text-black opacity-80`}></i>
+					<Icon aria-hidden="true" size={18} className="text-black dark:text-black opacity-80" />
 				</div>
 			</div>
 			{/* Optional End Icon */}
-			{endIcon && (
+			{EndIcon && (
 				<div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none mix-blend-exclusion filter invert dark:invert-0">
-					<i className={`fas ${endIcon} text-black dark:text-black opacity-60`}></i>
+					<EndIcon aria-hidden="true" size={16} className="text-black dark:text-black opacity-60" />
 				</div>
 			)}
 		</div>
@@ -240,7 +266,7 @@ export default function ControlCenter() {
 						{/* Wi-Fi */}
 						<button
 							className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
-								wifiEnabled ? 'bg-[#007aff]' : 'bg-white/10'
+								wifiEnabled ? 'bg-ios-blue' : 'bg-white/10'
 							}`}
 							onClick={() => setWifiEnabled(!wifiEnabled)}
 							aria-label={`Wi-Fi ${wifiEnabled ? 'On' : 'Off'}`}
@@ -264,21 +290,22 @@ export default function ControlCenter() {
 						{/* Bluetooth */}
 						<button
 							className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
-								bluetoothEnabled ? 'bg-[#007aff]' : 'bg-white/10'
+								bluetoothEnabled ? 'bg-ios-blue' : 'bg-white/10'
 							}`}
 							onClick={() => setBluetoothEnabled(!bluetoothEnabled)}
 							aria-label={`Bluetooth ${bluetoothEnabled ? 'On' : 'Off'}`}
 						>
-							<i
-								className={`fab fa-bluetooth text-lg leading-none ${bluetoothEnabled ? 'text-white' : 'text-white/50'}`}
+							<Bluetooth
 								aria-hidden="true"
-							></i>
+								size={18}
+								className={`${bluetoothEnabled ? 'text-white' : 'text-white/50'}`}
+							/>
 						</button>
 
 						{/* Focus */}
 						<button
 							className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
-								focusEnabled ? 'bg-[#007aff]' : 'bg-white/10'
+								focusEnabled ? 'bg-ios-blue' : 'bg-white/10'
 							}`}
 							onClick={() => setFocusEnabled(!focusEnabled)}
 							aria-label={`Focus ${focusEnabled ? 'On' : 'Off'}`}
@@ -296,7 +323,7 @@ export default function ControlCenter() {
 						{/* AirDrop */}
 						<button
 							className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
-								airdropEnabled ? 'bg-[#007aff]' : 'bg-white/10'
+								airdropEnabled ? 'bg-ios-blue' : 'bg-white/10'
 							}`}
 							onClick={() => setAirdropEnabled(!airdropEnabled)}
 							aria-label={`AirDrop ${airdropEnabled ? 'On' : 'Off'}`}
@@ -324,22 +351,22 @@ export default function ControlCenter() {
 							<SmoothSlider
 								value={displayBrightness}
 								onChange={setDisplayBrightness}
-								icon="fa-sun"
+								icon="sun"
 								label="Display"
-								endIcon="fa-desktop"
+								endIcon="desktop"
 							/>
 							<SmoothSlider
 								value={soundVolume}
 								onChange={setSoundVolume}
 								icon={
 									soundVolume === 0
-										? 'fa-volume-mute'
+										? 'volume-mute'
 										: soundVolume < 50
-											? 'fa-volume-down'
-											: 'fa-volume-up'
+											? 'volume-down'
+											: 'volume-up'
 								}
 								label="Sound"
-								endIcon="fa-broadcast-tower"
+								endIcon="broadcast-tower"
 							/>
 						</div>
 					</div>
@@ -374,22 +401,24 @@ export default function ControlCenter() {
 									className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/20 active:scale-95 transition-all"
 									aria-label="Previous track"
 								>
-									<i className="fas fa-backward text-[10px] text-white"></i>
+									<SkipBack aria-hidden="true" size={10} className="text-white" />
 								</button>
 								<button
 									className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition-all"
 									onClick={() => setIsPlaying(!isPlaying)}
 									aria-label={isPlaying ? 'Pause' : 'Play'}
 								>
-									<i
-										className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-[10px] text-white`}
-									></i>
+									{isPlaying ? (
+										<Pause aria-hidden="true" size={10} className="text-white" />
+									) : (
+										<Play aria-hidden="true" size={10} className="text-white" />
+									)}
 								</button>
 								<button
 									className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/20 active:scale-95 transition-all"
 									aria-label="Next track"
 								>
-									<i className="fas fa-forward text-[10px] text-white"></i>
+									<SkipForward aria-hidden="true" size={10} className="text-white" />
 								</button>
 							</div>
 						</div>
@@ -400,7 +429,7 @@ export default function ControlCenter() {
 								<span className="text-xs font-semibold text-white">Battery</span>
 								<div className="flex items-center gap-2">
 									{batteryCharging ? (
-										<i className="fas fa-bolt text-sm text-white"></i>
+										<Zap aria-hidden="true" size={14} className="text-white" />
 									) : (
 										<div className="relative flex items-center">
 											<div className="w-8 h-4 border border-white/70 rounded-[2px] relative overflow-hidden">

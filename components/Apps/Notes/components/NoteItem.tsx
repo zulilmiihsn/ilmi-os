@@ -14,13 +14,22 @@ export default function NoteItem({ note, onClick, selectionMode, isLast }: NoteI
 	return (
 		<div
 			onClick={() => onClick(note)}
+			onKeyDown={e => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					onClick(note);
+				}
+			}}
+			role="button"
+			tabIndex={0}
+			aria-label={note.title || 'New Note'}
 			className="flex pl-4 pr-0 py-0 active:bg-gray-200 dark:active:bg-[#2C2C2E] transition-colors cursor-pointer group"
 		>
 			{selectionMode && (
 				<div className="flex items-center justify-center mr-3 py-3 animate-in slide-in-from-left-2 duration-200">
 					<div
 						className={`w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center transition-colors ${
-							note.selected ? 'bg-[#DCA326] border-[#DCA326]' : 'border-gray-400 bg-transparent'
+							note.selected ? 'bg-ios-yellow border-ios-yellow' : 'border-gray-400 bg-transparent'
 						}`}
 					>
 						{note.selected && (

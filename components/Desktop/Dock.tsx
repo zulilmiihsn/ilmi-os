@@ -2,6 +2,7 @@
 
 import { memo, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { AppWindow } from 'lucide-react';
 import { useAppsStore } from '../../stores/apps';
 import { isMacosApp } from '../../types';
 import { useWindowsStore } from '../../stores/windows';
@@ -181,7 +182,7 @@ function Dock() {
 								/>
 							) : (
 								<div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-xl text-white">
-									<i className={`fas ${app.icon} text-2xl`}></i>
+									<AppWindow aria-hidden="true" size={24} />
 								</div>
 							)}
 

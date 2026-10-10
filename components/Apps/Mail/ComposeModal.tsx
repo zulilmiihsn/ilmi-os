@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, memo } from 'react';
+import { CirclePlus } from 'lucide-react';
 import { triggerHaptic } from '../../../utils/haptic';
 import { useRestoreFocus } from '../../../utils/hooks/useRestoreFocus';
 import { useFocusTrap } from '../../../utils/hooks/useFocusTrap';
@@ -78,7 +79,7 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 				>
 					<button
 						onClick={handleClose}
-						className="text-[#007aff] text-base font-normal active:opacity-50 transition-opacity"
+						className="text-ios-blue text-base font-normal active:opacity-50 transition-opacity"
 					>
 						Cancel
 					</button>
@@ -87,7 +88,7 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 						onClick={handleSend}
 						disabled={!to}
 						className={`font-semibold text-base transition-opacity ${
-							to ? 'text-[#007aff] active:opacity-50' : 'text-gray-300 dark:text-gray-600'
+							to ? 'text-ios-blue active:opacity-50' : 'text-gray-300 dark:text-gray-600'
 						}`}
 					>
 						Send
@@ -116,11 +117,12 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 							value={to}
 							onChange={e => setTo(e.target.value)}
 							placeholder="recipient@example.com"
+							aria-label="To"
 							className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
 							autoFocus
 						/>
-						<button className="text-[#007aff] ml-2 text-base" aria-label="Add recipient">
-							<i className="fas fa-plus-circle" aria-hidden="true"></i>
+						<button className="text-ios-blue ml-2 text-base" aria-label="Add recipient">
+							<CirclePlus aria-hidden="true" size={16} />
 						</button>
 					</div>
 					<div
@@ -142,6 +144,7 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 							value={subject}
 							onChange={e => setSubject(e.target.value)}
 							placeholder="Subject"
+							aria-label="Subject"
 							className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
 						/>
 					</div>
@@ -153,6 +156,7 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 					onChange={e => setBody(e.target.value)}
 					className="flex-1 p-4 bg-transparent outline-none resize-none text-[15px] leading-relaxed placeholder-gray-400"
 					placeholder="Sent from my iPhone"
+					aria-label="Message body"
 				/>
 			</div>
 		</div>

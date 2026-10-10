@@ -33,13 +33,13 @@ export default function DeleteAlert({ count, onCancel, onDelete }: DeleteAlertPr
 				<div className="flex divide-x divide-gray-300/50 dark:divide-white/10">
 					<button
 						onClick={onCancel}
-						className="flex-1 py-3 text-sm text-blue-500 font-semibold active:bg-gray-200 dark:active:bg-white/10 transition-colors"
+						className="flex-1 py-3 text-sm text-ios-blue font-semibold active:bg-gray-200 dark:active:bg-white/10 transition-colors"
 					>
 						Cancel
 					</button>
 					<button
 						onClick={onDelete}
-						className="flex-1 py-3 text-sm text-red-500 font-semibold active:bg-gray-200 dark:active:bg-white/10 transition-colors"
+						className="flex-1 py-3 text-sm text-ios-red font-semibold active:bg-gray-200 dark:active:bg-white/10 transition-colors"
 					>
 						Delete
 					</button>

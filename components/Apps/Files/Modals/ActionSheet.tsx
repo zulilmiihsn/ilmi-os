@@ -1,5 +1,9 @@
 'use client';
 
+import { useRef } from 'react';
+import { useRestoreFocus } from '../../../../utils/hooks/useRestoreFocus';
+import { useFocusTrap } from '../../../../utils/hooks/useFocusTrap';
+
 interface ActionSheetProps {
     isOpen: boolean;
     onClose: () => void;
@@ -17,6 +21,10 @@ export default function ActionSheet({
     onDelete,
     darkMode,
 }: ActionSheetProps) {
+    const rootRef = useRef<HTMLDivElement>(null);
+    useRestoreFocus(isOpen, rootRef);
+    useFocusTrap(isOpen, rootRef);
+
     if (!isOpen) return null;
 
     const theme = {
@@ -25,6 +33,10 @@ export default function ActionSheet({
 
     return (
         <div
+            ref={rootRef}
+            onKeyDown={e => {
+                if (e.key === 'Escape') onClose();
+            }}
             className="absolute inset-0 backdrop-blur-sm bg-black/30 flex items-end justify-center z-50 animate-fade-in"
             onClick={onClose}
         >

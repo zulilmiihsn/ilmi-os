@@ -15,8 +15,8 @@
 	--color-ios-green: #34c759;
 	--color-ios-red: #ff3b30;
 	--color-ios-yellow: #ffcc00;
-	--color-ios-notes-yellow: #dca326;
 	--color-ios-orange: #ff9500;
+	--color-ios-indigo: #5856d6;
 	--color-ios-calc-num: #333333;
 	--color-ios-calc-func: #a5a5a5;
 	--color-ios-gray: #8e8e93;
@@ -101,6 +101,18 @@
 
 /* Class-based dark mode (the app toggles .dark on <html>). */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* HIG dynamic colors: brighter system variants in dark mode.
+   Redefining the tokens once here beats sprinkling dark: companions
+   on every usage, and opacity modifiers (bg-ios-blue/10) adapt too. */
+.dark {
+	--color-ios-blue: #0a84ff;
+	--color-ios-green: #30d158;
+	--color-ios-red: #ff453a;
+	--color-ios-yellow: #ffd60a;
+	--color-ios-orange: #ff9f0a;
+	--color-ios-indigo: #5e5ce6;
+}
 
 /* San Francisco UI Display Font Face Definitions.
    Only weights actually referenced by the UI (300-700) are declared. */

@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useRef } from 'react';
 import Image from 'next/image';
+import { useRestoreFocus } from '../../../../utils/hooks/useRestoreFocus';
+import { useFocusTrap } from '../../../../utils/hooks/useFocusTrap';
 
 interface PhotoViewerModalProps {
 	imageUrl: string | null;
@@ -9,32 +11,25 @@ interface PhotoViewerModalProps {
 }
 
 export default function PhotoViewerModal({ imageUrl, onClose }: PhotoViewerModalProps) {
-	const handleKeyDown = useCallback(
-		(e: KeyboardEvent) => {
-			if (e.key === 'Escape') {
-				onClose();
-			}
-		},
-		[onClose]
-	);
-
-	useEffect(() => {
-		if (imageUrl) {
-			window.addEventListener('keydown', handleKeyDown);
-			return () => window.removeEventListener('keydown', handleKeyDown);
-		}
-	}, [imageUrl, handleKeyDown]);
+	const rootRef = useRef<HTMLDivElement>(null);
+	// Mounted only while open: restores focus on close/unmount.
+	useRestoreFocus(!!imageUrl, rootRef);
+	useFocusTrap(!!imageUrl, rootRef);
 
 	if (!imageUrl) return null;
 
 	return (
 		<div
+			ref={rootRef}
+			onKeyDown={e => {
+				if (e.key === 'Escape') onClose();
+			}}
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
 			onClick={onClose}
 		>
 			<button
 				onClick={onClose}
-				className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+				className="absolute top-12 right-4 text-white/80 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
 				aria-label="Close photo preview"
 			>
 				<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

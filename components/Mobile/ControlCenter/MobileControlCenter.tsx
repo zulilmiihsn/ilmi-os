@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, forwardRef, memo, useImperativeHandle } from 'react';
+import { BedDouble, Briefcase, Moon, User, type LucideIcon } from 'lucide-react';
 import { useControlCenterStore } from '../../../stores/controlCenter';
 import { useSettingsStore } from '../../../stores/settings';
 import { triggerHaptic } from '../../../utils/haptic';
@@ -10,6 +11,14 @@ interface MobileControlCenterProps {
 	onClose: () => void;
 	onOpenApp?: (appId: string) => void;
 }
+
+// Icon keys from focus data mapped to Lucide.
+const FOCUS_ICONS: Record<string, LucideIcon> = {
+	'moon': Moon,
+	'briefcase': Briefcase,
+	'user': User,
+	'bed': BedDouble,
+};
 
 // Vertical Liquid Glass Capsule Slider (iOS 26 Style)
 interface VerticalSliderProps {
@@ -119,7 +128,7 @@ const VerticalSlider = ({ value, onChange, icon, label }: VerticalSliderProps) =
 						height="30"
 						viewBox="0 0 24 24"
 						fill="currentColor"
-						className={`transition-colors drop-shadow-sm ${value > 45 ? 'text-[#ffcc00]' : 'text-white'}`}
+						className={`transition-colors drop-shadow-sm ${value > 45 ? 'text-ios-yellow' : 'text-white'}`}
 					>
 						<circle cx="12" cy="12" r="4.5" />
 						<path
@@ -245,8 +254,8 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 			if (activeFocus === 'Do Not Disturb') {
 				return {
 					label: 'Do Not Disturb',
-					icon: 'fas fa-moon',
-					bg: 'bg-[#5856d6]',
+					icon: 'moon',
+					bg: 'bg-ios-indigo',
 					shadow: 'shadow-[0_0_18px_rgba(88,86,214,0.6)]',
 					border: 'border-white/30',
 				};
@@ -254,8 +263,8 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 			if (activeFocus === 'Work') {
 				return {
 					label: 'Work',
-					icon: 'fas fa-briefcase',
-					bg: 'bg-[#007aff]',
+					icon: 'briefcase',
+					bg: 'bg-ios-blue',
 					shadow: 'shadow-[0_0_18px_rgba(0,122,255,0.6)]',
 					border: 'border-white/30',
 				};
@@ -263,8 +272,8 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 			if (activeFocus === 'Personal') {
 				return {
 					label: 'Personal',
-					icon: 'fas fa-user',
-					bg: 'bg-[#ff9500]',
+					icon: 'user',
+					bg: 'bg-ios-orange',
 					shadow: 'shadow-[0_0_18px_rgba(255,149,0,0.6)]',
 					border: 'border-white/30',
 				};
@@ -272,15 +281,15 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 			if (activeFocus === 'Sleep') {
 				return {
 					label: 'Sleep',
-					icon: 'fas fa-bed',
-					bg: 'bg-[#34c759]',
+					icon: 'bed',
+					bg: 'bg-ios-green',
 					shadow: 'shadow-[0_0_18px_rgba(52,199,89,0.6)]',
 					border: 'border-white/30',
 				};
 			}
 			return {
 				label: 'Focus',
-				icon: 'fas fa-moon',
+				icon: 'moon',
 				bg: 'bg-white/10',
 				shadow: 'shadow-[0_4px_16px_rgba(0,0,0,0.25)]',
 				border: 'border-white/20',
@@ -288,6 +297,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 		};
 
 		const focusInfo = getFocusInfo();
+		const FocusIcon = FOCUS_ICONS[focusInfo.icon] ?? Moon;
 
 		return (
 			<div
@@ -329,7 +339,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}}
 									className={`w-full aspect-square rounded-full flex items-center justify-center transition-all active:scale-90 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_4px_12px_rgba(0,0,0,0.2)] ${
 										airplaneMode
-											? 'bg-[#007aff] text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]'
+											? 'bg-ios-blue text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]'
 											: 'bg-white/10 text-white border-white/20'
 									}`}
 									aria-label="Airplane Mode"
@@ -357,7 +367,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}}
 									className={`w-full aspect-square rounded-full flex items-center justify-center transition-all active:scale-90 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_4px_12px_rgba(0,0,0,0.2)] ${
 										airdrop && !airplaneMode
-											? 'bg-[#007aff] text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]'
+											? 'bg-ios-blue text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]'
 											: 'bg-white/10 text-white border-white/20'
 									}`}
 									aria-label="AirDrop"
@@ -386,7 +396,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}}
 									className={`w-full aspect-square rounded-full flex items-center justify-center transition-all active:scale-90 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_4px_12px_rgba(0,0,0,0.2)] ${
 										wifi && !airplaneMode
-											? 'bg-[#007aff] text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]'
+											? 'bg-ios-blue text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]'
 											: 'bg-white/10 text-white border-white/20'
 									}`}
 									aria-label="Wi-Fi"
@@ -416,7 +426,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}}
 									className={`w-full aspect-square rounded-full flex items-center justify-center transition-all active:scale-90 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_4px_12px_rgba(0,0,0,0.2)] ${
 										bluetooth
-											? 'bg-[#007aff] text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]'
+											? 'bg-ios-blue text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]'
 											: 'bg-white/10 text-white border-white/20'
 									}`}
 									aria-label="Bluetooth"
@@ -537,7 +547,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}}
 									className={`w-[72px] h-[72px] rounded-full border flex items-center justify-center transition-all active:scale-90 ${
 										orientationLock
-											? 'bg-white text-[#ff3b30] border-white/40 shadow-[0_4px_18px_rgba(0,0,0,0.25)]'
+											? 'bg-white text-ios-red border-white/40 shadow-[0_4px_18px_rgba(0,0,0,0.25)]'
 											: 'bg-white/10 text-white border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]'
 									}`}
 									aria-label="Orientation Lock"
@@ -579,7 +589,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 									}}
 									className={`w-[72px] h-[72px] rounded-full border flex items-center justify-center transition-all active:scale-90 ${
 										silentMode
-											? 'bg-white text-[#ff3b30] border-white/40 shadow-[0_4px_18px_rgba(0,0,0,0.25)]'
+											? 'bg-white text-ios-red border-white/40 shadow-[0_4px_18px_rgba(0,0,0,0.25)]'
 											: 'bg-white/10 text-white border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]'
 									}`}
 									aria-label="Silent Mode"
@@ -631,7 +641,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 								>
 									<div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
 										<div className="w-10 h-10 rounded-full bg-white/20 border border-white/15 flex items-center justify-center flex-shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
-											<i className={`${focusInfo.icon} text-lg`}></i>
+											<FocusIcon aria-hidden="true" size={18} />
 										</div>
 										{/* Text container with elegant gradient fade-out / shade away mask */}
 										<div
@@ -734,7 +744,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 							}}
 							className={`w-full aspect-square rounded-full shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.4),0_4px_16px_rgba(0,0,0,0.25)] flex items-center justify-center transition-all active:scale-88 border ${
 								lowPowerMode
-									? 'bg-[#ffcc00] text-black border-white/30 shadow-[0_0_20px_rgba(255,204,0,0.7)]'
+									? 'bg-ios-yellow text-black border-white/30 shadow-[0_0_20px_rgba(255,204,0,0.7)]'
 									: 'bg-white/10 text-white border-white/20'
 							}`}
 							aria-label="Low Power Mode"

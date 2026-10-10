@@ -21,7 +21,7 @@ export const CameraModeSelector: React.FC<CameraModeSelectorProps> = ({ mode, se
 							setMode(m);
 						}}
 						className={`text-xs tracking-wider transition-all duration-200 ${
-							mode === m ? 'text-[#ffcc00] font-bold scale-105' : 'text-white/60 font-medium'
+							mode === m ? 'text-ios-yellow font-bold scale-105' : 'text-white/60 font-medium'
 						}`}
 						aria-label={`Switch to ${m} mode`}
 						role="tab"

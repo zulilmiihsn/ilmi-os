@@ -269,7 +269,7 @@ export default function Terminal() {
 
 	return (
 		<div
-			className="terminal w-full h-full bg-[#1A1A1A] text-[#33FF00] font-mono p-4 flex flex-col overflow-hidden text-sm selection:bg-[#33FF00]/30 selection:text-white"
+			className="terminal w-full h-full bg-[#1A1A1A] text-[#33FF00] font-mono p-4 pb-[max(env(safe-area-inset-bottom),1rem)] flex flex-col overflow-hidden text-sm selection:bg-[#33FF00]/30 selection:text-white"
 			onClick={() => inputRef.current?.focus()}
 		>
 			<div className="output flex-1 overflow-y-auto space-y-1.5 pr-2 scrollbar-hide">

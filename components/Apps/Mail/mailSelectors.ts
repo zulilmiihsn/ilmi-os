@@ -24,6 +24,22 @@ export interface MailFilter {
 	unreadOnly: boolean;
 }
 
+/** Robust timestamp for seed dates like M/D/YY. Unparseable sorts last, never NaN. */
+export function parseMailDate(date: string): number {
+	const direct = new Date(date).getTime();
+	if (!Number.isNaN(direct)) return direct;
+	const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(date.trim());
+	if (m) {
+		const month = Number(m[1]);
+		const day = Number(m[2]);
+		const rawYear = m[3] ?? '';
+		const year = rawYear.length === 2 ? 2000 + Number(rawYear) : Number(rawYear);
+		const parsed = new Date(year, month - 1, day).getTime();
+		if (!Number.isNaN(parsed)) return parsed;
+	}
+	return 0;
+}
+
 /** Mailbox, search, unread, and date-desc ordering. Never mutates the input array. */
 export function filterDisplayEmails(emails: Email[], filter: MailFilter): Email[] {
 	let filtered = emails;
@@ -50,5 +66,5 @@ export function filterDisplayEmails(emails: Email[], filter: MailFilter): Email[
 		filtered = filtered.filter(e => !e.read);
 	}
 
-	return [...filtered].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+	return [...filtered].sort((a, b) => parseMailDate(b.date) - parseMailDate(a.date));
 }

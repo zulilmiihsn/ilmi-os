@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
 import { generateId } from '../../../utils/id';
 import { TIMING } from '../../../constants';
 import { useTheme } from '../../../utils/hooks';
+import { useFocusTrap } from '../../../utils/hooks/useFocusTrap';
+import { useRestoreFocus } from '../../../utils/hooks/useRestoreFocus';
 import ClockWorldTab from './ClockWorldTab';
 import ClockAlarmsTab from './ClockAlarmsTab';
 import ClockStopwatchTab from './ClockStopwatchTab';
@@ -24,15 +26,48 @@ interface Alarm {
 }
 
 interface LapTime {
-	id: number;
+	id: string;
 	time: number;
 	lapDiff: number;
 }
 
-const cities: CityTime[] = [
+const INITIAL_CITIES: CityTime[] = [
 	{ city: 'Samarinda', timezone: 'Asia/Makassar', offset: 8 }, // WITA
 	{ city: 'Malang', timezone: 'Asia/Jakarta', offset: 7 }, // WIB
 ];
+
+// Curated addable cities (real IANA zones; offset computed live, DST-aware).
+const CITY_CHOICES: { city: string; timezone: string }[] = [
+	{ city: 'Jakarta', timezone: 'Asia/Jakarta' },
+	{ city: 'Makassar', timezone: 'Asia/Makassar' },
+	{ city: 'Jayapura', timezone: 'Asia/Jayapura' },
+	{ city: 'Singapore', timezone: 'Asia/Singapore' },
+	{ city: 'Tokyo', timezone: 'Asia/Tokyo' },
+	{ city: 'Seoul', timezone: 'Asia/Seoul' },
+	{ city: 'Sydney', timezone: 'Australia/Sydney' },
+	{ city: 'Dubai', timezone: 'Asia/Dubai' },
+	{ city: 'London', timezone: 'Europe/London' },
+	{ city: 'Paris', timezone: 'Europe/Paris' },
+	{ city: 'New York', timezone: 'America/New_York' },
+	{ city: 'Los Angeles', timezone: 'America/Los_Angeles' },
+];
+
+// Current UTC offset of a zone in whole hours, DST-aware at call time.
+const zoneOffsetHours = (timezone: string, at = new Date()): number => {
+	const parts = new Intl.DateTimeFormat('en-US', {
+		timeZone: timezone,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+		hour12: false,
+	}).formatToParts(at);
+	const get = (type: string) => Number(parts.find(p => p.type === type)?.value ?? 0);
+	const asUTC = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+	return Math.round((asUTC - at.getTime()) / 3600000);
+};
 
 function Clock() {
 	const baseTheme = useTheme();
@@ -40,6 +75,12 @@ function Clock() {
 
 	const [currentTime, setCurrentTime] = useState(new Date());
 	const [activeTab, setActiveTab] = useState<'world' | 'alarms' | 'stopwatch' | 'timers'>('world');
+	const [cities, setCities] = useState<CityTime[]>(INITIAL_CITIES);
+	const [isEditingCities, setIsEditingCities] = useState(false);
+	const [showCityPicker, setShowCityPicker] = useState(false);
+	const cityPickerRef = useRef<HTMLDivElement>(null);
+	useRestoreFocus(showCityPicker, cityPickerRef);
+	useFocusTrap(showCityPicker, cityPickerRef);
 
 	// Alarms state
 	const [alarms, setAlarms] = useState<Alarm[]>([]);
@@ -155,7 +196,7 @@ function Clock() {
 				hourDiffString,
 			};
 		});
-	}, [currentTime]);
+	}, [currentTime, cities]);
 
 	// Animation states
 	const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
@@ -194,7 +235,7 @@ function Clock() {
 		const firstLap = lapTimes[0];
 		const lapDiff = firstLap ? stopwatchTime - firstLap.time : stopwatchTime;
 
-		setLapTimes(prev => [{ id: prev.length + 1, time: stopwatchTime, lapDiff }, ...prev]);
+		setLapTimes(prev => [{ id: generateId('lap'), time: stopwatchTime, lapDiff }, ...prev]);
 	}, [stopwatchTime, lapTimes]);
 
 	// Timer functions
@@ -222,6 +263,25 @@ function Clock() {
 		setTimerRunning(false);
 		setResetKey(prev => prev + 1); // Trigger animation
 	}, []);
+
+	const handleAddCity = useCallback((timezone: string) => {
+		const choice = CITY_CHOICES.find(c => c.timezone === timezone);
+		if (!choice) return;
+		setCities(prev =>
+			prev.some(c => c.timezone === timezone)
+				? prev
+				: [...prev, { city: choice.city, timezone, offset: zoneOffsetHours(timezone) }]
+		);
+		setShowCityPicker(false);
+	}, []);
+
+	const handleRemoveCity = useCallback((city: string) => {
+		setCities(prev => prev.filter(c => c.city !== city));
+	}, []);
+
+	const availableChoices = CITY_CHOICES.filter(
+		c => !cities.some(existing => existing.timezone === c.timezone)
+	);
 
 	// Alarm functions
 	const handleAddAlarm = useCallback(() => {
@@ -305,14 +365,11 @@ function Clock() {
 			header: darkMode
 				? 'bg-black/80 border-ios-dark-separator'
 				: 'bg-white/95 border-ios-separator',
-			tabBar: `${baseTheme.tabBarBg} ${baseTheme.border}`,
+			resetBtn: darkMode ? 'bg-ios-dark-gray5 text-white' : 'bg-ios-gray5 text-black',
+			disabledBtn: darkMode ? 'bg-ios-dark-gray6 text-gray-600' : 'bg-ios-gray6 text-gray-400',
 			input: darkMode
 				? 'bg-ios-dark-gray6 border-ios-dark-separator text-white'
 				: 'bg-ios-gray6 border-ios-gray4 text-black',
-			resetBtn: darkMode ? 'bg-ios-dark-gray5 text-white' : 'bg-ios-gray5 text-black',
-			disabledBtn: darkMode ? 'bg-ios-dark-gray6 text-gray-600' : 'bg-ios-gray6 text-gray-400',
-			tabText: baseTheme.tabActive,
-			tabTextInactive: baseTheme.tabInactive,
 		}),
 		[baseTheme, darkMode]
 	);
@@ -328,62 +385,67 @@ function Clock() {
 		>
 			{/* Navigation Bar */}
 			<div
-				className={`flex items-center justify-between px-6 py-3 border-b z-10 backdrop-blur-md sticky top-0 transition-colors ${theme.header}`}
+				className={`px-4 pt-10 pb-2 border-b z-10 backdrop-blur-md sticky top-0 transition-colors ${theme.header}`}
 			>
 				{activeTab === 'world' && (
 					<>
-						<button className={`${theme.tabText} text-base font-medium`} aria-label="Edit cities">
-							Edit
-						</button>
-						<h1 className={`${theme.text} text-2xl font-semibold animate-slide-bottom`}>
-							World Clock
-						</h1>
+						<div className="flex items-center justify-between">
 						<button
-							className={`${theme.tabText} text-2xl font-light leading-none`}
+							onClick={() => setIsEditingCities(prev => !prev)}
+							className={`relative ${theme.text} text-[#ff9f0a] text-base font-medium after:absolute after:-inset-y-2.5 after:content-['']`}
+							aria-label="Edit cities"
+						>
+							{isEditingCities ? 'Done' : 'Edit'}
+						</button>
+						<button
+							onClick={() => setShowCityPicker(true)}
+							className={`relative ${theme.text} text-[#ff9f0a] text-2xl font-light leading-none after:absolute after:-inset-2.5 after:content-['']`}
 							aria-label="Add city"
 						>
 							+
 						</button>
+						</div>
+						<h1 className={`${theme.text} text-ios-large-title animate-slide-bottom`}>
+							World Clock
+						</h1>
 					</>
 				)}
 				{activeTab === 'alarms' && (
 					<>
-						<button
-							onClick={() => {
-								if (alarms.length > 0) {
-									setAlarms([]);
-									setDeletableAlarmId(null);
-								}
-							}}
-							className={`${theme.tabText} text-base font-medium`}
-							aria-label="Clear all alarms"
-						>
-							{alarms.length > 0 ? 'Clear' : ''}
-						</button>
-						<h1 className={`${theme.text} text-2xl font-semibold animate-slide-bottom`}>Alarms</h1>
-						<button
-							onClick={handleAddAlarm}
-							className={`${theme.tabText} text-2xl font-light leading-none`}
-							aria-label="Add alarm"
-						>
-							+
-						</button>
+						<div className="flex items-center justify-between">
+							<button
+								onClick={() => {
+									if (alarms.length > 0) {
+										setAlarms([]);
+										setDeletableAlarmId(null);
+									}
+								}}
+								className={`relative ${theme.text} text-[#ff9f0a] text-base font-medium after:absolute after:-inset-y-2.5 after:content-['']`}
+								aria-label="Clear all alarms"
+							>
+								{alarms.length > 0 ? 'Clear' : ''}
+							</button>
+							<button
+								onClick={handleAddAlarm}
+								className={`relative ${theme.text} text-[#ff9f0a] text-2xl font-light leading-none after:absolute after:-inset-2.5 after:content-['']`}
+								aria-label="Add alarm"
+							>
+								+
+							</button>
+						</div>
+						<h1 className={`${theme.text} text-ios-large-title animate-slide-bottom`}>Alarms</h1>
 					</>
 				)}
 				{activeTab === 'stopwatch' && (
 					<>
-						<div className="w-12"></div>
-						<h1 className={`${theme.text} text-2xl font-semibold animate-slide-bottom`}>
+						<h1 className={`${theme.text} text-ios-large-title animate-slide-bottom`}>
 							Stopwatch
 						</h1>
-						<div className="w-12"></div>
 					</>
 				)}
 				{activeTab === 'timers' && (
 					<>
-						<div className="w-12"></div>
-						<h1 className={`${theme.text} text-2xl font-semibold animate-slide-bottom`}>Timer</h1>
-						<div className="w-12"></div>
+						<h1 className={`${theme.text} text-ios-large-title animate-slide-bottom`}>Timer</h1>
 					</>
 				)}
 			</div>
@@ -394,7 +456,13 @@ function Clock() {
 				onScroll={() => setDeletableAlarmId(null)}
 			>
 				{activeTab === 'world' && (
-					<ClockWorldTab cityTimes={cityTimes} direction={direction} theme={theme} />
+					<ClockWorldTab
+						cityTimes={cityTimes}
+						direction={direction}
+						theme={theme}
+						isEditingCities={isEditingCities}
+						onRemoveCity={handleRemoveCity}
+					/>
 				)}
 
 				{activeTab === 'alarms' && (
@@ -446,7 +514,57 @@ function Clock() {
 			</div>
 
 			{/* Bottom Tab Bar */}
-			<ClockTabBar activeTab={activeTab} onTabChange={handleTabChange} theme={theme} />
+			<ClockTabBar activeTab={activeTab} onTabChange={handleTabChange} />
+
+			{/* Add-city sheet */}
+			{showCityPicker && (
+				<div
+					className="absolute inset-0 z-50 flex items-center justify-center bg-black/30"
+					onClick={() => setShowCityPicker(false)}
+				>
+					<div
+						ref={cityPickerRef}
+						onKeyDown={e => {
+							if (e.key === 'Escape') setShowCityPicker(false);
+						}}
+						onClick={e => e.stopPropagation()}
+						role="dialog"
+						aria-label="Add city"
+						className="w-72 max-h-[70%] overflow-y-auto rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 shadow-2xl"
+					>
+						<div className="px-4 py-3 border-b border-black/5 dark:border-white/10">
+							<h2 className="text-base font-semibold text-center">Add City</h2>
+						</div>
+						{availableChoices.length === 0 ? (
+							<p className="px-4 py-6 text-sm text-center text-gray-500">
+								All cities already added
+							</p>
+						) : (
+							availableChoices.map(choice => {
+								const offset = zoneOffsetHours(choice.timezone);
+								return (
+									<button
+										key={choice.timezone}
+										onClick={() => handleAddCity(choice.timezone)}
+										className="w-full px-4 py-3 flex items-center justify-between active:bg-black/5 dark:active:bg-white/10 transition-colors border-b last:border-b-0 border-black/5 dark:border-white/10"
+									>
+										<span className="text-[15px]">{choice.city}</span>
+										<span className="text-xs text-gray-400">
+											GMT{offset >= 0 ? `+${offset}` : offset}
+										</span>
+									</button>
+								);
+							})
+						)}
+						<button
+							onClick={() => setShowCityPicker(false)}
+							className="w-full py-3 text-sm text-ios-blue font-semibold active:bg-black/5 dark:active:bg-white/10 transition-colors"
+						>
+							Cancel
+						</button>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

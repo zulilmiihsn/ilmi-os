@@ -24,7 +24,7 @@ function TrafficButton({
 }) {
 	return (
 		<button
-			className={`w-3 h-3 rounded-full ${color} flex items-center justify-center text-transparent hover:text-black/60 active:brightness-90 transition-all font-bold p-0 border-none leading-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#007AFF]`}
+			className={`w-3 h-3 rounded-full ${color} flex items-center justify-center text-transparent hover:text-black/60 active:brightness-90 transition-all font-bold p-0 border-none leading-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue`}
 			onClick={onClick}
 			onMouseDown={e => e.stopPropagation()}
 			onDoubleClick={e => e.stopPropagation()}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { Search, Signal, SlidersHorizontal, Wifi } from 'lucide-react';
 import ControlCenter from './ControlCenter';
 import { useControlCenterStore } from '../../stores/controlCenter';
 import { useWindowsStore } from '../../stores/windows';
@@ -32,8 +33,8 @@ export default function MenuBar() {
 	// Computed battery color based on level
 	const batteryColor = useMemo(() => {
 		if (batteryLevel === null) return '#000000'; // Black for desktop
-		if (batteryLevel <= 20) return '#ff3b30'; // Red
-		if (batteryLevel <= 50) return '#ff9500'; // Orange
+		if (batteryLevel <= 20) return 'var(--color-ios-red)'; // Red
+		if (batteryLevel <= 50) return 'var(--color-ios-orange)'; // Orange
 		return '#000000'; // Black
 	}, [batteryLevel]);
 
@@ -390,13 +391,13 @@ export default function MenuBar() {
 						aria-label="Search"
 						onClick={() => setIsSpotlightOpen(!isSpotlightOpen)}
 					>
-						<i className="fas fa-search text-xs"></i>
+						<Search aria-hidden="true" size={12} />
 					</button>
 					<button
 						className="w-5 h-5 flex items-center justify-center rounded transition-opacity hover:opacity-70"
 						aria-label="Wi-Fi"
 					>
-						<i className={`fas ${isWifi ? 'fa-wifi' : 'fa-signal'} text-xs`}></i>
+						{isWifi ? <Wifi aria-hidden="true" size={12} /> : <Signal aria-hidden="true" size={12} />}
 					</button>
 					{/* Battery */}
 					<div className="flex items-center gap-px">
@@ -410,7 +411,7 @@ export default function MenuBar() {
 									}`}
 									style={{
 										width: `${batteryFillWidth}%`,
-										backgroundColor: batteryCharging ? '#34c759' : batteryColor,
+										backgroundColor: batteryCharging ? 'var(--color-ios-green)' : batteryColor,
 									}}
 								></div>
 
@@ -437,7 +438,7 @@ export default function MenuBar() {
 						onClick={handleToggleControlCenter}
 						aria-label="Control Center"
 					>
-						<i className="fas fa-sliders-h text-xs pointer-events-none"></i>
+						<SlidersHorizontal aria-hidden="true" size={12} className="pointer-events-none" />
 					</button>
 					{/* Date and Time */}
 					<DesktopClock />

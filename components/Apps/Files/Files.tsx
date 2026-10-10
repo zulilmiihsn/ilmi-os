@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSettingsStore } from '../../../stores/settings';
 import { TIMING } from '../../../constants';
+import { triggerHaptic } from '../../../utils/haptic';
 import {
 	createFolder,
+	createFile,
 	deleteItem,
 	renameItem,
 	formatFileSize,
@@ -25,6 +27,15 @@ import {
 
 import TabBar from './TabBar';
 
+type SortMode = 'name-asc' | 'name-desc' | 'date-desc' | 'date-asc';
+const SORT_ORDER: SortMode[] = ['name-asc', 'name-desc', 'date-desc', 'date-asc'];
+const SORT_LABELS: Record<SortMode, string> = {
+	'name-asc': 'Name A–Z',
+	'name-desc': 'Name Z–A',
+	'date-desc': 'Newest first',
+	'date-asc': 'Oldest first',
+};
+
 export default function Files() {
 	const { darkMode } = useSettingsStore();
 
@@ -34,6 +45,11 @@ export default function Files() {
 	const [activeTab, setActiveTab] = useState<'recents' | 'shared' | 'browse'>('browse');
 	const [searchQuery, setSearchQuery] = useState('');
 	const [items, setItems] = useState<FileItem[]>([]);
+	const [sortMode, setSortMode] = useState<SortMode>('name-asc');
+	const cycleSortMode = useCallback(() => {
+		triggerHaptic('light');
+		setSortMode(prev => SORT_ORDER[(SORT_ORDER.indexOf(prev) + 1) % SORT_ORDER.length] ?? 'name-asc');
+	}, []);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [newFolderName, setNewFolderName] = useState('');
 	const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -75,6 +91,26 @@ export default function Files() {
 		const folderItems = getItemsInFolder(currentFolderId);
 		setItems(folderItems);
 	}, [mounted, currentFolderId]);
+
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const handleUploadFiles = useCallback(
+		async (list: FileList | null) => {
+			if (!list || list.length === 0) return;
+			triggerHaptic('medium');
+			let failed = false;
+			for (const f of Array.from(list)) {
+				const isText =
+					f.type.startsWith('text/') || /\.(txt|md|json|csv|log|xml|html?|css|js|ts|tsx)$/i.test(f.name);
+				const content = isText ? await f.text().catch(() => '') : '';
+				if (!createFile(f.name, currentFolderId, content, f.size)) failed = true;
+			}
+			if (failed) {
+				setPersistError('Could not save uploaded file(s). Storage may be unavailable.');
+			}
+			loadItems();
+		},
+		[currentFolderId, loadItems]
+	);
 
 	// Load items when folder changes (only after mounted)
 	useEffect(() => {
@@ -118,10 +154,18 @@ export default function Files() {
 			if (a.type !== b.type) {
 				return a.type === 'folder' ? -1 : 1;
 			}
-			// Then alphabetically
-			return a.name.localeCompare(b.name);
+			switch (sortMode) {
+				case 'name-desc':
+					return b.name.localeCompare(a.name);
+				case 'date-desc':
+					return new Date(b.modified).getTime() - new Date(a.modified).getTime();
+				case 'date-asc':
+					return new Date(a.modified).getTime() - new Date(b.modified).getTime();
+				default:
+					return a.name.localeCompare(b.name);
+			}
 		});
-	}, [filteredItems, activeTab]);
+	}, [filteredItems, activeTab, sortMode]);
 
 	// Get enriched items with item count for folders
 	const enrichedItems = useMemo(() => {
@@ -251,7 +295,7 @@ export default function Files() {
 		itemIconFile: 'text-ios-gray',
 		tabBarBg: darkMode ? 'bg-black border-ios-dark-separator' : 'bg-white border-ios-separator',
 		activeTab: 'text-ios-blue',
-		inactiveTab: darkMode ? 'text-ios-gray' : 'text-gray-500',
+		inactiveTab: 'text-ios-gray',
 		tabHighlight: 'bg-ios-blue/20',
 		actionMenuBg: darkMode ? 'bg-ios-dark-gray5/70 border-gray-700' : 'bg-white/95 border-white/20',
 		modalBg: darkMode ? 'bg-ios-dark-gray6/90' : 'bg-white/90',
@@ -309,10 +353,12 @@ export default function Files() {
 					<div className="flex-1 flex items-center justify-end">
 						<button
 							onClick={() => setShowActionMenu(true)}
-							className="w-8 h-8 flex items-center justify-center"
+							aria-label="More actions"
+							className="relative w-8 h-8 flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
 						>
 							<svg
-								className={`w-5 h-5 ${darkMode ? 'text-ios-blue' : 'text-ios-blue'}`}
+								aria-hidden="true"
+								className={`w-5 h-5 ${theme.activeTab}`}
 								fill="currentColor"
 								viewBox="0 0 24 24"
 							>
@@ -326,6 +372,7 @@ export default function Files() {
 				<div className="px-4 pb-3">
 					<div className={`relative flex items-center rounded-lg px-3 py-2 ${theme.searchBg}`}>
 						<svg
+							aria-hidden="true"
 							className="w-4 h-4 text-gray-500 mr-2"
 							fill="none"
 							stroke="currentColor"
@@ -341,15 +388,16 @@ export default function Files() {
 						<input
 							type="text"
 							placeholder="Search"
+							aria-label="Search files"
 							value={searchQuery}
 							onChange={e => setSearchQuery(e.target.value)}
 							className={`flex-1 bg-transparent border-none outline-none text-sm ${theme.text} ${theme.searchPlaceholder}`}
 						/>
-						<button className="ml-2">
+						<span className="ml-2" aria-hidden="true">
 							<svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
 								<path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
 							</svg>
-						</button>
+						</span>
 					</div>
 				</div>
 			</div>
@@ -425,7 +473,7 @@ export default function Files() {
 							<h3 className={`text-lg font-semibold mb-1 ${theme.text}`}>Empty Folder</h3>
 							<button
 								onClick={() => setShowCreateDialog(true)}
-								className="mt-4 px-4 py-2 bg-ios-blue text-white rounded-lg font-medium active:bg-blue-600 transition-colors"
+								className="mt-4 px-4 py-2 bg-ios-blue text-white rounded-lg font-medium active:opacity-80 transition-opacity"
 							>
 								Create Folder
 							</button>
@@ -439,6 +487,15 @@ export default function Files() {
 								<div
 									key={item.id}
 									className="flex flex-col items-center group"
+									role="button"
+									tabIndex={0}
+									aria-label={item.name}
+									onKeyDown={e => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											handleItemClick(item);
+										}
+									}}
 									onClick={() => handleItemClick(item)}
 									onContextMenu={e => {
 										e.preventDefault();
@@ -512,6 +569,18 @@ export default function Files() {
 			/>
 
 			{/* Action Menu (Dropdown) */}
+			<input
+				ref={fileInputRef}
+				type="file"
+				multiple
+				className="hidden"
+				tabIndex={-1}
+				aria-hidden="true"
+				onChange={e => {
+					void handleUploadFiles(e.target.files);
+					e.target.value = '';
+				}}
+			/>
 			<ActionMenu
 				isOpen={showActionMenu}
 				onClose={() => setShowActionMenu(false)}
@@ -519,6 +588,15 @@ export default function Files() {
 					setShowActionMenu(false);
 					setShowCreateDialog(true);
 				}}
+				onUpload={() => {
+					setShowActionMenu(false);
+					fileInputRef.current?.click();
+				}}
+				onCycleSort={() => {
+					cycleSortMode();
+					setShowActionMenu(false);
+				}}
+				sortLabel={SORT_LABELS[sortMode]}
 				darkMode={darkMode}
 			/>
 

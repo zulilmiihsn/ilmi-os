@@ -8,7 +8,7 @@ export type {} from './useLongPress';
 export { useSwipeGesture } from './useSwipeGesture';
 export type {} from './useSwipeGesture';
 
-export { useTheme, getThemeColors } from './useTheme';
+export { useTheme } from './useTheme';
 export type { ThemeTokens } from './useTheme';
 
 export { useRestoreFocus } from './useRestoreFocus';

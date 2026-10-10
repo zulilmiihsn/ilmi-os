@@ -1,7 +1,9 @@
 'use client';
 
+import { useRef } from 'react';
 import type { Note } from '../types';
-import FormatToolbar from './FormatToolbar';
+import FormatToolbar, { type FormatAction } from './FormatToolbar';
+import { ChevronLeft } from 'lucide-react';
 import { triggerHaptic } from '../../../../utils/haptic';
 
 interface NoteDetailProps {
@@ -19,6 +21,73 @@ export default function NoteDetail({
 	handleBack,
 	updateCurrentNote,
 }: NoteDetailProps) {
+	const bodyRef = useRef<HTMLTextAreaElement | null>(null);
+
+	// Plain-text markdown formatting on the current selection (or cursor).
+	// Colors have no plain-text equivalent, so the toolbar omits them.
+	const applyFormat = (action: FormatAction) => {
+		const text = currentNote?.content ?? '';
+		const el = bodyRef.current;
+		const start = el?.selectionStart ?? text.length;
+		const end = el?.selectionEnd ?? text.length;
+		let next = text;
+		let anchor = start;
+		let focus = end;
+
+		const wrap = (before: string, after: string) => {
+			if (start === end) {
+				next = text.slice(0, start) + before + after + text.slice(end);
+				anchor = focus = start + before.length;
+			} else {
+				const sel = text.slice(start, end);
+				next = text.slice(0, start) + before + sel + after + text.slice(end);
+				anchor = start + before.length;
+				focus = anchor + sel.length;
+			}
+		};
+		const prefixLine = (prefix: string) => {
+			const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+			const rawEnd = text.indexOf('\n', start);
+			const lineEnd = rawEnd === -1 ? text.length : rawEnd;
+			const stripped = text.slice(lineStart, lineEnd).replace(/^#{1,3}\s+/, '');
+			const newLine = prefix ? `${prefix}${stripped}` : stripped;
+			next = text.slice(0, lineStart) + newLine + text.slice(lineEnd);
+			anchor = focus = lineStart + newLine.length;
+		};
+
+		switch (action) {
+			case 'bold':
+				wrap('**', '**');
+				break;
+			case 'italic':
+				wrap('*', '*');
+				break;
+			case 'underline':
+				wrap('__', '__');
+				break;
+			case 'strike':
+				wrap('~~', '~~');
+				break;
+			case 'title':
+				prefixLine('# ');
+				break;
+			case 'heading':
+				prefixLine('## ');
+				break;
+			case 'subheading':
+				prefixLine('### ');
+				break;
+			case 'body':
+				prefixLine('');
+				break;
+		}
+		updateCurrentNote({ content: next });
+		requestAnimationFrame(() => {
+			el?.focus();
+			el?.setSelectionRange(anchor, focus);
+		});
+	};
+
 	return (
 		<div className="flex flex-col h-full animate-in slide-in-from-right duration-250 relative bg-white dark:bg-black text-black dark:text-white transition-colors">
 			{/* Detail Header */}
@@ -28,9 +97,9 @@ export default function NoteDetail({
 						triggerHaptic('light');
 						handleBack();
 					}}
-					className="flex items-center text-[#e3a824] font-normal text-base active:opacity-50 transition-opacity"
+					className="relative flex items-center text-ios-yellow font-normal text-base active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 				>
-					<i className="fas fa-chevron-left text-lg mr-1.5"></i>
+					<ChevronLeft aria-hidden="true" size={18} className="mr-1.5" />
 					<span>Notes</span>
 				</button>
 				<div className="flex items-center gap-4">
@@ -39,10 +108,12 @@ export default function NoteDetail({
 							triggerHaptic('light');
 							setShowFormatToolbar(!showFormatToolbar);
 						}}
-						className={`text-[#e3a824] active:scale-95 transition-transform p-1.5 rounded-full ${
-							showFormatToolbar ? 'bg-[#e3a824]/15' : ''
+						className={`relative text-ios-yellow active:scale-95 transition-transform p-1.5 rounded-full after:absolute after:-inset-1.5 after:content-[''] ${
+							showFormatToolbar ? 'bg-ios-yellow/15' : ''
 						}`}
 						title="Format Text"
+						aria-label="Format text"
+						aria-expanded={showFormatToolbar}
 					>
 						<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
@@ -53,7 +124,7 @@ export default function NoteDetail({
 							triggerHaptic('light');
 							handleBack();
 						}}
-						className="text-[#e3a824] text-base font-semibold active:opacity-50 transition-opacity"
+						className="relative text-ios-yellow text-base font-semibold active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 					>
 						Done
 					</button>
@@ -79,10 +150,12 @@ export default function NoteDetail({
 						value={currentNote?.title || ''}
 						onChange={e => updateCurrentNote({ title: e.target.value })}
 						placeholder="Title"
-						className="text-2xl font-bold mb-2 w-full border-none outline-none placeholder-gray-400 bg-transparent text-black dark:text-white"
+						aria-label="Note title"
+						className="text-ios-title1 mb-2 w-full border-none outline-none placeholder-gray-400 bg-transparent text-black dark:text-white"
 					/>
 				</div>
 				<textarea
+					ref={bodyRef}
 					value={currentNote?.content || ''}
 					onChange={e => updateCurrentNote({ content: e.target.value })}
 					placeholder="Type something..."
@@ -91,7 +164,9 @@ export default function NoteDetail({
 			</div>
 
 			{/* Formatting Toolbar Floating Glass Capsule */}
-			{showFormatToolbar && <FormatToolbar onClose={() => setShowFormatToolbar(false)} />}
+			{showFormatToolbar && (
+				<FormatToolbar onClose={() => setShowFormatToolbar(false)} onFormat={applyFormat} />
+			)}
 		</div>
 	);
 }
