@@ -15,6 +15,10 @@ export type AppComponentName =
 	| 'Calendar'
 	| 'Mail'
 	| 'Maps'
+	| 'Messages'
+	| 'Music'
+	| 'Phone'
+	| 'Safari'
 	| 'placeholder';
 
 export interface DeviceInfo {

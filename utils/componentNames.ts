@@ -14,6 +14,10 @@ export const REGISTERED_COMPONENT_NAMES = [
 	'Calendar',
 	'Mail',
 	'Maps',
+	'Messages',
+	'Music',
+	'Phone',
+	'Safari',
 ] as const satisfies readonly Exclude<AppComponentName, 'placeholder'>[];
 
 const REGISTERED_NAMES = new Set<string>(REGISTERED_COMPONENT_NAMES);

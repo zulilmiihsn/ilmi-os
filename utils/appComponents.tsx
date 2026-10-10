@@ -76,6 +76,26 @@ const Maps = dynamic(() => import('../components/Apps/Maps'), {
 	ssr: false,
 });
 
+const Phone = dynamic(() => import('../components/Apps/Phone/Phone'), {
+	loading: () => <LoadingComponent />,
+	ssr: false,
+});
+
+const Messages = dynamic(() => import('../components/Apps/Messages/Messages'), {
+	loading: () => <LoadingComponent />,
+	ssr: false,
+});
+
+const Music = dynamic(() => import('../components/Apps/Music/Music'), {
+	loading: () => <LoadingComponent />,
+	ssr: false,
+});
+
+const Safari = dynamic(() => import('../components/Apps/Safari/Safari'), {
+	loading: () => <LoadingComponent />,
+	ssr: false,
+});
+
 export const APP_COMPONENT_MAP: Record<Exclude<AppComponentName, 'placeholder'>, ComponentType> = {
 	Calculator,
 	Notes,
@@ -89,6 +109,10 @@ export const APP_COMPONENT_MAP: Record<Exclude<AppComponentName, 'placeholder'>,
 	Calendar,
 	Mail,
 	Maps,
+	Messages,
+	Music,
+	Phone,
+	Safari,
 } as const;
 
 /**
