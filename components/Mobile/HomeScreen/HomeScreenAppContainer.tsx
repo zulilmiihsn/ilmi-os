@@ -104,11 +104,11 @@ function HomeScreenAppContainer({
 
 			{/* iOS Bottom Bar Indicator - floating on top of all child content with high hit area and pointer capture */}
 			<div
-				className="ios-bottom-bar fixed bottom-0 left-0 right-0 z-70 flex items-center justify-center cursor-pointer touch-none select-none"
+				className="ios-bottom-bar fixed bottom-0 left-0 right-0 z-70 flex items-end justify-center cursor-pointer touch-none select-none"
 				style={{
-					height: '56px',
-					paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
-					paddingTop: '8px',
+					height: '36px',
+					paddingBottom: 'max(env(safe-area-inset-bottom), 5px)',
+					paddingTop: '6px',
 				}}
 				role="button"
 				tabIndex={0}
@@ -126,8 +126,11 @@ function HomeScreenAppContainer({
 				}}
 			>
 				<div
-					className="ios-bottom-bar-handle w-36 h-1.5 rounded-full transition-colors duration-300 pointer-events-none"
-					style={{ backgroundColor: statusBarColors.textColor }}
+					className="ios-bottom-bar-handle w-[134px] h-[5px] rounded-full transition-colors duration-300 pointer-events-none"
+					style={{
+						backgroundColor: statusBarColors.textColor,
+						boxShadow: '0 1px 4px rgba(0, 0, 0, 0.35)',
+					}}
 				/>
 			</div>
 		</div>

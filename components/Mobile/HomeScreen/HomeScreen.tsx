@@ -385,7 +385,8 @@ function HomeScreen() {
 		const appId = currentApp || appToOpen;
 		if (!appId) return { backgroundColor: 'transparent', textColor: 'white' };
 		const isDark = darkMode;
-		if (appId === 'terminal') return { backgroundColor: '#000000', textColor: '#ffffff' };
+		if (appId === 'terminal' || appId === 'camera')
+			return { backgroundColor: '#000000', textColor: '#ffffff' };
 		return {
 			backgroundColor: isDark ? '#000000' : '#ffffff',
 			textColor: isDark ? '#ffffff' : '#000000',
@@ -473,6 +474,16 @@ function HomeScreen() {
 		},
 		[isDragging, launchApp, cancelPendingClose]
 	);
+
+	// Cross-app requests (e.g. the Camera thumbnail opens Photos).
+	useEffect(() => {
+		const onOpenAppEvent = (e: Event) => {
+			const id = (e as CustomEvent<string>).detail;
+			if (typeof id === 'string' && id) handleAppClick(id);
+		};
+		window.addEventListener('ilmi:open-app', onOpenAppEvent);
+		return () => window.removeEventListener('ilmi:open-app', onOpenAppEvent);
+	}, [handleAppClick]);
 
 	// --- Render Helpers ---
 	const renderGridItem = (id: string, _index: number) => {
