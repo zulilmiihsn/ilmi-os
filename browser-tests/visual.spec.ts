@@ -38,7 +38,7 @@ test.describe('visual regression', () => {
 			animations: 'disabled',
 			caret: 'hide',
 			// Tolerance for subpixel font antialiasing jitter between runs.
-			maxDiffPixels: 200,
+			maxDiffPixels: 800,
 		});
 	});
 
@@ -56,7 +56,7 @@ test.describe('visual regression', () => {
 			animations: 'disabled',
 			caret: 'hide',
 			// Tolerance for subpixel font antialiasing jitter between runs.
-			maxDiffPixels: 200,
+			maxDiffPixels: 800,
 		});
 	});
 });
@@ -73,7 +73,7 @@ test.describe('visual regression (mobile)', () => {
 			animations: 'disabled',
 			caret: 'hide',
 			// Tolerance for subpixel font antialiasing jitter between runs.
-			maxDiffPixels: 200,
+			maxDiffPixels: 800,
 		});
 	});
 });

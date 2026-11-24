@@ -206,7 +206,14 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 					isMaximized: false,
 				});
 			} else {
-				if (windowRef.current) windowRef.current.style.transition = '';
+				if (windowRef.current) {
+					windowRef.current.style.transition = 'none';
+					windowRef.current.style.transform = `translate3d(${interactionRef.current.currentX}px, ${interactionRef.current.currentY}px, 0)`;
+					const el = windowRef.current;
+					requestAnimationFrame(() => {
+						el.style.transition = '';
+					});
+				}
 				useWindowsStore.getState().updateWindow(windowState.id, {
 					x: interactionRef.current.currentX,
 					y: interactionRef.current.currentY,
