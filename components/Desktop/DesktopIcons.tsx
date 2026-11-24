@@ -91,6 +91,7 @@ export default function DesktopIcons() {
 									alt={app.name}
 									fill
 									className="object-contain"
+									priority
 									unoptimized
 									sizes="64px"
 									draggable={false}
