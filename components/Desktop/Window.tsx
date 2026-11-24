@@ -8,6 +8,7 @@ import { getAppComponent } from '../../utils/appComponents';
 import { TIMING } from '../../constants';
 import { useWindowDragResize } from './Window/useWindowDragResize';
 import WindowHeader from './Window/WindowHeader';
+import SnapPreviewOverlay from './Window/SnapPreviewOverlay';
 import type { ExposeTile } from '../../utils/exposeLayout';
 
 interface WindowProps {
@@ -32,8 +33,15 @@ export default function Window({ window: windowProp, exposeTile, onExposeSelect 
 		state => state.windows.find(w => w.id === windowProp.id) || windowProp
 	) as WindowState;
 
-	const { isDragging, isResizing, windowRef, interactionRef, handleMouseDown, handleResizeStart } =
-		useWindowDragResize(windowState);
+	const {
+		isDragging,
+		isResizing,
+		snapZone,
+		windowRef,
+		interactionRef,
+		handleMouseDown,
+		handleResizeStart,
+	} = useWindowDragResize(windowState);
 
 	const app = useAppsStore(state => state.apps.find(a => a.id === windowState.appId));
 
@@ -201,72 +209,75 @@ export default function Window({ window: windowProp, exposeTile, onExposeSelect 
 		.join(' ');
 
 	return (
-		<div
-			ref={windowRef}
-			className={containerClasses}
-			style={windowStyle}
-			onMouseDownCapture={exposeTile ? undefined : handleActivate}
-			onMouseDown={exposeTile ? undefined : e => handleMouseDown(e, windowState)}
-			onDoubleClick={exposeTile ? undefined : handleDoubleClick}
-			onClick={exposeTile ? () => onExposeSelect?.(windowState.id) : undefined}
-			onKeyDown={
-				exposeTile
-					? e => {
+		<>
+			{!exposeTile && <SnapPreviewOverlay zone={snapZone} zIndex={windowState.zIndex} />}
+			<div
+				ref={windowRef}
+				className={containerClasses}
+				style={windowStyle}
+				onMouseDownCapture={exposeTile ? undefined : handleActivate}
+				onMouseDown={exposeTile ? undefined : e => handleMouseDown(e, windowState)}
+				onDoubleClick={exposeTile ? undefined : handleDoubleClick}
+				onClick={exposeTile ? () => onExposeSelect?.(windowState.id) : undefined}
+				onKeyDown={
+					exposeTile
+						? e => {
+								if (e.key !== 'Enter' && e.key !== ' ') return;
+								e.preventDefault();
+								onExposeSelect?.(windowState.id);
+							}
+						: undefined
+				}
+				role={exposeTile ? 'button' : undefined}
+				tabIndex={exposeTile ? 0 : undefined}
+				aria-label={exposeTile ? `Exposé: focus ${windowState.title}` : undefined}
+			>
+				<WindowHeader
+					windowState={windowState}
+					isDragging={isDragging}
+					isResizing={isResizing}
+					onClose={handleClose}
+					onMinimize={handleMinimize}
+					onMaximize={handleMaximize}
+				/>
+
+				<div
+					className={`window-content flex-1 bg-white dark:bg-[#1E1E1E] overflow-hidden relative
+					${!windowState.isFocused && 'pointer-events-none opacity-95'}`}
+				>
+					<div className="absolute inset-0 overflow-auto macos-scrollbar">
+						{Component && <Component />}
+						{!Component && (
+							<div className="p-4 flex items-center justify-center h-full text-gray-400">
+								<div className="text-center">
+									<p className="font-medium">App: {app?.name}</p>
+									<p className="text-sm">Under Development</p>
+								</div>
+							</div>
+						)}
+					</div>
+					{!windowState.isFocused && <div className="absolute inset-0 z-10" />}
+				</div>
+
+				{!windowState.isMaximized && !exposeTile && (
+					<button
+						className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize z-50 opacity-0 focus-visible:opacity-100 focus-visible:bg-ios-blue/40 focus-visible:rounded-tl-lg focus:outline-none"
+						onMouseDown={e => handleResizeStart(e, windowState)}
+						onKeyDown={e => {
 							if (e.key !== 'Enter' && e.key !== ' ') return;
 							e.preventDefault();
-							onExposeSelect?.(windowState.id);
-						}
-					: undefined
-			}
-			role={exposeTile ? 'button' : undefined}
-			tabIndex={exposeTile ? 0 : undefined}
-			aria-label={exposeTile ? `Exposé: focus ${windowState.title}` : undefined}
-		>
-			<WindowHeader
-				windowState={windowState}
-				isDragging={isDragging}
-				isResizing={isResizing}
-				onClose={handleClose}
-				onMinimize={handleMinimize}
-				onMaximize={handleMaximize}
-			/>
-
-			<div
-				className={`window-content flex-1 bg-white dark:bg-[#1E1E1E] overflow-hidden relative
-				${!windowState.isFocused && 'pointer-events-none opacity-95'}`}
-			>
-				<div className="absolute inset-0 overflow-auto macos-scrollbar">
-					{Component && <Component />}
-					{!Component && (
-						<div className="p-4 flex items-center justify-center h-full text-gray-400">
-							<div className="text-center">
-								<p className="font-medium">App: {app?.name}</p>
-								<p className="text-sm">Under Development</p>
-							</div>
-						</div>
-					)}
-				</div>
-				{!windowState.isFocused && <div className="absolute inset-0 z-10" />}
+							// Keyboard alternative: toggle a 100px step so keyboard
+							// users are not limited to pointer resizing.
+							useWindowsStore.getState().updateWindow(windowState.id, {
+								width: Math.max(320, windowState.width + (e.shiftKey ? -100 : 100)),
+								height: Math.max(200, windowState.height + (e.shiftKey ? -100 : 100)),
+							});
+						}}
+						aria-label="Resize"
+						tabIndex={0}
+					/>
+				)}
 			</div>
-
-			{!windowState.isMaximized && !exposeTile && (
-				<button
-					className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize z-50 opacity-0 focus-visible:opacity-100 focus-visible:bg-ios-blue/40 focus-visible:rounded-tl-lg focus:outline-none"
-					onMouseDown={e => handleResizeStart(e, windowState)}
-					onKeyDown={e => {
-						if (e.key !== 'Enter' && e.key !== ' ') return;
-						e.preventDefault();
-						// Keyboard alternative: toggle a 100px step so keyboard
-						// users are not limited to pointer resizing.
-						useWindowsStore.getState().updateWindow(windowState.id, {
-							width: Math.max(320, windowState.width + (e.shiftKey ? -100 : 100)),
-							height: Math.max(200, windowState.height + (e.shiftKey ? -100 : 100)),
-						});
-					}}
-					aria-label="Resize"
-					tabIndex={0}
-				/>
-			)}
-		</div>
+		</>
 	);
 }

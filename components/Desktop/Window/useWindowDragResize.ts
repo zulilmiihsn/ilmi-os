@@ -4,10 +4,12 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { useWindowsStore } from '../../../stores/windows';
 import type { WindowState } from '../../../types';
 import { WINDOW } from '../../../constants';
+import { computeSnapRect, detectSnapZone, type SnapZone } from '../../../utils/windowSnap';
 
 interface DragResizeState {
 	isDragging: boolean;
 	isResizing: boolean;
+	snapZone: SnapZone | null;
 	setIsDragging: (v: boolean) => void;
 	setIsResizing: (v: boolean) => void;
 	windowRef: React.RefObject<HTMLDivElement>;
@@ -29,13 +31,17 @@ interface DragResizeState {
 }
 
 /**
- * Single Responsibility: all pointer drag/resize math lives here.
- * Window.tsx only consumes isDragging/isResizing + refs.
+ * Single Responsibility: all pointer drag/resize/snap math lives here.
+ * Window.tsx only consumes isDragging/isResizing/snapZone + refs.
  */
 export function useWindowDragResize(windowState: WindowState): DragResizeState {
 	const windowRef = useRef<HTMLDivElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
 	const [isResizing, setIsResizing] = useState(false);
+	const [snapZone, setSnapZone] = useState<SnapZone | null>(null);
+	const snapZoneRef = useRef<SnapZone | null>(null);
+	const rafIdRef = useRef<number | null>(null);
+	const latestPointerRef = useRef<{ x: number; y: number } | null>(null);
 
 	const interactionRef = useRef({
 		startX: 0,
@@ -50,6 +56,13 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 		currentHeight: windowState.height,
 		minimizeTarget: null as { x: number; y: number; width: number; height: number } | null,
 	});
+
+	const cancelPendingRaf = useCallback(() => {
+		if (rafIdRef.current !== null) {
+			cancelAnimationFrame(rafIdRef.current);
+			rafIdRef.current = null;
+		}
+	}, []);
 
 	useEffect(() => {
 		if (!isDragging && !isResizing) {
@@ -67,6 +80,9 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 			!ws.isMaximized
 		) {
 			e.preventDefault();
+			snapZoneRef.current = null;
+			setSnapZone(null);
+			latestPointerRef.current = null;
 			setIsDragging(true);
 			useWindowsStore.getState().focusWindow(ws.id);
 			interactionRef.current.startX = e.clientX;
@@ -79,6 +95,7 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 	function handleResizeStart(e: React.MouseEvent, ws: WindowState) {
 		e.preventDefault();
 		e.stopPropagation();
+		latestPointerRef.current = null;
 		setIsResizing(true);
 		useWindowsStore.getState().focusWindow(ws.id);
 		interactionRef.current.startX = e.clientX;
@@ -90,10 +107,18 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 	const handleMouseMove = useCallback(
 		(e: MouseEvent) => {
 			if (!windowRef.current) return;
-			requestAnimationFrame(() => {
+			latestPointerRef.current = { x: e.clientX, y: e.clientY };
+			if (rafIdRef.current !== null) return;
+
+			rafIdRef.current = requestAnimationFrame(() => {
+				rafIdRef.current = null;
+				const pointer = latestPointerRef.current;
+				if (!pointer) return;
+
 				if (isDragging) {
-					const deltaX = e.clientX - interactionRef.current.startX;
-					const deltaY = e.clientY - interactionRef.current.startY;
+					const deltaX = pointer.x - interactionRef.current.startX;
+					const deltaY = pointer.y - interactionRef.current.startY;
+					const vw = typeof window !== 'undefined' ? window.innerWidth : 1440;
 					const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
 					const newX = interactionRef.current.initialX + deltaX;
 					const newY = Math.max(0, Math.min(vh - 30, interactionRef.current.initialY + deltaY));
@@ -103,10 +128,15 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 						windowRef.current.style.transform = `translate3d(${newX}px, ${newY}px, 0)`;
 						windowRef.current.style.transition = 'none';
 					}
+					const nextZone = detectSnapZone(pointer.x, pointer.y, { width: vw, height: vh });
+					if (snapZoneRef.current !== nextZone) {
+						snapZoneRef.current = nextZone;
+						setSnapZone(nextZone);
+					}
 				}
 				if (isResizing) {
-					const deltaX = e.clientX - interactionRef.current.startX;
-					const deltaY = e.clientY - interactionRef.current.startY;
+					const deltaX = pointer.x - interactionRef.current.startX;
+					const deltaY = pointer.y - interactionRef.current.startY;
 					const newWidth = Math.max(WINDOW.MIN_WIDTH, interactionRef.current.initialWidth + deltaX);
 					const newHeight = Math.max(
 						WINDOW.MIN_HEIGHT,
@@ -126,22 +156,73 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 	);
 
 	const handleMouseUp = useCallback(() => {
+		const hadPendingRaf = rafIdRef.current !== null;
+		cancelPendingRaf();
+
 		if (isDragging) {
 			setIsDragging(false);
-			useWindowsStore.getState().updateWindow(windowState.id, {
-				x: interactionRef.current.currentX,
-				y: interactionRef.current.currentY,
-			});
+			const vw = typeof window !== 'undefined' ? window.innerWidth : 1440;
+			const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
+			const pointer = latestPointerRef.current;
+
+			if (hadPendingRaf && pointer) {
+				const deltaX = pointer.x - interactionRef.current.startX;
+				const deltaY = pointer.y - interactionRef.current.startY;
+				interactionRef.current.currentX = interactionRef.current.initialX + deltaX;
+				interactionRef.current.currentY = Math.max(
+					0,
+					Math.min(vh - 30, interactionRef.current.initialY + deltaY)
+				);
+				snapZoneRef.current = detectSnapZone(pointer.x, pointer.y, { width: vw, height: vh });
+			}
+
+			const committedZone = snapZoneRef.current;
+			snapZoneRef.current = null;
+			setSnapZone(null);
+
+			if (committedZone === 'top') {
+				if (windowRef.current) {
+					windowRef.current.style.transition = '';
+					windowRef.current.style.transform = '';
+					windowRef.current.style.width = '';
+					windowRef.current.style.height = '';
+				}
+				useWindowsStore.getState().updateWindow(windowState.id, { isMaximized: true });
+			} else if (committedZone === 'left' || committedZone === 'right') {
+				const rect = computeSnapRect(committedZone, { width: vw, height: vh });
+				interactionRef.current.currentX = rect.x;
+				interactionRef.current.currentY = rect.y;
+				interactionRef.current.currentWidth = rect.width;
+				interactionRef.current.currentHeight = rect.height;
+				if (windowRef.current) {
+					windowRef.current.style.transition = '';
+					windowRef.current.style.transform = `translate3d(${rect.x}px, ${rect.y}px, 0)`;
+				}
+				useWindowsStore.getState().updateWindow(windowState.id, {
+					x: rect.x,
+					y: rect.y,
+					width: rect.width,
+					height: rect.height,
+					isMaximized: false,
+				});
+			} else {
+				if (windowRef.current) windowRef.current.style.transition = '';
+				useWindowsStore.getState().updateWindow(windowState.id, {
+					x: interactionRef.current.currentX,
+					y: interactionRef.current.currentY,
+				});
+			}
 		}
 		if (isResizing) {
 			setIsResizing(false);
+			if (windowRef.current) windowRef.current.style.transition = '';
 			useWindowsStore.getState().updateWindow(windowState.id, {
 				width: interactionRef.current.currentWidth,
 				height: interactionRef.current.currentHeight,
 			});
 		}
-		if (windowRef.current) windowRef.current.style.transition = '';
-	}, [isDragging, isResizing, windowState.id]);
+		latestPointerRef.current = null;
+	}, [cancelPendingRaf, isDragging, isResizing, windowState.id]);
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
@@ -151,13 +232,16 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 			return () => {
 				window.removeEventListener('mousemove', handleMouseMove);
 				window.removeEventListener('mouseup', handleMouseUp);
+				cancelPendingRaf();
 			};
 		}
-	}, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+		return undefined;
+	}, [isDragging, isResizing, handleMouseMove, handleMouseUp, cancelPendingRaf]);
 
 	return {
 		isDragging,
 		isResizing,
+		snapZone,
 		setIsDragging,
 		setIsResizing,
 		windowRef,

@@ -6,7 +6,7 @@ that doubles as an interactive portfolio. Companion docs: `.cursorrules` (perfor
 
 ## 0. Toolchain & gates
 
-- Runtime: Node 22, pnpm 11 locally (CI uses pnpm 9 + Node 22, lockfile v9 — keep it that way).
+- Runtime: Node 22, pnpm 11 locally and in CI (lockfile v9 — keep it that way).
 - Gates, in this order (never run `build` concurrently with `tsc` — it resets `.next/` mid-check):
   `pnpm exec tsc --noEmit --incremental false` → `pnpm lint` (zero warnings)
   → `pnpm test` → `pnpm build`
