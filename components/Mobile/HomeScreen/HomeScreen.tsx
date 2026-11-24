@@ -142,7 +142,9 @@ function HomeScreen() {
 		useEmptyBackgroundPress({
 			isEditing,
 			setIsEditing,
-			isDisabled: Boolean(currentApp || appToOpen || isNotificationCenterOpen || isControlCenterOpen),
+			isDisabled: Boolean(
+				currentApp || appToOpen || isNotificationCenterOpen || isControlCenterOpen
+			),
 			dragActiveRef,
 		});
 
@@ -179,7 +181,9 @@ function HomeScreen() {
 	}, [currentApp, appToOpen]);
 
 	const dockApps = useMemo(() => {
-		return dockItemIds.map(id => appsMap.get(id)).filter((a): a is NonNullable<typeof a> => Boolean(a));
+		return dockItemIds
+			.map(id => appsMap.get(id))
+			.filter((a): a is NonNullable<typeof a> => Boolean(a));
 	}, [appsMap, dockItemIds]);
 
 	const activeApp = activeId ? appsMap.get(activeId) : undefined;

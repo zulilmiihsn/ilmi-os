@@ -26,9 +26,7 @@ export function AboutDialog({ aboutRef, onClose }: AboutDialogProps) {
 				<div className="px-4 py-5 text-center border-b border-black/5 dark:border-white/10">
 					<h2 className="text-lg font-bold">iLmi</h2>
 					<p className="text-xs text-gray-400 mt-1">Version 0.0.1</p>
-					<p className="text-xs text-gray-400 mt-2">
-						An iOS &amp; macOS simulator portfolio.
-					</p>
+					<p className="text-xs text-gray-400 mt-2">An iOS &amp; macOS simulator portfolio.</p>
 				</div>
 				<button
 					onClick={onClose}

@@ -15,12 +15,7 @@ interface FavoritesTabProps {
 	onRemoveFavorite: (number: string) => void;
 }
 
-export function FavoritesTab({
-	favorites,
-	darkMode,
-	onCall,
-	onRemoveFavorite,
-}: FavoritesTabProps) {
+export function FavoritesTab({ favorites, darkMode, onCall, onRemoveFavorite }: FavoritesTabProps) {
 	return (
 		<>
 			<div className="pt-10 px-4 pb-2 shrink-0">

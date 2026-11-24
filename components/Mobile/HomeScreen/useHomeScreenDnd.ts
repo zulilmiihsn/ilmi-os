@@ -86,7 +86,8 @@ export function useHomeScreenDnd({
 	}, [handleDragCancelInner]);
 
 	const pageAwareCollisionDetection = useMemo(
-		() => createPageAwareCollisionDetection(currentPage === 0 ? page0Items : page1Items, dockItemIds),
+		() =>
+			createPageAwareCollisionDetection(currentPage === 0 ? page0Items : page1Items, dockItemIds),
 		[page0Items, page1Items, dockItemIds, currentPage]
 	);
 

@@ -52,9 +52,18 @@ describe('fileSystem validation and live sync', () => {
 	describe('validation and edge operations (Tahap 6)', () => {
 		it.each([
 			['non-object item', { items: [null] }],
-			['wrong type', { items: [{ id: 'a', name: 'b', type: 'x', parentId: null, modified: 'd', created: 'd' }] }],
-			['non-string parent', { items: [{ id: 'a', name: 'b', type: 'file', parentId: 5, modified: 'd', created: 'd' }] }],
-			['non-string dates', { items: [{ id: 'a', name: 'b', type: 'file', parentId: null, modified: 1, created: 2 }] }],
+			[
+				'wrong type',
+				{ items: [{ id: 'a', name: 'b', type: 'x', parentId: null, modified: 'd', created: 'd' }] },
+			],
+			[
+				'non-string parent',
+				{ items: [{ id: 'a', name: 'b', type: 'file', parentId: 5, modified: 'd', created: 'd' }] },
+			],
+			[
+				'non-string dates',
+				{ items: [{ id: 'a', name: 'b', type: 'file', parentId: null, modified: 1, created: 2 }] },
+			],
 			['non-object root', 'just-a-string'],
 			['non-array items', { items: {} }],
 		])('rejects %s while preserving the stored payload', (_label, payload) => {
@@ -122,7 +131,11 @@ describe('fileSystem validation and live sync', () => {
 		it('searches by name and resets to heal corrupt states', () => {
 			const folder = mustCreateFolder('Projects', null);
 			mustCreateFile('project-plan.txt', folder.id, 'x');
-			expect(searchItems('proj').map(i => i.id).sort()).toEqual(
+			expect(
+				searchItems('proj')
+					.map(i => i.id)
+					.sort()
+			).toEqual(
 				[folder.id, loadFileSystem().items.find(i => i.name === 'project-plan.txt')?.id].sort()
 			);
 			expect(searchItems('PROJECT')).toHaveLength(2);

@@ -1,15 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-	Monitor,
-	RadioTower,
-	Sun,
-	Volume1,
-	Volume2,
-	VolumeX,
-	type LucideIcon,
-} from 'lucide-react';
+import { Monitor, RadioTower, Sun, Volume1, Volume2, VolumeX, type LucideIcon } from 'lucide-react';
 
 export interface SmoothSliderProps {
 	value: number;
@@ -20,8 +12,8 @@ export interface SmoothSliderProps {
 }
 
 const SLIDER_ICONS: Record<string, LucideIcon> = {
-	'sun': Sun,
-	'desktop': Monitor,
+	sun: Sun,
+	desktop: Monitor,
 	'volume-mute': VolumeX,
 	'volume-down': Volume1,
 	'volume-up': Volume2,

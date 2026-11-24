@@ -24,9 +24,4 @@ export {
 	searchItems,
 	updateFileContent,
 } from './fileSystem/operations';
-export {
-	formatFileSize,
-	formatDate,
-	getBreadcrumbs,
-	resolveFolderPath,
-} from './fileSystem/paths';
+export { formatFileSize, formatDate, getBreadcrumbs, resolveFolderPath } from './fileSystem/paths';

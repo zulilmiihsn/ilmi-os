@@ -52,9 +52,7 @@ export default function FilesHeader({
 				</div>
 
 				{/* Center Title */}
-				<h1
-					className={`text-lg font-semibold text-center mx-2 truncate max-w-[60%] ${theme.text}`}
-				>
+				<h1 className={`text-lg font-semibold text-center mx-2 truncate max-w-[60%] ${theme.text}`}>
 					{activeTab === 'recents'
 						? 'Recents'
 						: activeTab === 'shared'

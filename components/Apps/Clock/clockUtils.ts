@@ -75,15 +75,9 @@ export function computeCityTimes(cities: CityTime[], currentTime: Date) {
 		const displayHours = hours % 12 || 12;
 		const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 
-		const localDate = new Date(
-			localTime.getFullYear(),
-			localTime.getMonth(),
-			localTime.getDate()
-		);
+		const localDate = new Date(localTime.getFullYear(), localTime.getMonth(), localTime.getDate());
 		const cityDate = new Date(cityTime.getFullYear(), cityTime.getMonth(), cityTime.getDate());
-		const dayDiff = Math.floor(
-			(cityDate.getTime() - localDate.getTime()) / (1000 * 60 * 60 * 24)
-		);
+		const dayDiff = Math.floor((cityDate.getTime() - localDate.getTime()) / (1000 * 60 * 60 * 24));
 
 		let dayLabel = 'Today';
 		if (dayDiff === 1) dayLabel = 'Tomorrow';

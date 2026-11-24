@@ -1,13 +1,6 @@
 'use client';
 
-import {
-	ChevronLeft,
-	CircleX,
-	Funnel,
-	Inbox,
-	Search,
-	SquarePen,
-} from 'lucide-react';
+import { ChevronLeft, CircleX, Funnel, Inbox, Search, SquarePen } from 'lucide-react';
 import { triggerHaptic } from '../../../utils/haptic';
 import { Email, SwipeableEmailItem } from './index';
 
@@ -106,7 +99,11 @@ export default function EmailListPane({
 						className="flex-1 bg-transparent border-none outline-none text-sm placeholder-gray-400"
 					/>
 					{searchQuery && (
-						<button onClick={() => onSearchChange('')} aria-label="Clear search" className="text-gray-400 text-xs">
+						<button
+							onClick={() => onSearchChange('')}
+							aria-label="Clear search"
+							className="text-gray-400 text-xs"
+						>
 							<CircleX aria-hidden="true" size={12} />
 						</button>
 					)}

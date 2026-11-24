@@ -14,7 +14,8 @@ interface ControlCenterConnectivityProps {
 	onToggleBluetooth: () => void;
 }
 
-const activeBtnClass = 'bg-ios-blue text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]';
+const activeBtnClass =
+	'bg-ios-blue text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]';
 const inactiveBtnClass = 'bg-white/10 text-white border-white/20';
 const baseBtnClass =
 	'w-full aspect-square rounded-full flex items-center justify-center transition-all active:scale-90 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_4px_12px_rgba(0,0,0,0.2)]';

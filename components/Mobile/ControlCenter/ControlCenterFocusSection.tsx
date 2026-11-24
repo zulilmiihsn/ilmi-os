@@ -129,7 +129,15 @@ export default function ControlCenterFocusSection({
 					>
 						<path d="M21.5 12a9.5 9.5 0 1 1-2.78-6.72L21.5 8" />
 						<polyline points="21.5 3 21.5 8 16.5 8" />
-						<rect x="9.5" y="11.5" width="5" height="4.5" rx="1" fill="currentColor" stroke="none" />
+						<rect
+							x="9.5"
+							y="11.5"
+							width="5"
+							height="4.5"
+							rx="1"
+							fill="currentColor"
+							stroke="none"
+						/>
 						<path d="M10.5 11.5V9.5a1.5 1.5 0 0 1 3 0v2" stroke="currentColor" strokeWidth="2" />
 					</svg>
 				</button>
@@ -186,7 +194,8 @@ export default function ControlCenterFocusSection({
 					onClick={handleFocusCycle}
 					style={{
 						transform: `perspective(600px) rotateX(${flipDegree}deg)`,
-						transition: 'transform 0.42s cubic-bezier(0.34, 1.45, 0.64, 1), background-color 0.3s ease',
+						transition:
+							'transform 0.42s cubic-bezier(0.34, 1.45, 0.64, 1), background-color 0.3s ease',
 					}}
 					className={`w-full h-[72px] rounded-full border shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-between px-4 select-none ${focusInfo.bg} ${focusInfo.border} ${focusInfo.shadow} text-white active:scale-95`}
 					aria-label="Cycle Focus Mode"

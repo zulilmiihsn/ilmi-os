@@ -14,8 +14,8 @@ import {
 	Toggle,
 	WallpaperOption,
 	ProfileHeader,
-} from './settings/SettingsPrimitives';
-import { AboutDialog } from './settings/AboutDialog';
+} from './Settings/SettingsPrimitives';
+import { AboutDialog } from './Settings/AboutDialog';
 
 const WALLPAPERS = [
 	{ src: '/media/Wallpaper-desktop-1.webp', label: 'Big Sur' },
@@ -73,10 +73,7 @@ export default function Settings() {
 	const showWallpaper =
 		'wallpaper'.includes(q) || matches('Choose a New Wallpaper') || matchingWallpapers.length > 0;
 	const showGeneral =
-		'general'.includes(q) ||
-		matches('About') ||
-		matches('Software Update') ||
-		matches('Storage');
+		'general'.includes(q) || matches('About') || matches('Software Update') || matches('Storage');
 
 	const theme = darkMode ? SETTINGS_THEME.dark : SETTINGS_THEME.light;
 

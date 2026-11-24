@@ -14,7 +14,13 @@ import {
 	type NotesLoadResult,
 } from './notesStorage';
 
-export { decodeNotes, readLegacyNotes, resolveInitialNotes, type NotesLoadInput, type NotesLoadResult };
+export {
+	decodeNotes,
+	readLegacyNotes,
+	resolveInitialNotes,
+	type NotesLoadInput,
+	type NotesLoadResult,
+};
 
 export function useNotes() {
 	const [notes, setNotes] = useState<Note[]>([]);

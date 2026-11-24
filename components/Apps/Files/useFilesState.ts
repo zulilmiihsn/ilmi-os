@@ -31,7 +31,9 @@ export function useFilesState() {
 	const [sortMode, setSortMode] = useState<SortMode>('name-asc');
 	const cycleSortMode = useCallback(() => {
 		triggerHaptic('light');
-		setSortMode(prev => SORT_ORDER[(SORT_ORDER.indexOf(prev) + 1) % SORT_ORDER.length] ?? 'name-asc');
+		setSortMode(
+			prev => SORT_ORDER[(SORT_ORDER.indexOf(prev) + 1) % SORT_ORDER.length] ?? 'name-asc'
+		);
 	}, []);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [newFolderName, setNewFolderName] = useState('');
@@ -77,7 +79,8 @@ export function useFilesState() {
 			let failed = false;
 			for (const f of Array.from(list)) {
 				const isText =
-					f.type.startsWith('text/') || /\.(txt|md|json|csv|log|xml|html?|css|js|ts|tsx)$/i.test(f.name);
+					f.type.startsWith('text/') ||
+					/\.(txt|md|json|csv|log|xml|html?|css|js|ts|tsx)$/i.test(f.name);
 				const content = isText ? await f.text().catch(() => '') : '';
 				if (!createFile(f.name, currentFolderId, content, f.size)) failed = true;
 			}
@@ -102,7 +105,10 @@ export function useFilesState() {
 			const allItems = loadFileSystem().items;
 			return allItems
 				.filter((item: FileItem) => new Date(item.modified) >= sevenDaysAgo)
-				.sort((a: FileItem, b: FileItem) => new Date(b.modified).getTime() - new Date(a.modified).getTime())
+				.sort(
+					(a: FileItem, b: FileItem) =>
+						new Date(b.modified).getTime() - new Date(a.modified).getTime()
+				)
 				.slice(0, 20);
 		}
 		if (activeTab === 'shared') return [];

@@ -133,8 +133,7 @@ export default function Phone() {
 					role="alert"
 					className="shrink-0 mx-4 mt-2 px-3 py-2 text-xs rounded-lg bg-red-500/15 text-red-600 dark:text-red-400"
 				>
-					Could not save call history. Storage may be unavailable — changes will be lost on
-					reload.
+					Could not save call history. Storage may be unavailable — changes will be lost on reload.
 				</div>
 			)}
 
@@ -157,9 +156,7 @@ export default function Phone() {
 				/>
 			)}
 
-			{tab === 'recents' && (
-				<RecentsTab recents={recents} darkMode={darkMode} onCall={startCall} />
-			)}
+			{tab === 'recents' && <RecentsTab recents={recents} darkMode={darkMode} onCall={startCall} />}
 
 			{tab === 'contacts' && (
 				<ContactsTab

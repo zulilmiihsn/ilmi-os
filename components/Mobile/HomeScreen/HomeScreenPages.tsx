@@ -62,13 +62,7 @@ export default function HomeScreenPages({
 			const app = appsMap.get(id);
 			if (!app) return null;
 			return (
-				<SortableAppIcon
-					key={id}
-					id={id}
-					app={app}
-					onClick={onAppClick}
-					isEditing={isEditing}
-				/>
+				<SortableAppIcon key={id} id={id} app={app} onClick={onAppClick} isEditing={isEditing} />
 			);
 		}
 		// ENABLE empty slots as drop targets (remove disabled=true).

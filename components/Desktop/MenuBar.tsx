@@ -7,9 +7,9 @@ import { useControlCenterStore } from '../../stores/controlCenter';
 import { useWindowsStore } from '../../stores/windows';
 import MenuDropdown from './MenuDropdown';
 import Spotlight from './Spotlight';
-import SystemTray from './menu-bar/SystemTray';
-import { buildMenus } from './menu-bar/menuData';
-import { useSystemStatus } from './menu-bar/useSystemStatus';
+import SystemTray from './MenuBar/SystemTray';
+import { buildMenus } from './MenuBar/menuData';
+import { useSystemStatus } from './MenuBar/useSystemStatus';
 
 export default function MenuBar() {
 	const { batteryCharging, batteryColor, batteryFillWidth, isWifi } = useSystemStatus();

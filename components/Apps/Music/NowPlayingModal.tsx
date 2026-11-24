@@ -169,11 +169,7 @@ export default function NowPlayingModal({
 					<button
 						onClick={onCycleRepeat}
 						aria-label={
-							repeat === 'one'
-								? 'Repeat one on'
-								: repeat === 'all'
-									? 'Repeat all on'
-									: 'Repeat off'
+							repeat === 'one' ? 'Repeat one on' : repeat === 'all' ? 'Repeat all on' : 'Repeat off'
 						}
 						aria-pressed={repeat !== 'off'}
 						className={`w-11 h-11 flex items-center justify-center active:opacity-50 transition-opacity ${

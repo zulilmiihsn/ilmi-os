@@ -6,9 +6,9 @@ import { triggerHaptic } from '../../utils/haptic';
 import { ChevronLeft, Plus, Search, X } from 'lucide-react';
 import { useRestoreFocus } from '../../utils/hooks/useRestoreFocus';
 import { useFocusTrap } from '../../utils/hooks/useFocusTrap';
-import { type CalendarEvent, MONTH_NAMES, formatDateStr } from './calendar/calendarUtils';
-import { Month } from './calendar/CalendarGrid';
-import { AddEventSheet } from './calendar/AddEventSheet';
+import { type CalendarEvent, MONTH_NAMES, formatDateStr } from './Calendar/calendarUtils';
+import { Month } from './Calendar/CalendarGrid';
+import { AddEventSheet } from './Calendar/AddEventSheet';
 
 function Calendar() {
 	const { darkMode } = useSettingsStore();
@@ -99,9 +99,13 @@ function Calendar() {
 	};
 
 	return (
-		<div className={`w-full h-full flex flex-col font-sans select-none ${darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'}`}>
+		<div
+			className={`w-full h-full flex flex-col font-sans select-none ${darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'}`}
+		>
 			{/* Top Header */}
-			<div className={`pt-10 px-4 pb-2 flex justify-between items-center z-20 shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
+			<div
+				className={`pt-10 px-4 pb-2 flex justify-between items-center z-20 shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}
+			>
 				<button
 					onClick={scrollToToday}
 					className="relative flex items-center text-ios-red gap-1 active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
@@ -170,14 +174,14 @@ function Calendar() {
 							</button>
 						)}
 					</div>
-					{searchMiss && (
-						<p className="text-xs text-gray-400 pt-1.5 px-1">No events found</p>
-					)}
+					{searchMiss && <p className="text-xs text-gray-400 pt-1.5 px-1">No events found</p>}
 				</div>
 			)}
 
 			{/* Days Header */}
-			<div className={`flex text-[11px] font-bold text-gray-400 py-1.5 px-3 select-none ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}>
+			<div
+				className={`flex text-[11px] font-bold text-gray-400 py-1.5 px-3 select-none ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}
+			>
 				<div className="flex-1 grid grid-cols-7 text-center">
 					<div>M</div>
 					<div>T</div>

@@ -56,9 +56,7 @@ export function runTerminalCommand(cmd: string, ctx: TerminalCommandContext): vo
 			}
 			const formattedList = currentItems
 				.map(i =>
-					i.type === 'folder'
-						? `📁 ${i.name}/`
-						: `📄 ${i.name} (${formatFileSize(i.size || 0)})`
+					i.type === 'folder' ? `📁 ${i.name}/` : `📄 ${i.name} (${formatFileSize(i.size || 0)})`
 				)
 				.join('    ');
 			addOutput(formattedList, 'success');

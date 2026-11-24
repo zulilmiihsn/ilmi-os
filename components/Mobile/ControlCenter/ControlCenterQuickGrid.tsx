@@ -107,7 +107,11 @@ export default function ControlCenterQuickGrid({
 			</button>
 
 			{/* 4. Clock / Timer (Liquid Glass Bubble) */}
-			<button onClick={() => openQuickApp('clock')} className={glassTileClass} aria-label="Open Clock">
+			<button
+				onClick={() => openQuickApp('clock')}
+				className={glassTileClass}
+				aria-label="Open Clock"
+			>
 				<svg
 					width="32"
 					height="32"
@@ -143,7 +147,11 @@ export default function ControlCenterQuickGrid({
 			</button>
 
 			{/* 6. Notes App (Liquid Glass Bubble) */}
-			<button onClick={() => openQuickApp('notes')} className={glassTileClass} aria-label="Open Notes">
+			<button
+				onClick={() => openQuickApp('notes')}
+				className={glassTileClass}
+				aria-label="Open Notes"
+			>
 				<svg
 					width="32"
 					height="32"
@@ -163,7 +171,11 @@ export default function ControlCenterQuickGrid({
 			</button>
 
 			{/* 7. Photos App (Liquid Glass Bubble) */}
-			<button onClick={() => openQuickApp('photos')} className={glassTileClass} aria-label="Open Photos">
+			<button
+				onClick={() => openQuickApp('photos')}
+				className={glassTileClass}
+				aria-label="Open Photos"
+			>
 				<svg
 					width="32"
 					height="32"
@@ -181,7 +193,11 @@ export default function ControlCenterQuickGrid({
 			</button>
 
 			{/* 8. Camera App (Liquid Glass Bubble) */}
-			<button onClick={() => openQuickApp('camera')} className={glassTileClass} aria-label="Open Camera">
+			<button
+				onClick={() => openQuickApp('camera')}
+				className={glassTileClass}
+				aria-label="Open Camera"
+			>
 				<svg
 					width="32"
 					height="32"

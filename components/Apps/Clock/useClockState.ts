@@ -158,7 +158,10 @@ export function useClockState() {
 	const handleAddAlarm = useCallback(() => {
 		const now = new Date();
 		const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-		setAlarms(prev => [...prev, { id: generateId('alarm'), time: timeString, enabled: true, label: 'Alarm' }]);
+		setAlarms(prev => [
+			...prev,
+			{ id: generateId('alarm'), time: timeString, enabled: true, label: 'Alarm' },
+		]);
 	}, []);
 
 	const handleDeleteAlarm = useCallback((id: string) => {

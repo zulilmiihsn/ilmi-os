@@ -1,12 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { generateId } from '../../../utils/id';
 import { triggerHaptic } from '../../../utils/haptic';
-import {
-	Email,
-	MOCK_MAILBOXES_STATIC,
-	loadEmails,
-	saveEmails,
-} from './index';
+import { Email, MOCK_MAILBOXES_STATIC, loadEmails, saveEmails } from './index';
 import { filterDisplayEmails, getMailboxCounts } from './mailSelectors';
 
 export type ViewState = 'mailboxes' | 'list' | 'detail';
@@ -44,9 +39,7 @@ export function useMailState() {
 
 	const toggleHiddenMailbox = (key: string) => {
 		triggerHaptic('light');
-		setHiddenMailboxes(prev =>
-			prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-		);
+		setHiddenMailboxes(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
 	};
 
 	const [selectedForAction, setSelectedForAction] = useState<Set<string>>(new Set());

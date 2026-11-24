@@ -128,7 +128,10 @@ export default function Safari() {
 		if (!saveHistory([])) setPersistError(true);
 	};
 
-	const favorites = [...DEFAULT_FAVORITES, ...bookmarks.filter(b => !DEFAULT_FAVORITES.includes(b))];
+	const favorites = [
+		...DEFAULT_FAVORITES,
+		...bookmarks.filter(b => !DEFAULT_FAVORITES.includes(b)),
+	];
 	const saved = url !== null && bookmarks.includes(url);
 
 	return (
@@ -142,8 +145,7 @@ export default function Safari() {
 					role="alert"
 					className="shrink-0 mx-4 mt-2 px-3 py-2 text-xs rounded-lg bg-red-500/15 text-red-600 dark:text-red-400"
 				>
-					Could not save browsing data. Storage may be unavailable — changes will be lost on
-					reload.
+					Could not save browsing data. Storage may be unavailable — changes will be lost on reload.
 				</div>
 			)}
 

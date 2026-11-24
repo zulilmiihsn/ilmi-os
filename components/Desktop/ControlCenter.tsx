@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useControlCenterStore } from '../../stores/controlCenter';
 import { getBatteryInfo } from '../../utils/deviceInfo';
-import ConnectivityGrid from './control-center/ConnectivityGrid';
-import MediaBatterySection from './control-center/MediaBatterySection';
-import SmoothSlider from './control-center/SmoothSlider';
+import ConnectivityGrid from './ControlCenter/ConnectivityGrid';
+import MediaBatterySection from './ControlCenter/MediaBatterySection';
+import SmoothSlider from './ControlCenter/SmoothSlider';
 
 export default function ControlCenter() {
 	const isOpen = useControlCenterStore(state => state.isOpen);
@@ -97,11 +97,7 @@ export default function ControlCenter() {
 								value={soundVolume}
 								onChange={setSoundVolume}
 								icon={
-									soundVolume === 0
-										? 'volume-mute'
-										: soundVolume < 50
-											? 'volume-down'
-											: 'volume-up'
+									soundVolume === 0 ? 'volume-mute' : soundVolume < 50 ? 'volume-down' : 'volume-up'
 								}
 								label="Sound"
 								endIcon="broadcast-tower"

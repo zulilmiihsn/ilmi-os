@@ -5,8 +5,7 @@ export function applyAppDragTransform(container: HTMLDivElement, swipeUpPx: numb
 	const scale = Math.max(0.85, 1 - progress * 0.0018);
 	container.style.transform = `translate3d(0, -${progress}%, 0) scale(${scale})`;
 	container.style.borderRadius = `${Math.min(40, progress * 0.8)}px`;
-	container.style.opacity =
-		progress > 70 ? String(Math.max(0, 1 - (progress - 70) / 30)) : '1';
+	container.style.opacity = progress > 70 ? String(Math.max(0, 1 - (progress - 70) / 30)) : '1';
 }
 
 export function snapAppContainerOpen(
@@ -68,14 +67,10 @@ export function releaseTopPanel(panel: HTMLDivElement | null | undefined, open: 
 	}, 300);
 }
 
-export function animateAppCloseToIcon(
-	container: HTMLDivElement,
-	activeApp: string | null
-): void {
+export function animateAppCloseToIcon(container: HTMLDivElement, activeApp: string | null): void {
 	container.style.pointerEvents = 'none';
 	container.style.willChange = 'transform, opacity';
-	container.style.transition =
-		'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease';
+	container.style.transition = 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease';
 	// iOS zooms the app back into its icon. Fall back to the generic
 	// shrink-and-fade when the icon rect is unavailable.
 	const icon = activeApp ? document.querySelector(`[data-app-id="${activeApp}"]`) : null;

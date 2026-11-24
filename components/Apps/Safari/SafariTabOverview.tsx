@@ -57,9 +57,7 @@ export function SafariTabOverview({
 								<span className="block text-sm font-medium truncate">
 									{u ? displayHost(u) : 'Start Page'}
 								</span>
-								<span className="block text-xs text-gray-400 truncate">
-									{u ?? 'No page open'}
-								</span>
+								<span className="block text-xs text-gray-400 truncate">{u ?? 'No page open'}</span>
 							</button>
 							<button
 								onClick={() => onCloseTab(t.id)}

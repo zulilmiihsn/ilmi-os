@@ -54,16 +54,16 @@ const Day = memo(
 				<div
 					className={`w-8 h-8 flex items-center justify-center rounded-full text-base font-normal transition-all active:scale-90
                 ${
-					isToday
-						? 'bg-ios-red text-white font-bold shadow-[0_2px_8px_rgba(255,59,48,0.4)]'
-						: isSelected
-							? darkMode
-								? 'bg-white text-black font-semibold'
-								: 'bg-black text-white font-semibold'
-							: darkMode
-								? 'text-white'
-								: 'text-black'
-				}`}
+									isToday
+										? 'bg-ios-red text-white font-bold shadow-[0_2px_8px_rgba(255,59,48,0.4)]'
+										: isSelected
+											? darkMode
+												? 'bg-white text-black font-semibold'
+												: 'bg-black text-white font-semibold'
+											: darkMode
+												? 'text-white'
+												: 'text-black'
+								}`}
 				>
 					{date.getDate()}
 				</div>

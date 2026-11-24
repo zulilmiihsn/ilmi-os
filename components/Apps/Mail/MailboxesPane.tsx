@@ -2,12 +2,7 @@
 
 import { ChevronRight, SquarePen } from 'lucide-react';
 import { triggerHaptic } from '../../../utils/haptic';
-import {
-	Email,
-	Mailbox,
-	ACCOUNT_FOLDERS,
-	MailboxItem,
-} from './index';
+import { Email, Mailbox, ACCOUNT_FOLDERS, MailboxItem } from './index';
 
 interface MailboxesPaneProps {
 	darkMode: boolean;
@@ -83,9 +78,7 @@ export default function MailboxesPane({
 								isActive={selectedMailbox === mailbox.id}
 								dimmed={hiddenMailboxes.includes(mailbox.id)}
 								onClick={() =>
-									isEditing
-										? onToggleHiddenMailbox(mailbox.id)
-										: onNavigateToMailbox(mailbox.id)
+									isEditing ? onToggleHiddenMailbox(mailbox.id) : onNavigateToMailbox(mailbox.id)
 								}
 								darkMode={darkMode}
 							/>
