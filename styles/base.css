@@ -1,0 +1,111 @@
+:root {
+	--bg-primary: #f2f2f7;
+	--bg-secondary: #ffffff;
+	--text-primary: #000000;
+	--text-secondary: #8e8e93;
+}
+
+html.dark {
+	--bg-primary: #000000;
+	--bg-secondary: #1c1c1e;
+	--text-primary: #ffffff;
+	--text-secondary: #98989d;
+}
+
+@layer base {
+	html,
+	body {
+		/* Official Apple San Francisco (SF Pro Display).
+		   Inherited by all descendants; explicit font utilities
+		   (e.g. font-mono) keep working because nothing overrides them. */
+		font-family:
+			'SF Pro Display',
+			-apple-system,
+			BlinkMacSystemFont;
+		/* iOS body size for unclassed text; rem-based utilities are unaffected. */
+		font-size: 17px;
+		font-weight: 400;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		font-feature-settings: 'kern' 1;
+		text-rendering: optimizeLegibility;
+
+		/* macOS Style Cursor */
+		cursor: default;
+
+		/* Prevent browser bounce/overscroll */
+		overscroll-behavior: none;
+	}
+
+	/* macOS Style Cursors */
+	button,
+	[role='button'],
+	.cursor-pointer {
+		cursor: pointer;
+	}
+
+	.cursor-move,
+	[data-draggable='true'] {
+		cursor: grab;
+		cursor: -webkit-grab;
+	}
+
+	.cursor-move:active,
+	.cursor-move:hover,
+	[data-dragging='true'] {
+		cursor: grabbing;
+		cursor: -webkit-grabbing;
+	}
+
+	.cursor-resize,
+	.cursor-nwse-resize,
+	.resize-handle {
+		cursor: nwse-resize;
+		cursor: -webkit-nwse-resize;
+	}
+
+	.cursor-nesw-resize {
+		cursor: nesw-resize;
+		cursor: -webkit-nesw-resize;
+	}
+
+	.cursor-ns-resize {
+		cursor: ns-resize;
+		cursor: -webkit-ns-resize;
+	}
+
+	.cursor-ew-resize {
+		cursor: ew-resize;
+		cursor: -webkit-ew-resize;
+	}
+
+	/* Smooth cursor transitions */
+	* {
+		cursor: inherit;
+	}
+
+	/* Text selection cursor */
+	::selection {
+		background-color: rgba(0, 122, 255, 0.3);
+	}
+
+	/* Input cursor */
+	input[type='text'],
+	input[type='number'],
+	input[type='email'],
+	input[type='password'],
+	input[type='search'],
+	textarea {
+		cursor: text;
+	}
+
+	/* Hide scrollbar */
+	.scrollbar-hide {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+
+	.scrollbar-hide::-webkit-scrollbar {
+		display: none;
+	}
+}

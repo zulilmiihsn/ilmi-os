@@ -1,570 +1,113 @@
 'use client';
 
-import { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
-import { generateId } from '../../../utils/id';
-import { TIMING } from '../../../constants';
-import { useTheme } from '../../../utils/hooks';
-import { useFocusTrap } from '../../../utils/hooks/useFocusTrap';
-import { useRestoreFocus } from '../../../utils/hooks/useRestoreFocus';
+import { memo } from 'react';
 import ClockWorldTab from './ClockWorldTab';
 import ClockAlarmsTab from './ClockAlarmsTab';
 import ClockStopwatchTab from './ClockStopwatchTab';
 import ClockTimerTab from './ClockTimerTab';
 import ClockTabBar from './ClockTabBar';
-
-interface CityTime {
-	city: string;
-	timezone: string;
-	offset: number; // Hours offset from UTC
-}
-
-interface Alarm {
-	id: string;
-	time: string;
-	enabled: boolean;
-	label: string;
-}
-
-interface LapTime {
-	id: string;
-	time: number;
-	lapDiff: number;
-}
-
-const INITIAL_CITIES: CityTime[] = [
-	{ city: 'Samarinda', timezone: 'Asia/Makassar', offset: 8 }, // WITA
-	{ city: 'Malang', timezone: 'Asia/Jakarta', offset: 7 }, // WIB
-];
-
-// Curated addable cities (real IANA zones; offset computed live, DST-aware).
-const CITY_CHOICES: { city: string; timezone: string }[] = [
-	{ city: 'Jakarta', timezone: 'Asia/Jakarta' },
-	{ city: 'Makassar', timezone: 'Asia/Makassar' },
-	{ city: 'Jayapura', timezone: 'Asia/Jayapura' },
-	{ city: 'Singapore', timezone: 'Asia/Singapore' },
-	{ city: 'Tokyo', timezone: 'Asia/Tokyo' },
-	{ city: 'Seoul', timezone: 'Asia/Seoul' },
-	{ city: 'Sydney', timezone: 'Australia/Sydney' },
-	{ city: 'Dubai', timezone: 'Asia/Dubai' },
-	{ city: 'London', timezone: 'Europe/London' },
-	{ city: 'Paris', timezone: 'Europe/Paris' },
-	{ city: 'New York', timezone: 'America/New_York' },
-	{ city: 'Los Angeles', timezone: 'America/Los_Angeles' },
-];
-
-// Current UTC offset of a zone in whole hours, DST-aware at call time.
-const zoneOffsetHours = (timezone: string, at = new Date()): number => {
-	const parts = new Intl.DateTimeFormat('en-US', {
-		timeZone: timezone,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit',
-		hour: '2-digit',
-		minute: '2-digit',
-		second: '2-digit',
-		hour12: false,
-	}).formatToParts(at);
-	const get = (type: string) => Number(parts.find(p => p.type === type)?.value ?? 0);
-	const asUTC = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
-	return Math.round((asUTC - at.getTime()) / 3600000);
-};
+import ClockNavBar from './ClockNavBar';
+import CityPickerModal from './CityPickerModal';
+import { useClockState } from './useClockState';
 
 function Clock() {
-	const baseTheme = useTheme();
-	const darkMode = baseTheme.isDarkMode;
-
-	const [currentTime, setCurrentTime] = useState(new Date());
-	const [activeTab, setActiveTab] = useState<'world' | 'alarms' | 'stopwatch' | 'timers'>('world');
-	const [cities, setCities] = useState<CityTime[]>(INITIAL_CITIES);
-	const [isEditingCities, setIsEditingCities] = useState(false);
-	const [showCityPicker, setShowCityPicker] = useState(false);
-	const cityPickerRef = useRef<HTMLDivElement>(null);
-	useRestoreFocus(showCityPicker, cityPickerRef);
-	useFocusTrap(showCityPicker, cityPickerRef);
-
-	// Alarms state
-	const [alarms, setAlarms] = useState<Alarm[]>([]);
-
-	// Stopwatch state
-	const [stopwatchTime, setStopwatchTime] = useState(0);
-	const [stopwatchRunning, setStopwatchRunning] = useState(false);
-	const [lapTimes, setLapTimes] = useState<LapTime[]>([]);
-
-	// Timer state
-	const [timerMinutes, setTimerMinutes] = useState(0);
-	const [timerSeconds, setTimerSeconds] = useState(0);
-	const [timerRunning, setTimerRunning] = useState(false);
-	const [timerRemaining, setTimerRemaining] = useState(0);
-
-	// Update time every second
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setCurrentTime(new Date());
-		}, TIMING.CLOCK_UPDATE_INTERVAL);
-
-		return () => clearInterval(interval);
-	}, []);
-
-	// Elapsed-time sources: intervals only refresh the display, so background
-	// throttling cannot silently lose time.
-	const stopwatchAnchorRef = useRef(0);
-	const timerDeadlineRef = useRef(0);
-
-	// Stopwatch effect
-	useEffect(() => {
-		let interval: ReturnType<typeof setInterval> | undefined;
-		if (stopwatchRunning) {
-			stopwatchAnchorRef.current = Date.now() - stopwatchTime;
-			interval = setInterval(() => {
-				setStopwatchTime(Date.now() - stopwatchAnchorRef.current);
-			}, TIMING.STOPWATCH_INTERVAL);
-		}
-		return () => clearInterval(interval);
-		// stopwatchTime is intentionally read once per run to anchor elapsed time.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [stopwatchRunning]);
-
-	// Timer effect
-	useEffect(() => {
-		let interval: ReturnType<typeof setInterval> | undefined;
-		if (timerRunning && timerRemaining > 0) {
-			timerDeadlineRef.current = Date.now() + timerRemaining;
-			interval = setInterval(() => {
-				const remaining = timerDeadlineRef.current - Date.now();
-				if (remaining <= 0) {
-					setTimerRemaining(0);
-					setTimerRunning(false);
-				} else {
-					setTimerRemaining(remaining);
-				}
-			}, TIMING.TIMER_INTERVAL);
-		}
-		return () => clearInterval(interval);
-	}, [timerRunning, timerRemaining]);
-
-	// Calculate time for each city
-	const cityTimes = useMemo(() => {
-		const localTime = new Date();
-		const localOffset = -localTime.getTimezoneOffset() / 60; // Local timezone offset in hours from UTC
-
-		return cities.map(cityData => {
-			// Get city time using timezone
-			const cityTime = new Date(
-				currentTime.toLocaleString('en-US', { timeZone: cityData.timezone })
-			);
-
-			// Format time
-			const hours = cityTime.getHours();
-			const minutes = cityTime.getMinutes();
-			const ampm = hours >= 12 ? 'PM' : 'AM';
-			const displayHours = hours % 12 || 12;
-			const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-
-			// Calculate day difference
-			const localDate = new Date(
-				localTime.getFullYear(),
-				localTime.getMonth(),
-				localTime.getDate()
-			);
-			const cityDate = new Date(cityTime.getFullYear(), cityTime.getMonth(), cityTime.getDate());
-			const dayDiff = Math.floor(
-				(cityDate.getTime() - localDate.getTime()) / (1000 * 60 * 60 * 24)
-			);
-
-			let dayLabel = 'Today';
-			if (dayDiff === 1) dayLabel = 'Tomorrow';
-			else if (dayDiff === -1) dayLabel = 'Yesterday';
-
-			// Calculate hour difference using known offsets
-			const cityOffset = cityData.offset;
-			const hourDiff = cityOffset - localOffset;
-
-			// Format hour difference
-			let hourDiffString = '';
-			if (hourDiff === 0) {
-				hourDiffString = '+0HRS';
-			} else if (hourDiff > 0) {
-				hourDiffString = `+${hourDiff}HRS`;
-			} else {
-				hourDiffString = `${hourDiff}HRS`;
-			}
-
-			return {
-				...cityData,
-				time: timeString,
-				dayLabel,
-				hourDiffString,
-			};
-		});
-	}, [currentTime, cities]);
-
-	// Animation states
-	const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
-	const [deletingAlarmId, setDeletingAlarmId] = useState<string | null>(null);
-	const [resetKey, setResetKey] = useState(0); // For triggering reset animations
-
-	const tabOrder = { world: 0, alarms: 1, stopwatch: 2, timers: 3 };
-
-	const handleTabChange = (newTab: typeof activeTab) => {
-		if (activeTab === newTab) return;
-		const isForward = tabOrder[newTab] > tabOrder[activeTab];
-		setDirection(isForward ? 'forward' : 'backward');
-		setActiveTab(newTab);
-	};
-
-	// Stopwatch functions
-	const formatStopwatchTime = useCallback((ms: number) => {
-		const minutes = Math.floor(ms / 60000);
-		const seconds = Math.floor((ms % 60000) / 1000);
-		const centiseconds = Math.floor((ms % 1000) / 10);
-		return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
-	}, []);
-
-	const handleStopwatchStartStop = useCallback(() => {
-		setStopwatchRunning(prev => !prev);
-	}, []);
-
-	const handleStopwatchReset = useCallback(() => {
-		setStopwatchTime(0);
-		setStopwatchRunning(false);
-		setLapTimes([]);
-		setResetKey(prev => prev + 1); // Trigger animation
-	}, []);
-
-	const handleLap = useCallback(() => {
-		const firstLap = lapTimes[0];
-		const lapDiff = firstLap ? stopwatchTime - firstLap.time : stopwatchTime;
-
-		setLapTimes(prev => [{ id: generateId('lap'), time: stopwatchTime, lapDiff }, ...prev]);
-	}, [stopwatchTime, lapTimes]);
-
-	// Timer functions
-	const formatTimerTime = useCallback((ms: number) => {
-		const totalSeconds = Math.floor(ms / 1000);
-		const minutes = Math.floor(totalSeconds / 60);
-		const seconds = totalSeconds % 60;
-		return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-	}, []);
-
-	const handleTimerStart = useCallback(() => {
-		if (!timerRunning && timerRemaining === 0) {
-			const totalMs = (timerMinutes * 60 + timerSeconds) * 1000;
-			if (totalMs > 0) {
-				setTimerRemaining(totalMs);
-				setTimerRunning(true);
-			}
-		} else {
-			setTimerRunning(prev => !prev);
-		}
-	}, [timerRunning, timerRemaining, timerMinutes, timerSeconds]);
-
-	const handleTimerReset = useCallback(() => {
-		setTimerRemaining(0);
-		setTimerRunning(false);
-		setResetKey(prev => prev + 1); // Trigger animation
-	}, []);
-
-	const handleAddCity = useCallback((timezone: string) => {
-		const choice = CITY_CHOICES.find(c => c.timezone === timezone);
-		if (!choice) return;
-		setCities(prev =>
-			prev.some(c => c.timezone === timezone)
-				? prev
-				: [...prev, { city: choice.city, timezone, offset: zoneOffsetHours(timezone) }]
-		);
-		setShowCityPicker(false);
-	}, []);
-
-	const handleRemoveCity = useCallback((city: string) => {
-		setCities(prev => prev.filter(c => c.city !== city));
-	}, []);
-
-	const availableChoices = CITY_CHOICES.filter(
-		c => !cities.some(existing => existing.timezone === c.timezone)
-	);
-
-	// Alarm functions
-	const handleAddAlarm = useCallback(() => {
-		const now = new Date();
-		const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-		const newAlarm: Alarm = {
-			id: generateId('alarm'),
-			time: timeString,
-			enabled: true,
-			label: 'Alarm',
-		};
-		setAlarms(prev => [...prev, newAlarm]);
-	}, []);
-
-	const handleDeleteAlarm = useCallback((id: string) => {
-		setDeletingAlarmId(id);
-		setTimeout(() => {
-			setAlarms(prev => prev.filter(alarm => alarm.id !== id));
-			setDeletingAlarmId(null);
-		}, TIMING.ALARM_DELETE_DURATION);
-	}, []);
-
-	const handleToggleAlarm = useCallback((id: string) => {
-		setAlarms(prev =>
-			prev.map(alarm => (alarm.id === id ? { ...alarm, enabled: !alarm.enabled } : alarm))
-		);
-	}, []);
-
-	// Delete interaction state
-	const [deletableAlarmId, setDeletableAlarmId] = useState<string | null>(null);
-	const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-	useEffect(() => {
-		return () => {
-			if (longPressTimer.current) {
-				clearTimeout(longPressTimer.current);
-				longPressTimer.current = null;
-			}
-		};
-	}, []);
-
-	const handlePressStart = useCallback((id: string) => {
-		longPressTimer.current = setTimeout(() => {
-			setDeletableAlarmId(id);
-			// Optional: Vibrate to indicate long press success if supported
-			if (typeof navigator !== 'undefined' && navigator.vibrate) {
-				navigator.vibrate(50);
-			}
-		}, TIMING.LONG_PRESS_DELETE_SHOW);
-	}, []);
-
-	const handlePressEnd = useCallback(() => {
-		if (longPressTimer.current) {
-			clearTimeout(longPressTimer.current);
-			longPressTimer.current = null;
-		}
-	}, []);
-
-	// Clear delete mode when clicking elsewhere
-	useEffect(() => {
-		const handleClickOutside = (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			if (!target.closest('.alarm-item')) {
-				setDeletableAlarmId(null);
-			}
-		};
-		document.addEventListener('mousedown', handleClickOutside);
-		return () => document.removeEventListener('mousedown', handleClickOutside);
-	}, []);
-
-	// Clock-specific theme (extends baseTheme with Clock-specific properties)
-	const theme = useMemo(
-		() => ({
-			// Base theme properties
-			bg: baseTheme.bg,
-			text: baseTheme.text,
-			textSecondary: baseTheme.textSecondary,
-			border: baseTheme.border,
-			activeItem: baseTheme.activeItem,
-			// Clock-specific extensions
-			header: darkMode
-				? 'bg-black/80 border-ios-dark-separator'
-				: 'bg-white/95 border-ios-separator',
-			resetBtn: darkMode ? 'bg-ios-dark-gray5 text-white' : 'bg-ios-gray5 text-black',
-			disabledBtn: darkMode ? 'bg-ios-dark-gray6 text-gray-600' : 'bg-ios-gray6 text-gray-400',
-			input: darkMode
-				? 'bg-ios-dark-gray6 border-ios-dark-separator text-white'
-				: 'bg-ios-gray6 border-ios-gray4 text-black',
-		}),
-		[baseTheme, darkMode]
-	);
+	const state = useClockState();
 
 	return (
 		<div
-			className={`clock-app w-full h-full flex flex-col overflow-hidden transition-colors duration-300 ${theme.bg} ${theme.text}`}
+			className={`clock-app w-full h-full flex flex-col overflow-hidden transition-colors duration-300 ${state.theme.bg} ${state.theme.text}`}
 			style={{
 				fontFamily:
 					'-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
 				paddingTop: 'env(safe-area-inset-top, 0px)',
 			}}
 		>
-			{/* Navigation Bar */}
-			<div
-				className={`px-4 pt-10 pb-2 border-b z-10 backdrop-blur-md sticky top-0 transition-colors ${theme.header}`}
-			>
-				{activeTab === 'world' && (
-					<>
-						<div className="flex items-center justify-between">
-						<button
-							onClick={() => setIsEditingCities(prev => !prev)}
-							className={`relative ${theme.text} text-[#ff9f0a] text-base font-medium after:absolute after:-inset-y-2.5 after:content-['']`}
-							aria-label="Edit cities"
-						>
-							{isEditingCities ? 'Done' : 'Edit'}
-						</button>
-						<button
-							onClick={() => setShowCityPicker(true)}
-							className={`relative ${theme.text} text-[#ff9f0a] text-2xl font-light leading-none after:absolute after:-inset-2.5 after:content-['']`}
-							aria-label="Add city"
-						>
-							+
-						</button>
-						</div>
-						<h1 className={`${theme.text} text-ios-large-title animate-slide-bottom`}>
-							World Clock
-						</h1>
-					</>
-				)}
-				{activeTab === 'alarms' && (
-					<>
-						<div className="flex items-center justify-between">
-							<button
-								onClick={() => {
-									if (alarms.length > 0) {
-										setAlarms([]);
-										setDeletableAlarmId(null);
-									}
-								}}
-								className={`relative ${theme.text} text-[#ff9f0a] text-base font-medium after:absolute after:-inset-y-2.5 after:content-['']`}
-								aria-label="Clear all alarms"
-							>
-								{alarms.length > 0 ? 'Clear' : ''}
-							</button>
-							<button
-								onClick={handleAddAlarm}
-								className={`relative ${theme.text} text-[#ff9f0a] text-2xl font-light leading-none after:absolute after:-inset-2.5 after:content-['']`}
-								aria-label="Add alarm"
-							>
-								+
-							</button>
-						</div>
-						<h1 className={`${theme.text} text-ios-large-title animate-slide-bottom`}>Alarms</h1>
-					</>
-				)}
-				{activeTab === 'stopwatch' && (
-					<>
-						<h1 className={`${theme.text} text-ios-large-title animate-slide-bottom`}>
-							Stopwatch
-						</h1>
-					</>
-				)}
-				{activeTab === 'timers' && (
-					<>
-						<h1 className={`${theme.text} text-ios-large-title animate-slide-bottom`}>Timer</h1>
-					</>
-				)}
-			</div>
+			<ClockNavBar
+				activeTab={state.activeTab}
+				isEditingCities={state.isEditingCities}
+				alarmsCount={state.alarms.length}
+				onToggleEditCities={() => state.setIsEditingCities(prev => !prev)}
+				onOpenCityPicker={() => state.setShowCityPicker(true)}
+				onClearAlarms={() => {
+					if (state.alarms.length > 0) {
+						state.setAlarms([]);
+						state.setDeletableAlarmId(null);
+					}
+				}}
+				onAddAlarm={state.handleAddAlarm}
+				theme={state.theme}
+			/>
 
-			{/* Main Content */}
 			<div
 				className="flex-1 overflow-y-auto overflow-x-hidden"
-				onScroll={() => setDeletableAlarmId(null)}
+				onScroll={() => state.setDeletableAlarmId(null)}
 			>
-				{activeTab === 'world' && (
+				{state.activeTab === 'world' && (
 					<ClockWorldTab
-						cityTimes={cityTimes}
-						direction={direction}
-						theme={theme}
-						isEditingCities={isEditingCities}
-						onRemoveCity={handleRemoveCity}
+						cityTimes={state.cityTimes}
+						direction={state.direction}
+						theme={state.theme}
+						isEditingCities={state.isEditingCities}
+						onRemoveCity={state.handleRemoveCity}
 					/>
 				)}
 
-				{activeTab === 'alarms' && (
+				{state.activeTab === 'alarms' && (
 					<ClockAlarmsTab
-						alarms={alarms}
-						direction={direction}
-						deletableAlarmId={deletableAlarmId}
-						deletingAlarmId={deletingAlarmId}
-						onToggleAlarm={handleToggleAlarm}
-						onDeleteAlarm={handleDeleteAlarm}
-						onPressStart={handlePressStart}
-						onPressEnd={handlePressEnd}
-						onClearDeletable={() => setDeletableAlarmId(null)}
-						theme={theme}
+						alarms={state.alarms}
+						direction={state.direction}
+						deletableAlarmId={state.deletableAlarmId}
+						deletingAlarmId={state.deletingAlarmId}
+						onToggleAlarm={state.handleToggleAlarm}
+						onDeleteAlarm={state.handleDeleteAlarm}
+						onPressStart={state.handlePressStart}
+						onPressEnd={state.handlePressEnd}
+						onClearDeletable={() => state.setDeletableAlarmId(null)}
+						theme={state.theme}
 					/>
 				)}
 
-				{activeTab === 'stopwatch' && (
+				{state.activeTab === 'stopwatch' && (
 					<ClockStopwatchTab
-						stopwatchTime={stopwatchTime}
-						stopwatchRunning={stopwatchRunning}
-						lapTimes={lapTimes}
-						resetKey={resetKey}
-						direction={direction}
-						formatStopwatchTime={formatStopwatchTime}
-						onStartStop={handleStopwatchStartStop}
-						onReset={handleStopwatchReset}
-						onLap={handleLap}
-						theme={theme}
+						stopwatchTime={state.stopwatchTime}
+						stopwatchRunning={state.stopwatchRunning}
+						lapTimes={state.lapTimes}
+						resetKey={state.resetKey}
+						direction={state.direction}
+						formatStopwatchTime={state.formatStopwatchTime}
+						onStartStop={state.handleStopwatchStartStop}
+						onReset={state.handleStopwatchReset}
+						onLap={state.handleLap}
+						theme={state.theme}
 					/>
 				)}
 
-				{activeTab === 'timers' && (
+				{state.activeTab === 'timers' && (
 					<ClockTimerTab
-						timerMinutes={timerMinutes}
-						timerSeconds={timerSeconds}
-						timerRunning={timerRunning}
-						timerRemaining={timerRemaining}
-						resetKey={resetKey}
-						direction={direction}
-						formatTimerTime={formatTimerTime}
-						onMinutesChange={setTimerMinutes}
-						onSecondsChange={setTimerSeconds}
-						onStart={handleTimerStart}
-						onReset={handleTimerReset}
-						theme={theme}
+						timerMinutes={state.timerMinutes}
+						timerSeconds={state.timerSeconds}
+						timerRunning={state.timerRunning}
+						timerRemaining={state.timerRemaining}
+						resetKey={state.resetKey}
+						direction={state.direction}
+						formatTimerTime={state.formatTimerTime}
+						onMinutesChange={state.setTimerMinutes}
+						onSecondsChange={state.setTimerSeconds}
+						onStart={state.handleTimerStart}
+						onReset={state.handleTimerReset}
+						theme={state.theme}
 					/>
 				)}
 			</div>
 
-			{/* Bottom Tab Bar */}
-			<ClockTabBar activeTab={activeTab} onTabChange={handleTabChange} />
+			<ClockTabBar activeTab={state.activeTab} onTabChange={state.handleTabChange} />
 
-			{/* Add-city sheet */}
-			{showCityPicker && (
-				<div
-					className="absolute inset-0 z-50 flex items-center justify-center bg-black/30"
-					onClick={() => setShowCityPicker(false)}
-				>
-					<div
-						ref={cityPickerRef}
-						onKeyDown={e => {
-							if (e.key === 'Escape') setShowCityPicker(false);
-						}}
-						onClick={e => e.stopPropagation()}
-						role="dialog"
-						aria-label="Add city"
-						className="w-72 max-h-[70%] overflow-y-auto rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 shadow-2xl"
-					>
-						<div className="px-4 py-3 border-b border-black/5 dark:border-white/10">
-							<h2 className="text-base font-semibold text-center">Add City</h2>
-						</div>
-						{availableChoices.length === 0 ? (
-							<p className="px-4 py-6 text-sm text-center text-gray-500">
-								All cities already added
-							</p>
-						) : (
-							availableChoices.map(choice => {
-								const offset = zoneOffsetHours(choice.timezone);
-								return (
-									<button
-										key={choice.timezone}
-										onClick={() => handleAddCity(choice.timezone)}
-										className="w-full px-4 py-3 flex items-center justify-between active:bg-black/5 dark:active:bg-white/10 transition-colors border-b last:border-b-0 border-black/5 dark:border-white/10"
-									>
-										<span className="text-[15px]">{choice.city}</span>
-										<span className="text-xs text-gray-400">
-											GMT{offset >= 0 ? `+${offset}` : offset}
-										</span>
-									</button>
-								);
-							})
-						)}
-						<button
-							onClick={() => setShowCityPicker(false)}
-							className="w-full py-3 text-sm text-ios-blue font-semibold active:bg-black/5 dark:active:bg-white/10 transition-colors"
-						>
-							Cancel
-						</button>
-					</div>
-				</div>
-			)}
+			<CityPickerModal
+				isOpen={state.showCityPicker}
+				availableChoices={state.availableChoices}
+				onClose={() => state.setShowCityPicker(false)}
+				onAddCity={state.handleAddCity}
+			/>
 		</div>
 	);
 }

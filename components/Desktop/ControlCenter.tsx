@@ -1,201 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-	Bluetooth,
-	Monitor,
-	Pause,
-	Play,
-	RadioTower,
-	SkipBack,
-	SkipForward,
-	Sun,
-	Volume1,
-	Volume2,
-	VolumeX,
-	Zap,
-	type LucideIcon,
-} from 'lucide-react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import { useControlCenterStore } from '../../stores/controlCenter';
 import { getBatteryInfo } from '../../utils/deviceInfo';
-
-interface SmoothSliderProps {
-	value: number;
-	onChange: (value: number) => void;
-	icon: string;
-	label: string;
-	endIcon?: string;
-}
-
-const SLIDER_ICONS: Record<string, LucideIcon> = {
-	'sun': Sun,
-	'desktop': Monitor,
-	'volume-mute': VolumeX,
-	'volume-down': Volume1,
-	'volume-up': Volume2,
-	'broadcast-tower': RadioTower,
-};
-
-const SmoothSlider = ({ value, onChange, icon, label: _label, endIcon }: SmoothSliderProps) => {
-	const containerRef = useRef<HTMLDivElement>(null);
-	const fillRef = useRef<HTMLDivElement>(null);
-	const [isDragging, setIsDragging] = useState(false);
-	const dragStartRef = useRef({ x: 0, initialValue: 0, width: 0 });
-	const Icon = SLIDER_ICONS[icon] ?? Sun;
-	const EndIcon = endIcon ? (SLIDER_ICONS[endIcon] ?? null) : null;
-
-	// Update fill width visually when value changes externally (and not dragging)
-	useEffect(() => {
-		if (!isDragging && fillRef.current) {
-			fillRef.current.style.width = `${value}%`;
-		}
-	}, [value, isDragging]);
-
-	const handleStart = useCallback(
-		(clientX: number) => {
-			if (!containerRef.current) return;
-			setIsDragging(true);
-
-			const rect = containerRef.current.getBoundingClientRect();
-			dragStartRef.current = {
-				x: clientX,
-				initialValue: value,
-				width: rect.width,
-			};
-
-			// Initial jump to click position if clicking (not just dragging handle, but bar is the handle)
-			// Actually for iOS/macOS style, clicking anywhere usually jumps or starts drag from there.
-			// Let's implement absolute positioning logic.
-			const offsetX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-			const percentage = (offsetX / rect.width) * 100;
-
-			if (fillRef.current) {
-				fillRef.current.style.width = `${percentage}%`;
-				fillRef.current.style.transition = 'none'; // Disable transition during drag
-			}
-			// We can fire onChange immediately for responsiveness or wait.
-			// For sliders, usually immediate feedback is expected.
-			// But we want to avoid re-rendering parent often.
-			// So we update DOM here, and fire onChange.
-			// If parent updates state on onChange, it might re-render.
-			// But since we control visual via ref, it shouldn't flicker.
-
-			// To be truly performant, we might want to ONLY fire onChange effectively to parent defaults?
-			// But parent holds state.
-			// Let's assume parent state update is fine IF we don't rely on it for the visual of THIS frame.
-			onChange(percentage);
-		},
-		[value, onChange]
-	);
-
-	const handleMove = useCallback(
-		(clientX: number) => {
-			if (!containerRef.current || !fillRef.current) return;
-			const rect = containerRef.current.getBoundingClientRect();
-			const offsetX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-			const percentage = Math.round((offsetX / rect.width) * 100);
-
-			fillRef.current.style.width = `${percentage}%`;
-			onChange(percentage);
-		},
-		[onChange]
-	);
-
-	useEffect(() => {
-		if (!isDragging) return;
-
-		const onMouseMove = (e: MouseEvent) => handleMove(e.clientX);
-		const onTouchMove = (e: TouchEvent) => {
-			const touch = e.touches[0];
-			if (!touch) return;
-			handleMove(touch.clientX);
-		};
-
-		const onEnd = () => {
-			setIsDragging(false);
-			if (fillRef.current) {
-				fillRef.current.style.transition = 'width 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
-			}
-		};
-
-		window.addEventListener('mousemove', onMouseMove);
-		window.addEventListener('touchmove', onTouchMove);
-		window.addEventListener('mouseup', onEnd);
-		window.addEventListener('touchend', onEnd);
-
-		return () => {
-			window.removeEventListener('mousemove', onMouseMove);
-			window.removeEventListener('touchmove', onTouchMove);
-			window.removeEventListener('mouseup', onEnd);
-			window.removeEventListener('touchend', onEnd);
-		};
-	}, [isDragging, handleMove]);
-
-	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent) => {
-			const step = 5;
-			if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-				e.preventDefault();
-				onChange(Math.min(100, Math.round(value + step)));
-			} else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-				e.preventDefault();
-				onChange(Math.max(0, Math.round(value - step)));
-			} else if (e.key === 'Home') {
-				e.preventDefault();
-				onChange(0);
-			} else if (e.key === 'End') {
-				e.preventDefault();
-				onChange(100);
-			}
-		},
-		[value, onChange]
-	);
-
-	return (
-		<div
-			ref={containerRef}
-			role="slider"
-			tabIndex={0}
-			aria-label={_label || 'Level control'}
-			aria-valuemin={0}
-			aria-valuemax={100}
-			aria-valuenow={Math.round(value)}
-			// Use pointer-events-auto to capture clicks
-			className="relative h-11 w-full bg-black/20 dark:bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden cursor-pointer group select-none touch-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue"
-			onMouseDown={e => {
-				e.preventDefault(); // Prevent text selection
-				handleStart(e.clientX);
-			}}
-			onTouchStart={e => {
-				const touch = e.touches[0];
-				if (!touch) return;
-				handleStart(touch.clientX);
-			}}
-			onKeyDown={handleKeyDown}
-		>
-			{/* Fill Bar */}
-			<div
-				ref={fillRef}
-				className="absolute top-0 left-0 bottom-0 bg-white dark:bg-white transition-[width] duration-200 ease-out"
-				style={{ width: `${value}%` }}
-			/>
-
-			{/* Content Overlay */}
-			<div className="absolute inset-0 px-3 flex items-center justify-between pointer-events-none mix-blend-exclusion filter invert dark:invert-0">
-				<div className="flex items-center justify-center w-6 h-6">
-					<Icon aria-hidden="true" size={18} className="text-black dark:text-black opacity-80" />
-				</div>
-			</div>
-			{/* Optional End Icon */}
-			{EndIcon && (
-				<div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none mix-blend-exclusion filter invert dark:invert-0">
-					<EndIcon aria-hidden="true" size={16} className="text-black dark:text-black opacity-60" />
-				</div>
-			)}
-		</div>
-	);
-};
+import ConnectivityGrid from './control-center/ConnectivityGrid';
+import MediaBatterySection from './control-center/MediaBatterySection';
+import SmoothSlider from './control-center/SmoothSlider';
 
 export default function ControlCenter() {
 	const isOpen = useControlCenterStore(state => state.isOpen);
@@ -262,88 +72,16 @@ export default function ControlCenter() {
 			>
 				<div className="control-center-content">
 					{/* Top Section: Connectivity & Quick Actions - Compact Grid */}
-					<div className="grid grid-cols-4 gap-2 mb-2.5">
-						{/* Wi-Fi */}
-						<button
-							className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
-								wifiEnabled ? 'bg-ios-blue' : 'bg-white/10'
-							}`}
-							onClick={() => setWifiEnabled(!wifiEnabled)}
-							aria-label={`Wi-Fi ${wifiEnabled ? 'On' : 'Off'}`}
-						>
-							<svg
-								className={`w-6 h-6 ${wifiEnabled ? 'text-white' : 'text-white/50'}`}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								aria-hidden="true"
-							>
-								<path d="M2.5 9.5a13.5 13.5 0 0 1 19 0" />
-								<path d="M5.5 12.8a9 9 0 0 1 13 0" />
-								<path d="M8.4 15.9a5 5 0 0 1 7.2 0" />
-								<circle cx="12" cy="18.5" r="1.3" fill="currentColor" stroke="none" />
-							</svg>
-						</button>
-
-						{/* Bluetooth */}
-						<button
-							className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
-								bluetoothEnabled ? 'bg-ios-blue' : 'bg-white/10'
-							}`}
-							onClick={() => setBluetoothEnabled(!bluetoothEnabled)}
-							aria-label={`Bluetooth ${bluetoothEnabled ? 'On' : 'Off'}`}
-						>
-							<Bluetooth
-								aria-hidden="true"
-								size={18}
-								className={`${bluetoothEnabled ? 'text-white' : 'text-white/50'}`}
-							/>
-						</button>
-
-						{/* Focus */}
-						<button
-							className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
-								focusEnabled ? 'bg-ios-blue' : 'bg-white/10'
-							}`}
-							onClick={() => setFocusEnabled(!focusEnabled)}
-							aria-label={`Focus ${focusEnabled ? 'On' : 'Off'}`}
-						>
-							<svg
-								className={`w-6 h-6 ${focusEnabled ? 'text-white' : 'text-white/50'}`}
-								viewBox="0 0 24 24"
-								fill="currentColor"
-								aria-hidden="true"
-							>
-								<path d="M20 13.2A8 8 0 1 1 10.8 4 6.6 6.6 0 0 0 20 13.2z" />
-							</svg>
-						</button>
-
-						{/* AirDrop */}
-						<button
-							className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
-								airdropEnabled ? 'bg-ios-blue' : 'bg-white/10'
-							}`}
-							onClick={() => setAirdropEnabled(!airdropEnabled)}
-							aria-label={`AirDrop ${airdropEnabled ? 'On' : 'Off'}`}
-						>
-							<svg
-								className={`w-6 h-6 ${airdropEnabled ? 'text-white' : 'text-white/50'}`}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								aria-hidden="true"
-							>
-								<circle cx="6" cy="12" r="2.2" />
-								<circle cx="17" cy="6" r="2.2" />
-								<circle cx="17" cy="18" r="2.2" />
-								<path d="M8 11l7-4M8 13l7 4" />
-							</svg>
-						</button>
-					</div>
+					<ConnectivityGrid
+						wifiEnabled={wifiEnabled}
+						onToggleWifi={() => setWifiEnabled(!wifiEnabled)}
+						bluetoothEnabled={bluetoothEnabled}
+						onToggleBluetooth={() => setBluetoothEnabled(!bluetoothEnabled)}
+						focusEnabled={focusEnabled}
+						onToggleFocus={() => setFocusEnabled(!focusEnabled)}
+						airdropEnabled={airdropEnabled}
+						onToggleAirdrop={() => setAirdropEnabled(!airdropEnabled)}
+					/>
 
 					{/* Middle Section: Display & Sound - Stacked Bars */}
 					<div className="mb-2.5">
@@ -372,80 +110,14 @@ export default function ControlCenter() {
 					</div>
 
 					{/* Bottom Section: Music Player & Battery - Compact */}
-					<div className="space-y-2">
-						{/* Music Player Widget - Compact */}
-						<div className="p-2.5 rounded-xl bg-white/10">
-							<div className="flex items-center gap-2 mb-2">
-								{/* Album Art - Smaller */}
-								<div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-400 to-purple-500 shrink-0 overflow-hidden relative">
-									<Image
-										src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=64&h=64&fit=crop"
-										alt="Album art"
-										width={40}
-										height={40}
-										className="object-cover rounded-lg"
-										unoptimized
-									/>
-								</div>
-								{/* Track Info - Compact */}
-								<div className="flex-1 min-w-0">
-									<div className="text-xs font-semibold text-white truncate">
-										{currentTrack.title}
-									</div>
-									<div className="text-[10px] text-white/70 truncate">{currentTrack.artist}</div>
-								</div>
-							</div>
-							{/* Playback Controls - Compact */}
-							<div className="flex items-center justify-center gap-2">
-								<button
-									className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/20 active:scale-95 transition-all"
-									aria-label="Previous track"
-								>
-									<SkipBack aria-hidden="true" size={10} className="text-white" />
-								</button>
-								<button
-									className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition-all"
-									onClick={() => setIsPlaying(!isPlaying)}
-									aria-label={isPlaying ? 'Pause' : 'Play'}
-								>
-									{isPlaying ? (
-										<Pause aria-hidden="true" size={10} className="text-white" />
-									) : (
-										<Play aria-hidden="true" size={10} className="text-white" />
-									)}
-								</button>
-								<button
-									className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/20 active:scale-95 transition-all"
-									aria-label="Next track"
-								>
-									<SkipForward aria-hidden="true" size={10} className="text-white" />
-								</button>
-							</div>
-						</div>
-
-						{/* Battery Indicator - Compact */}
-						<div className="p-2.5 rounded-xl bg-white/10">
-							<div className="flex items-center justify-between">
-								<span className="text-xs font-semibold text-white">Battery</span>
-								<div className="flex items-center gap-2">
-									{batteryCharging ? (
-										<Zap aria-hidden="true" size={14} className="text-white" />
-									) : (
-										<div className="relative flex items-center">
-											<div className="w-8 h-4 border border-white/70 rounded-[2px] relative overflow-hidden">
-												<div
-													className="absolute left-0.5 top-0.5 bottom-0.5 rounded-[1px] bg-white transition-all"
-													style={{ width: `${batteryLevel || 0}%` }}
-												></div>
-											</div>
-											<div className="ml-0.5 w-0.5 h-2 bg-white/70 rounded-r-[1px]"></div>
-										</div>
-									)}
-									<span className="text-xs font-medium text-white">{batteryLevel}%</span>
-								</div>
-							</div>
-						</div>
-					</div>
+					<MediaBatterySection
+						isPlaying={isPlaying}
+						onTogglePlay={() => setIsPlaying(!isPlaying)}
+						trackTitle={currentTrack.title}
+						trackArtist={currentTrack.artist}
+						batteryLevel={batteryLevel}
+						batteryCharging={batteryCharging}
+					/>
 				</div>
 			</div>
 		</>

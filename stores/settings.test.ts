@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { createJSONStorage } from 'zustand/middleware';
 import {
 	DEFAULT_WALLPAPER,
 	migrateSettingsState,
@@ -36,6 +37,9 @@ describe('settings store actions', () => {
 			length: storage.size,
 		} as unknown as Storage;
 		(globalThis as unknown as { window: unknown }).window = globalThis;
+		useSettingsStore.persist.setOptions({
+			storage: createJSONStorage(() => globalThis.localStorage),
+		});
 		useSettingsStore.setState({ wallpaper: DEFAULT_WALLPAPER, darkMode: false });
 	});
 

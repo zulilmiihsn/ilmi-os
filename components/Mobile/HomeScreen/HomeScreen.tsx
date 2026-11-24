@@ -1,107 +1,25 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback, useEffect, type HTMLAttributes } from 'react';
-import Image from 'next/image';
-import {
-	DndContext,
-	DragOverlay,
-	closestCenter,
-	pointerWithin,
-	KeyboardSensor,
-	useSensor,
-	useSensors,
-	useDndContext,
-	TouchSensor,
-	MouseSensor,
-	MeasuringStrategy,
-	CollisionDetection,
-	type DragStartEvent,
-} from '@dnd-kit/core';
-import {
-	SortableContext,
-	sortableKeyboardCoordinates,
-	rectSortingStrategy,
-} from '@dnd-kit/sortable';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { DndContext, DragOverlay, MeasuringStrategy } from '@dnd-kit/core';
 
 import { ErrorBoundary } from '../../ErrorBoundary';
-import StatusBar from '../StatusBar';
-import AppIcon from '../AppIcon';
-import SortableAppIcon from './SortableAppIcon';
-import Widget from '../Widget';
 import { useAppsStore } from '../../../stores/apps';
 import { isIosApp } from '../../../types';
 import { useSettingsStore } from '../../../stores/settings';
 import { getAppComponent } from '../../../utils/appComponents';
 import { triggerHaptic } from '../../../utils/haptic';
-import { DRAG, IOS_LAYOUT } from '../../../constants';
 import HomeScreenDock from './HomeScreenDock';
 import HomeScreenPagination from './HomeScreenPagination';
-import HomeScreenAppContainer from './HomeScreenAppContainer';
-import NotificationCenter from '../NotificationCenter/NotificationCenter';
-import MobileControlCenter from '../ControlCenter/MobileControlCenter';
+import HomeScreenPages, { DragOverlayAppIcon } from './HomeScreenPages';
+import HomeScreenOverlays from './HomeScreenOverlays';
+import HomeScreenHeader from './HomeScreenHeader';
 import { DragAutoScroller } from './DragAutoScroller';
-import { useDragHandlers } from './useDragHandlers';
 import { useHomeScreenGestures } from './useHomeScreenGestures';
-
-// Helper to generate empty slot IDs
-const getEmptySlotId = (page: number, index: number) => `empty-${page}-${index}`;
-
-// Helper to generate page items (pure function, no hooks).
-const computePageItems = (
-	pageIndex: number,
-	positions: Record<string, number>,
-	appsList: { id: string }[]
-) => {
-	const items: string[] = [];
-	const PAGE_SIZE = pageIndex === 0 ? IOS_LAYOUT.PAGE0_SIZE : IOS_LAYOUT.PAGE1_SIZE;
-	const offset =
-		pageIndex === 0 ? 0 : IOS_LAYOUT.PAGE1_BASE + (pageIndex - 1) * IOS_LAYOUT.PAGE1_SIZE;
-
-	for (let i = 0; i < PAGE_SIZE; i++) {
-		const absoluteIndex = offset + i;
-		const app = appsList.find(a => positions[a.id] === absoluteIndex);
-		if (app) {
-			items.push(app.id);
-			continue;
-		}
-		items.push(getEmptySlotId(pageIndex, i));
-	}
-	return items;
-};
-
-// Helper to compute dock items
-const computeDockItems = (positions: Record<string, number>) => {
-	const dock: { id: string; pos: number }[] = [];
-	for (const [id, pos] of Object.entries(positions)) {
-		if (pos >= IOS_LAYOUT.DOCK_BASE) dock.push({ id, pos });
-	}
-	dock.sort((a, b) => a.pos - b.pos);
-	return dock.map(d => d.id);
-};
-
-function HomeScreenGrid({
-	isEditing,
-	...props
-}: HTMLAttributes<HTMLDivElement> & { isEditing: boolean }) {
-	const { measureDroppableContainers } = useDndContext();
-	return (
-		<div
-			{...props}
-			className={`absolute inset-0 pb-32 overflow-hidden transition-[padding-top] duration-300 ease-out ${isEditing ? 'pt-24' : 'pt-12'}`}
-			onTransitionEnd={event => {
-				// Padding and page sliding move slots without resizing them, so
-				// dnd-kit's per-icon ResizeObserver cannot refresh these rects.
-				if (
-					(event.target === event.currentTarget && event.propertyName === 'padding-top') ||
-					(event.target === event.currentTarget.firstElementChild &&
-						event.propertyName === 'transform')
-				) {
-					measureDroppableContainers([]);
-				}
-			}}
-		/>
-	);
-}
+import { useEmptyBackgroundPress } from './useEmptyBackgroundPress';
+import { useAppLauncher } from './useAppLauncher';
+import { useHomeScreenDnd } from './useHomeScreenDnd';
+import { computeDockItems, computePageItems, getStatusBarColors } from './homeScreenLayout';
 
 function HomeScreen() {
 	const allApps = useAppsStore(state => state.apps);
@@ -117,13 +35,6 @@ function HomeScreen() {
 	// O(1) lookup map for render functions only (doesn't affect state sync)
 	const appsMap = useMemo(() => new Map(apps.map(app => [app.id, app])), [apps]);
 
-	// --- DND State ---
-	const [activeId, setActiveId] = useState<string | null>(null);
-	const isDragging = activeId !== null;
-	// Synchronous mirror of drag activity. React state updates async, so a
-	// touchend arriving right after drop could otherwise read a stale
-	// isDragging=false and misfire a page swipe.
-	const dragActiveRef = useRef(false);
 	// iOS-style edit (jiggle) mode: entered on drag start, left via Done,
 	// home indicator, app launch, or Escape.
 	const [isEditing, setIsEditing] = useState(false);
@@ -141,22 +52,28 @@ function HomeScreen() {
 	);
 	const dockItemIds = useMemo(() => computeDockItems(iosAppPositions), [iosAppPositions]);
 
-	// --- Sensors ---
-	const sensors = useSensors(
-		useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-		useSensor(TouchSensor, {
-			// Short hold before a touch becomes a drag: page swipes stay
-			// snappy and icon-origin touches never flip pages (see gestures).
-			activationConstraint: { delay: 120, tolerance: 15 },
-		}),
-		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-	);
-
-	// --- App / Swipe State ---
-	const [currentApp, setCurrentApp] = useState<string | null>(null);
-	const [appToOpen, setAppToOpen] = useState<string | null>(null);
 	const appContainerRef = useRef<HTMLDivElement>(null);
 	const [currentPage, setCurrentPage] = useState(0);
+
+	const {
+		activeId,
+		isDragging,
+		dragActiveRef,
+		sensors,
+		pageAwareCollisionDetection,
+		handleDragStart,
+		handleDragOver,
+		handleDragEnd,
+		handleDragCancel,
+	} = useHomeScreenDnd({
+		iosAppPositions,
+		page0Items,
+		page1Items,
+		dockItemIds,
+		currentPage,
+		reorderIosApps,
+		setIsEditing,
+	});
 
 	// --- Notification Center & Control Center Panels ---
 	const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
@@ -176,11 +93,19 @@ function HomeScreen() {
 		setIsNotificationCenterOpen(false);
 	}, []);
 
+	const cancelPendingCloseRef = useRef<() => void>(() => {});
+	const { currentApp, setCurrentApp, appToOpen, isOpening, appOpenOrigin, handleAppClick } =
+		useAppLauncher({
+			isDragging,
+			launchApp,
+			setIsEditing,
+			cancelPendingCloseRef,
+		});
+
 	const handleCloseApp = useCallback(() => {
 		if (currentApp) closeApp(currentApp);
 	}, [closeApp, currentApp]);
 
-	// --- App / Swipe State Handled by Custom Hook ---
 	const {
 		handleTouchStart,
 		handleTouchMove,
@@ -209,158 +134,17 @@ function HomeScreen() {
 		onOpenNotificationCenter: handleOpenNotificationCenter,
 		onOpenControlCenter: handleOpenControlCenter,
 	});
-
-	// --- App State ---
-	const [isOpening, setIsOpening] = useState(false);
-	const [appOpenOrigin, setAppOpenOrigin] = useState<{
-		x: number;
-		y: number;
-		width: number;
-		height: number;
-	} | null>(null);
-	const currentPageRef = useRef(0);
-	useEffect(() => {
-		currentPageRef.current = currentPage;
-	}, [currentPage]);
-
-	// Drag handlers with cross-container support.
-	// Any drag start enters edit mode (long-press to rearrange, like iOS).
-	const {
-		handleDragStart: handleDragStartInner,
-		handleDragOver,
-		handleDragEnd: handleDragEndInner,
-		handleDragCancel: handleDragCancelInner,
-	} = useDragHandlers({
-		iosAppPositions,
-		page0Items,
-		page1Items,
-		dockItemIds,
-		setActiveId,
-		reorderIosApps,
-	});
-
-	const handleDragStart = useCallback(
-		(event: DragStartEvent) => {
-			dragActiveRef.current = true;
-			setIsEditing(true);
-			handleDragStartInner(event);
-		},
-		[handleDragStartInner]
-	);
-
-	const markDragInactive = useCallback(() => {
-		dragActiveRef.current = false;
-	}, []);
-
-	const handleDragEnd = useCallback(
-		(event: Parameters<typeof handleDragEndInner>[0]) => {
-			markDragInactive();
-			handleDragEndInner(event);
-		},
-		[handleDragEndInner, markDragInactive]
-	);
-
-	const handleDragCancel = useCallback(() => {
-		markDragInactive();
-		handleDragCancelInner();
-	}, [handleDragCancelInner, markDragInactive]);
+	cancelPendingCloseRef.current = cancelPendingClose;
 
 	const exitEditing = useCallback(() => setIsEditing(false), []);
 
-	// iOS long-press on empty home area enters edit mode; a quick tap on empty
-	// area leaves it. Icons keep their dnd-kit sensors — this only arms on
-	// background, so drags, swipes, and icon taps are untouched.
-	const LONG_PRESS_MS = 500;
-	const TAP_MS = 350;
-	const PRESS_TOLERANCE_PX = 12;
-	const emptyPressRef = useRef<{
-		x: number;
-		y: number;
-		time: number;
-		moved: boolean;
-		timer: ReturnType<typeof setTimeout> | null;
-	} | null>(null);
-
-	const clearEmptyPressTimer = useCallback(() => {
-		if (emptyPressRef.current?.timer) {
-			clearTimeout(emptyPressRef.current.timer);
-			emptyPressRef.current.timer = null;
-		}
-	}, []);
-
-	useEffect(() => {
-		return () => {
-			if (emptyPressRef.current?.timer) clearTimeout(emptyPressRef.current.timer);
-		};
-	}, []);
-
-	const isEmptyBackground = useCallback((target: EventTarget | null) => {
-		const el = target as HTMLElement | null;
-		if (!el || typeof el.closest !== 'function') return false;
-		return !el.closest('button, [data-app-id], input, textarea, [role="dialog"]');
-	}, []);
-
-	const handleEmptyPressStart = useCallback(
-		(e: React.PointerEvent) => {
-			if (currentApp || appToOpen) return;
-			if (isNotificationCenterOpen || isControlCenterOpen) return;
-			if (!isEmptyBackground(e.target)) return;
-			clearEmptyPressTimer();
-			// In edit mode the press is only tracked so a quick tap can leave;
-			// the long-press timer arms solely outside edit mode.
-			const rec: {
-				x: number;
-				y: number;
-				time: number;
-				moved: boolean;
-				timer: ReturnType<typeof setTimeout> | null;
-			} = { x: e.clientX, y: e.clientY, time: Date.now(), moved: false, timer: null };
-			if (!isEditing) {
-				rec.timer = setTimeout(() => {
-					emptyPressRef.current = null;
-					// A real drag already entered edit mode via dnd-kit; don't double-buzz.
-					if (!dragActiveRef.current) {
-						setIsEditing(true);
-						triggerHaptic('medium');
-					}
-				}, LONG_PRESS_MS);
-			}
-			emptyPressRef.current = rec;
-		},
-		[
+	const { handleEmptyPressStart, handleEmptyPressMove, handleEmptyPressEnd } =
+		useEmptyBackgroundPress({
 			isEditing,
-			currentApp,
-			appToOpen,
-			isNotificationCenterOpen,
-			isControlCenterOpen,
-			isEmptyBackground,
-			clearEmptyPressTimer,
-		]
-	);
-
-	const handleEmptyPressMove = useCallback(
-		(e: React.PointerEvent) => {
-			const rec = emptyPressRef.current;
-			if (!rec) return;
-			if (
-				Math.abs(e.clientX - rec.x) > PRESS_TOLERANCE_PX ||
-				Math.abs(e.clientY - rec.y) > PRESS_TOLERANCE_PX
-			) {
-				rec.moved = true;
-				clearEmptyPressTimer();
-			}
-		},
-		[clearEmptyPressTimer]
-	);
-
-	const handleEmptyPressEnd = useCallback(() => {
-		const rec = emptyPressRef.current;
-		emptyPressRef.current = null;
-		clearEmptyPressTimer();
-		if (rec && !rec.moved && Date.now() - rec.time < TAP_MS && isEditing) {
-			setIsEditing(false);
-		}
-	}, [isEditing, clearEmptyPressTimer]);
+			setIsEditing,
+			isDisabled: Boolean(currentApp || appToOpen || isNotificationCenterOpen || isControlCenterOpen),
+			dragActiveRef,
+		});
 
 	// Home indicator: closes the open app, or leaves edit mode when idle.
 	const handleHomeIndicator = useCallback(() => {
@@ -381,158 +165,10 @@ function HomeScreen() {
 		return () => window.removeEventListener('keydown', onKeyDown);
 	}, [isEditing]);
 
-	const statusBarColors = useMemo(() => {
-		const appId = currentApp || appToOpen;
-		if (!appId) return { backgroundColor: 'transparent', textColor: 'white' };
-		const isDark = darkMode;
-		if (appId === 'terminal' || appId === 'camera')
-			return { backgroundColor: '#000000', textColor: '#ffffff' };
-		return {
-			backgroundColor: isDark ? '#000000' : '#ffffff',
-			textColor: isDark ? '#ffffff' : '#000000',
-		};
-	}, [currentApp, appToOpen, darkMode]);
-
-	// --- Handlers ---
-	const pageAwareCollisionDetection = useCallback<CollisionDetection>(
-		args => {
-			const { droppableContainers, ...rest } = args;
-			const validPageIds = currentPage === 0 ? page0Items : page1Items;
-			const allValidIds = [...validPageIds, ...dockItemIds];
-			const filteredContainers = droppableContainers.filter(container => {
-				return allValidIds.includes(container.id as string);
-			});
-			// Edit mode moves the grid down while the drag is active. Prefer
-			// the pointer's slot, not the dragged rect with that layout offset.
-			const pointerCollisions = pointerWithin({
-				...rest,
-				droppableContainers: filteredContainers,
-			});
-			if (pointerCollisions.length) return pointerCollisions;
-
-			return closestCenter({
-				...rest,
-				droppableContainers: filteredContainers,
-			});
-		},
-		[page0Items, page1Items, dockItemIds, currentPage]
+	const statusBarColors = useMemo(
+		() => getStatusBarColors(currentApp || appToOpen, darkMode),
+		[currentApp, appToOpen, darkMode]
 	);
-
-	const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-	// Clear a pending app-open if the home screen unmounts first.
-	useEffect(() => {
-		return () => {
-			if (openTimeoutRef.current) {
-				clearTimeout(openTimeoutRef.current);
-				openTimeoutRef.current = null;
-			}
-		};
-	}, []);
-
-	const handleAppClick = useCallback(
-		(appId: string) => {
-			if (isDragging) return;
-
-			// Opening an app leaves edit mode, like iOS.
-			setIsEditing(false);
-
-			// SYNCHRONOUSLY kill any pending close timeout to prevent race condition
-			cancelPendingClose();
-
-			triggerHaptic('light');
-
-			const iconElement = document.querySelector(`[data-app-id="${appId}"]`) as HTMLElement;
-			if (iconElement) {
-				const rect = iconElement.getBoundingClientRect();
-				setAppOpenOrigin({
-					x: rect.left,
-					y: rect.top,
-					width: rect.width,
-					height: rect.height,
-				});
-			} else {
-				setAppOpenOrigin(null);
-			}
-
-			if (openTimeoutRef.current) {
-				clearTimeout(openTimeoutRef.current);
-				openTimeoutRef.current = null;
-			}
-
-			// Instant App Activation
-			launchApp(appId);
-			setCurrentApp(appId);
-			setAppToOpen(appId);
-			setIsOpening(true);
-
-			openTimeoutRef.current = setTimeout(() => {
-				setAppToOpen(null);
-				setIsOpening(false);
-				openTimeoutRef.current = null;
-			}, 260);
-		},
-		[isDragging, launchApp, cancelPendingClose]
-	);
-
-	// Cross-app requests (e.g. the Camera thumbnail opens Photos).
-	useEffect(() => {
-		const onOpenAppEvent = (e: Event) => {
-			const id = (e as CustomEvent<string>).detail;
-			if (typeof id === 'string' && id) handleAppClick(id);
-		};
-		window.addEventListener('ilmi:open-app', onOpenAppEvent);
-		return () => window.removeEventListener('ilmi:open-app', onOpenAppEvent);
-	}, [handleAppClick]);
-
-	// --- Render Helpers ---
-	const renderGridItem = (id: string, _index: number) => {
-		const isApp = !id.startsWith('empty-');
-		if (isApp) {
-			const app = appsMap.get(id);
-			if (!app) return null;
-			return (
-				<SortableAppIcon
-					key={id}
-					id={id}
-					app={app}
-					onClick={handleAppClick}
-					isEditing={isEditing}
-				/>
-			);
-		} else {
-			// ENABLE empty slots as drop targets (remove disabled=true).
-			// They are not draggable because we don't attach listeners in SortableAppIcon if isEmpty=true.
-			return (
-				<SortableAppIcon
-					key={id}
-					id={id}
-					app={{ id, name: '', icon: '', platform: 'ios', component: 'placeholder' }}
-					onClick={() => {}}
-					isEmpty={true}
-				/>
-			);
-		}
-	};
-
-	const renderOverlayItem = (id: string) => {
-		const app = appsMap.get(id);
-		if (!app) return null;
-		return (
-			<div
-				className="w-16 h-16 pointer-events-none"
-				style={{
-					transform: `scale(${DRAG.SCALE_ON_DRAG})`,
-					filter: 'drop-shadow(0 12px 16px rgba(0, 0, 0, 0.35))',
-				}}
-			>
-				{/* Pass isDragging=false to AppIcon so it renders fully opaque without the 'ios-dragging' styles that might reduce opacity.
-				    The opacity/ghosting of the *original* item is handled by SortableAppIcon. 
-					The *dragged* copy (overlay) should be clear and solid. */}
-				<AppIcon app={app} isDragging={false} />
-			</div>
-		);
-	};
 
 	const Component = useMemo(() => {
 		const appId = currentApp || appToOpen;
@@ -543,8 +179,10 @@ function HomeScreen() {
 	}, [currentApp, appToOpen]);
 
 	const dockApps = useMemo(() => {
-		return dockItemIds.map(id => apps.find(a => a.id === id)!).filter(Boolean);
-	}, [apps, dockItemIds]);
+		return dockItemIds.map(id => appsMap.get(id)).filter((a): a is NonNullable<typeof a> => Boolean(a));
+	}, [appsMap, dockItemIds]);
+
+	const activeApp = activeId ? appsMap.get(activeId) : undefined;
 
 	return (
 		<ErrorBoundary>
@@ -555,41 +193,14 @@ function HomeScreen() {
 				onTouchEnd={handleTouchEnd}
 				onTouchCancel={handleTouchCancel}
 			>
-				{/* Wallpaper */}
-				<div key={wallpaper} className="wallpaper absolute inset-0 -z-10">
-					{wallpaper.startsWith('/') || wallpaper.startsWith('http') ? (
-						<Image
-							src={wallpaper}
-							alt="Wallpaper"
-							fill
-							className="object-cover"
-							priority
-							unoptimized
-						/>
-					) : (
-						<div className="w-full h-full" style={{ background: wallpaper }}></div>
-					)}
-				</div>
-
-				{!currentApp && !appToOpen && (
-					<StatusBar
-						backgroundColor="transparent"
-						textColor="white"
-						onOpenNotificationCenter={handleOpenNotificationCenter}
-						onOpenControlCenter={handleOpenControlCenter}
-					/>
-				)}
-
-				{isEditing && !currentApp && !appToOpen && (
-					<button
-						type="button"
-						onClick={exitEditing}
-						aria-label="Done editing home screen"
-						className="absolute top-12 right-4 z-40 px-4 py-1.5 rounded-full bg-white/25 text-white text-sm font-semibold backdrop-blur-md active:scale-95 transition-transform focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 animate-in fade-in zoom-in-95 duration-200"
-					>
-						Done
-					</button>
-				)}
+				<HomeScreenHeader
+					wallpaper={wallpaper}
+					isAppOpen={Boolean(currentApp || appToOpen)}
+					isEditing={isEditing}
+					onExitEditing={exitEditing}
+					onOpenNotificationCenter={handleOpenNotificationCenter}
+					onOpenControlCenter={handleOpenControlCenter}
+				/>
 
 				<DndContext
 					sensors={sensors}
@@ -600,7 +211,6 @@ function HomeScreen() {
 					onDragCancel={handleDragCancel}
 					measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
 				>
-					{/* Drag Monitor for Auto-Scroll */}
 					<DragAutoScroller
 						onChangePage={(dir: 'next' | 'prev') => {
 							if (dir === 'next' && currentPage < 1) setCurrentPage(1);
@@ -608,50 +218,17 @@ function HomeScreen() {
 						}}
 					/>
 
-					<HomeScreenGrid
+					<HomeScreenPages
 						isEditing={isEditing}
-						onPointerDown={handleEmptyPressStart}
-						onPointerMove={handleEmptyPressMove}
-						onPointerUp={handleEmptyPressEnd}
-						onPointerCancel={handleEmptyPressEnd}
-					>
-						<div
-							className="flex h-full w-[200vw]"
-							style={{
-								transform: `translateX(-${currentPage * 100}vw)`,
-								transition: 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
-							}}
-						>
-							{/* Page 0 */}
-							<div className="ios-app-grid-page w-screen h-full px-4">
-								<SortableContext items={page0Items} strategy={rectSortingStrategy}>
-									<div className="grid grid-cols-4 gap-5">
-										<div className="col-span-2 row-span-2 pointer-events-none">
-											<Widget type="battery" />
-										</div>
-										{page0Items.map((id, index) => (
-											<div key={id} className="w-full aspect-square">
-												{renderGridItem(id, index)}
-											</div>
-										))}
-									</div>
-								</SortableContext>
-							</div>
-
-							{/* Page 1 */}
-							<div className="ios-app-grid-page w-screen h-full px-4">
-								<SortableContext items={page1Items} strategy={rectSortingStrategy}>
-									<div className="grid grid-cols-4 gap-5">
-										{page1Items.map((id, index) => (
-											<div key={id} className="w-full aspect-square">
-												{renderGridItem(id, index)}
-											</div>
-										))}
-									</div>
-								</SortableContext>
-							</div>
-						</div>
-					</HomeScreenGrid>
+						currentPage={currentPage}
+						page0Items={page0Items}
+						page1Items={page1Items}
+						appsMap={appsMap}
+						onAppClick={handleAppClick}
+						onEmptyPressStart={handleEmptyPressStart}
+						onEmptyPressMove={handleEmptyPressMove}
+						onEmptyPressEnd={handleEmptyPressEnd}
+					/>
 
 					<HomeScreenPagination
 						currentPage={currentPage}
@@ -659,13 +236,13 @@ function HomeScreen() {
 						visible={!currentApp && !appToOpen}
 					/>
 
-					<DragOverlay>{activeId ? renderOverlayItem(activeId) : null}</DragOverlay>
+					<DragOverlay>{activeApp ? <DragOverlayAppIcon app={activeApp} /> : null}</DragOverlay>
 
 					<HomeScreenDock apps={dockApps} onAppClick={handleAppClick} isEditing={isEditing} />
 				</DndContext>
 			</div>
 
-			<HomeScreenAppContainer
+			<HomeScreenOverlays
 				Component={Component}
 				appName={
 					currentApp || appToOpen
@@ -678,6 +255,12 @@ function HomeScreen() {
 				appToOpen={appToOpen}
 				appOpenOrigin={appOpenOrigin}
 				statusBarColors={statusBarColors}
+				notificationCenterRef={notificationCenterRef}
+				controlCenterRef={controlCenterRef}
+				isNotificationCenterOpen={isNotificationCenterOpen}
+				isControlCenterOpen={isControlCenterOpen}
+				onCloseNotificationCenter={() => setIsNotificationCenterOpen(false)}
+				onCloseControlCenter={() => setIsControlCenterOpen(false)}
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
 				onTouchEnd={handleTouchEnd}
@@ -688,21 +271,6 @@ function HomeScreen() {
 				onCloseApp={handleHomeIndicator}
 				onOpenNotificationCenter={handleOpenNotificationCenter}
 				onOpenControlCenter={handleOpenControlCenter}
-			/>
-
-			{/* iOS Notification Center / Cover Sheet Overlay */}
-			<NotificationCenter
-				ref={notificationCenterRef}
-				isOpen={isNotificationCenterOpen}
-				onClose={() => setIsNotificationCenterOpen(false)}
-				onOpenApp={handleAppClick}
-			/>
-
-			{/* iOS Mobile Control Center Overlay */}
-			<MobileControlCenter
-				ref={controlCenterRef}
-				isOpen={isControlCenterOpen}
-				onClose={() => setIsControlCenterOpen(false)}
 				onOpenApp={handleAppClick}
 			/>
 		</ErrorBoundary>

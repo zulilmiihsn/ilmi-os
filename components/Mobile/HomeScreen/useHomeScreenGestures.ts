@@ -2,6 +2,14 @@
 
 import { useRef, useCallback } from 'react';
 import { triggerHaptic } from '../../../utils/haptic';
+import {
+	animateAppCloseToIcon,
+	applyAppDragTransform,
+	releaseTopPanel,
+	resetAppContainerStyles,
+	snapAppContainerOpen,
+	trackTopPanelPull,
+} from './gestureHelpers';
 
 interface UseHomeScreenGesturesProps {
 	isDragging: boolean;
@@ -64,37 +72,12 @@ export function useHomeScreenGestures({
 		cancelPendingClose();
 		isAnimatingCloseRef.current = true;
 		triggerHaptic('medium');
-		container.style.pointerEvents = 'none';
-		container.style.willChange = 'transform, opacity';
-		container.style.transition =
-			'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease';
-		// iOS zooms the app back into its icon. Fall back to the generic
-		// shrink-and-fade when the icon rect is unavailable.
-		const activeApp = currentApp || appToOpen;
-		const icon = activeApp ? document.querySelector(`[data-app-id="${activeApp}"]`) : null;
-		if (icon) {
-			const rect = icon.getBoundingClientRect();
-			const scale = rect.width / window.innerWidth;
-			container.style.transformOrigin = '0 0';
-			container.style.transform = `translate3d(${rect.left}px, ${rect.top}px, 0) scale(${scale})`;
-			container.style.borderRadius = '40px';
-		} else {
-			container.style.transform = 'translate3d(0, 80%, 0) scale(0.7)';
-		}
-		container.style.opacity = '0';
+		animateAppCloseToIcon(container, currentApp || appToOpen);
 
 		closeAnimationTimeoutRef.current = setTimeout(() => {
 			closeApp();
 			setCurrentApp(null);
-			if (container) {
-				container.style.transition = '';
-				container.style.transform = '';
-				container.style.transformOrigin = '';
-				container.style.opacity = '';
-				container.style.pointerEvents = '';
-				container.style.borderRadius = '';
-				container.style.willChange = '';
-			}
+			if (container) resetAppContainerStyles(container);
 			isAnimatingCloseRef.current = false;
 		}, 350);
 	}, [closeApp, setCurrentApp, cancelPendingClose, appContainerRef, currentApp, appToOpen]);
@@ -103,18 +86,13 @@ export function useHomeScreenGestures({
 	const handleBottomPointerDown = useCallback(
 		(e: React.PointerEvent) => {
 			if (isAnimatingCloseRef.current) return;
-			const activeApp = currentApp || appToOpen;
-			if (!activeApp) return;
+			if (!(currentApp || appToOpen)) return;
 
 			try {
 				(e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
 			} catch {}
 
-			bottomPointerStartRef.current = {
-				y: e.clientY,
-				time: Date.now(),
-			};
-
+			bottomPointerStartRef.current = { y: e.clientY, time: Date.now() };
 			if (appContainerRef.current) {
 				appContainerRef.current.style.transition = 'none';
 			}
@@ -125,17 +103,11 @@ export function useHomeScreenGestures({
 	const handleBottomPointerMove = useCallback(
 		(e: React.PointerEvent) => {
 			if (!bottomPointerStartRef.current || isAnimatingCloseRef.current) return;
-			const activeApp = currentApp || appToOpen;
-			if (!activeApp || !appContainerRef.current) return;
+			if (!(currentApp || appToOpen) || !appContainerRef.current) return;
 
 			const deltaY = bottomPointerStartRef.current.y - e.clientY;
 			if (deltaY > 0) {
-				const progress = Math.min(100, (deltaY / window.innerHeight) * 100);
-				const scale = Math.max(0.85, 1 - progress * 0.0018);
-				appContainerRef.current.style.transform = `translate3d(0, -${progress}%, 0) scale(${scale})`;
-				appContainerRef.current.style.borderRadius = `${Math.min(40, progress * 0.8)}px`;
-				appContainerRef.current.style.opacity =
-					progress > 70 ? String(Math.max(0, 1 - (progress - 70) / 30)) : '1';
+				applyAppDragTransform(appContainerRef.current, deltaY);
 			}
 		},
 		[currentApp, appToOpen, appContainerRef]
@@ -160,21 +132,7 @@ export function useHomeScreenGestures({
 			if (deltaY > 25) {
 				triggerCloseApp();
 			} else if (appContainerRef.current) {
-				const container = appContainerRef.current;
-				container.style.transition =
-					'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease';
-				container.style.transform = 'translate3d(0, 0, 0) scale(1)';
-				container.style.opacity = '1';
-				container.style.borderRadius = '';
-
-				setTimeout(() => {
-					if (container && !isAnimatingCloseRef.current) {
-						container.style.transition = '';
-						container.style.transform = '';
-						container.style.opacity = '';
-						container.style.borderRadius = '';
-					}
-				}, 300);
+				snapAppContainerOpen(appContainerRef.current, isAnimatingCloseRef);
 			}
 		},
 		[triggerCloseApp, appContainerRef]
@@ -183,18 +141,7 @@ export function useHomeScreenGestures({
 	const handleBottomPointerCancel = useCallback(() => {
 		bottomPointerStartRef.current = null;
 		if (appContainerRef.current && !isAnimatingCloseRef.current) {
-			const container = appContainerRef.current;
-			container.style.transition = 'transform 0.3s ease';
-			container.style.transform = 'translate3d(0, 0, 0) scale(1)';
-			container.style.opacity = '1';
-			setTimeout(() => {
-				if (container && !isAnimatingCloseRef.current) {
-					container.style.transition = '';
-					container.style.transform = '';
-					container.style.opacity = '';
-					container.style.borderRadius = '';
-				}
-			}, 300);
+			snapAppContainerOpen(appContainerRef.current, isAnimatingCloseRef, 'transform 0.3s ease');
 		}
 	}, [appContainerRef]);
 
@@ -219,15 +166,13 @@ export function useHomeScreenGestures({
 		iconTouchRef.current = Boolean(target?.closest?.('[data-app-id]'));
 		const isBottomTarget = Boolean(target?.closest?.('.ios-bottom-bar'));
 		const isBottom = touch.clientY >= window.innerHeight - 85 || isBottomTarget;
-		const isTop = touch.clientY <= 90;
-		const isTopRight = touch.clientX > window.innerWidth * 0.58;
 
 		touchStartRef.current = {
 			x: touch.clientX,
 			y: touch.clientY,
 			isBottomSwipe: Boolean((currentApp || appToOpen) && isBottom),
-			isTopSwipe: isTop,
-			isTopRight,
+			isTopSwipe: touch.clientY <= 90,
+			isTopRight: touch.clientX > window.innerWidth * 0.58,
 		};
 	};
 
@@ -244,25 +189,10 @@ export function useHomeScreenGestures({
 
 		// Top Swipe Down Real-Time Panel Tracking
 		if (touch.isTopSwipe && deltaY > 0) {
-			if (touch.isTopRight) {
-				const panel = controlCenterRef?.current;
-				if (panel) {
-					const translateY = Math.min(0, cy - window.innerHeight);
-					panel.style.transition = 'none';
-					panel.style.transform = `translate3d(0, ${translateY}px, 0)`;
-					panel.style.opacity = '1';
-					panel.style.pointerEvents = 'auto';
-				}
-			} else {
-				const panel = notificationCenterRef?.current;
-				if (panel) {
-					const translateY = Math.min(0, cy - window.innerHeight);
-					panel.style.transition = 'none';
-					panel.style.transform = `translate3d(0, ${translateY}px, 0)`;
-					panel.style.opacity = '1';
-					panel.style.pointerEvents = 'auto';
-				}
-			}
+			trackTopPanelPull(
+				touch.isTopRight ? controlCenterRef?.current : notificationCenterRef?.current,
+				cy
+			);
 			return;
 		}
 
@@ -270,13 +200,8 @@ export function useHomeScreenGestures({
 		if (touch.isBottomSwipe && appContainerRef.current) {
 			const swipeUpY = touch.y - cy;
 			if (swipeUpY > 0) {
-				const progress = Math.min(100, (swipeUpY / window.innerHeight) * 100);
-				const scale = Math.max(0.85, 1 - progress * 0.0018);
 				appContainerRef.current.style.transition = 'none';
-				appContainerRef.current.style.transform = `translate3d(0, -${progress}%, 0) scale(${scale})`;
-				appContainerRef.current.style.borderRadius = `${Math.min(40, progress * 0.8)}px`;
-				appContainerRef.current.style.opacity =
-					progress > 70 ? String(Math.max(0, 1 - (progress - 70) / 30)) : '1';
+				applyAppDragTransform(appContainerRef.current, swipeUpY);
 			}
 		}
 	};
@@ -294,87 +219,29 @@ export function useHomeScreenGestures({
 
 		const endTouch = e.changedTouches[0];
 		if (!endTouch) return;
-		const cx = endTouch.clientX;
-		const cy = endTouch.clientY;
-		const deltaX = cx - touch.x;
-		const deltaY = cy - touch.y; // Positive when pulled down
+		const deltaX = endTouch.clientX - touch.x;
+		const deltaY = endTouch.clientY - touch.y; // Positive when pulled down
 
 		// Top Swipe Down Release (Snaps Open or Snaps Back)
 		if (touch.isTopSwipe) {
+			const isDeliberateSwipe = deltaY >= 50 && deltaY > Math.abs(deltaX);
 			if (touch.isTopRight) {
-				const panel = controlCenterRef?.current;
-				const isDeliberateSwipe = deltaY >= 50 && deltaY > Math.abs(deltaX);
+				releaseTopPanel(controlCenterRef?.current, isDeliberateSwipe);
 				if (isDeliberateSwipe) {
-					triggerHaptic('light');
-					if (panel) {
-						panel.style.transition =
-							'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease';
-						panel.style.transform = 'translate3d(0, 0%, 0)';
-						panel.style.opacity = '1';
-						panel.style.pointerEvents = 'auto';
-						setTimeout(() => {
-							if (panel) {
-								panel.style.transition = '';
-							}
-						}, 350);
-					}
-					if (setIsControlCenterOpen) setIsControlCenterOpen(true);
-					if (setIsNotificationCenterOpen) setIsNotificationCenterOpen(false);
-					if (onOpenControlCenter) onOpenControlCenter();
+					setIsControlCenterOpen?.(true);
+					setIsNotificationCenterOpen?.(false);
+					onOpenControlCenter?.();
 				} else {
-					if (panel) {
-						panel.style.transition =
-							'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease';
-						panel.style.transform = 'translate3d(0, -100%, 0)';
-						panel.style.opacity = '0';
-						panel.style.pointerEvents = 'none';
-						// Keep the final inline values: clearing them would
-						// drop below React's declared closed style and leave
-						// the panel visible until the next render.
-						setTimeout(() => {
-							if (panel) {
-								panel.style.transition = '';
-							}
-						}, 300);
-					}
-					if (setIsControlCenterOpen) setIsControlCenterOpen(false);
+					setIsControlCenterOpen?.(false);
 				}
 			} else {
-				const panel = notificationCenterRef?.current;
-				const isDeliberateSwipe = deltaY >= 50 && deltaY > Math.abs(deltaX);
+				releaseTopPanel(notificationCenterRef?.current, isDeliberateSwipe);
 				if (isDeliberateSwipe) {
-					triggerHaptic('light');
-					if (panel) {
-						panel.style.transition =
-							'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease';
-						panel.style.transform = 'translate3d(0, 0%, 0)';
-						panel.style.opacity = '1';
-						panel.style.pointerEvents = 'auto';
-						setTimeout(() => {
-							if (panel) {
-								panel.style.transition = '';
-							}
-						}, 350);
-					}
-					if (setIsNotificationCenterOpen) setIsNotificationCenterOpen(true);
-					if (setIsControlCenterOpen) setIsControlCenterOpen(false);
-					if (onOpenNotificationCenter) onOpenNotificationCenter();
+					setIsNotificationCenterOpen?.(true);
+					setIsControlCenterOpen?.(false);
+					onOpenNotificationCenter?.();
 				} else {
-					if (panel) {
-						panel.style.transition =
-							'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease';
-						panel.style.transform = 'translate3d(0, -100%, 0)';
-						panel.style.opacity = '0';
-						panel.style.pointerEvents = 'none';
-						// Keep the final inline values so the closed panel
-						// cannot become visible before the next render.
-						setTimeout(() => {
-							if (panel) {
-								panel.style.transition = '';
-							}
-						}, 300);
-					}
-					if (setIsNotificationCenterOpen) setIsNotificationCenterOpen(false);
+					setIsNotificationCenterOpen?.(false);
 				}
 			}
 			return;
@@ -392,28 +259,12 @@ export function useHomeScreenGestures({
 		// Close App Swipe Logic (Swiping UP from bottom)
 		const activeApp = currentApp || appToOpen;
 		if (touch.isBottomSwipe && activeApp && appContainerRef.current) {
-			const swipeUpDistance = touch.y - cy; // Positive when swiped UP
+			const swipeUpDistance = touch.y - endTouch.clientY; // Positive when swiped UP
 			if (swipeUpDistance > 25) {
 				triggerCloseApp();
 			} else {
-				// Snap Back Open
-				const container = appContainerRef.current;
-				container.style.transition =
-					'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease';
-				container.style.transform = 'translate3d(0, 0, 0) scale(1)';
-				container.style.opacity = '1';
-				container.style.borderRadius = '';
-
-				setTimeout(() => {
-					if (container && !isAnimatingCloseRef.current) {
-						container.style.transition = '';
-						container.style.transform = '';
-						container.style.opacity = '';
-						container.style.borderRadius = '';
-					}
-				}, 300);
+				snapAppContainerOpen(appContainerRef.current, isAnimatingCloseRef);
 			}
-			return;
 		}
 	};
 
