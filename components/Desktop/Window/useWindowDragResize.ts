@@ -207,12 +207,13 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 				});
 			} else {
 				if (windowRef.current) {
-					windowRef.current.style.transition = 'none';
-					windowRef.current.style.transform = `translate3d(${interactionRef.current.currentX}px, ${interactionRef.current.currentY}px, 0)`;
 					const el = windowRef.current;
-					requestAnimationFrame(() => {
-						el.style.transition = '';
-					});
+					el.style.transition = 'none';
+					el.style.transform = `translate3d(${interactionRef.current.currentX}px, ${interactionRef.current.currentY}px, 0)`;
+					// Flush the final pointer position before re-enabling transitions so
+					// normal drag release settles immediately without a 250ms glide.
+					void el.offsetHeight;
+					el.style.transition = '';
 				}
 				useWindowsStore.getState().updateWindow(windowState.id, {
 					x: interactionRef.current.currentX,
