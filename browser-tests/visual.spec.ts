@@ -6,11 +6,23 @@ import { test, expect, type Page } from '@playwright/test';
 // CI renders with a different Chromium build/fonts, so expect to regenerate
 // baselines from CI once, then keep them stable.
 // Deterministic rendering: freeze the clock (status bar, calendar icon,
-// widget) and Math.random (window cascade offsets) before navigation.
+// widget), Math.random (window cascade offsets), and Battery API before navigation.
 async function prepareDeterministicPage(page: Page) {
 	await page.clock.install({ time: new Date('2026-09-22T12:00:00') });
 	await page.addInitScript(() => {
 		Math.random = () => 0.5;
+		const fixedBattery = {
+			level: 1,
+			charging: false,
+			chargingTime: 0,
+			dischargingTime: Infinity,
+			addEventListener: () => {},
+			removeEventListener: () => {},
+		};
+		Object.defineProperty(navigator, 'getBattery', {
+			configurable: true,
+			value: () => Promise.resolve(fixedBattery),
+		});
 	});
 }
 
