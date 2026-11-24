@@ -1,14 +1,23 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { detectDevice } from '../utils/deviceDetection';
 import { debounce } from '../utils/debounce';
 import { RESIZE } from '../constants';
 import type { DeviceInfo } from '../types';
-import Desktop from '../components/Desktop/Desktop';
-import HomeScreen from '../components/Mobile/HomeScreen';
 import { useSettingsStore } from '../stores/settings';
 import BootScreen from '../components/BootScreen';
+
+const Desktop = dynamic(() => import('../components/Desktop/Desktop'), {
+	ssr: false,
+	loading: () => <BootScreen />,
+});
+
+const HomeScreen = dynamic(() => import('../components/Mobile/HomeScreen'), {
+	ssr: false,
+	loading: () => <BootScreen />,
+});
 
 export default function Home() {
 	const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
@@ -51,4 +60,3 @@ export default function Home() {
 
 	return deviceInfo.platform === 'macos' ? <Desktop /> : <HomeScreen />;
 }
-

@@ -7,28 +7,75 @@ import MenuBar from './MenuBar';
 import Dock from './Dock';
 import Window from './Window';
 import ContextMenu from './ContextMenu';
+import AppSwitcher from './AppSwitcher';
 import { useWindowsStore } from '../../stores/windows';
 import { useSettingsStore } from '../../stores/settings';
 import { layoutExposeTiles } from '../../utils/exposeLayout';
-
+import {
+	findTopVisibleWindow,
+	initialSwitcherIndex,
+	isEditableTarget,
+	isModalOrSpotlightOpen,
+	nextSwitcherIndex,
+	orderWindowsForSwitcher,
+	resolveDesktopShortcut,
+	resolveSwitcherKey,
+} from '../../utils/desktopShortcuts';
+import type { WindowState } from '../../types';
 import DesktopIcons from './DesktopIcons';
+
+interface SwitcherState {
+	open: boolean;
+	items: WindowState[];
+	index: number;
+}
+
+const CLOSED_SWITCHER: SwitcherState = { open: false, items: [], index: 0 };
+
+function restoreAndFocusWindow(id: string): void {
+	const store = useWindowsStore.getState();
+	const target = store.windows.find(w => w.id === id);
+	if (target?.isMinimized) store.updateWindow(id, { isMinimized: false });
+	if (target) store.focusWindow(id);
+}
+
+function restoreSavedFocus(ref: React.MutableRefObject<Element | null>): void {
+	const el = ref.current;
+	ref.current = null;
+	if (el instanceof HTMLElement && el.isConnected) el.focus();
+}
 
 function Desktop() {
 	const windows = useWindowsStore(state => state.windows);
 	const { wallpaper } = useSettingsStore();
 	const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-
-	// Exposé-lite (Mission Control approximation): spread all open windows —
-	// minimized ones included — into tiles. F3 toggles, Esc exits, clicking
-	// (or Enter on) a tile focuses it, unminimizing with the restore trip.
 	const [exposeOpen, setExposeOpen] = useState(false);
+	const [switcher, setSwitcher] = useState<SwitcherState>(CLOSED_SWITCHER);
+	const switcherRef = useRef<SwitcherState>(CLOSED_SWITCHER);
 	const prevFocusRef = useRef<Element | null>(null);
+
+	const updateSwitcher = useCallback((next: SwitcherState) => {
+		switcherRef.current = next;
+		setSwitcher(next);
+	}, []);
+
+	const cancelSwitcher = useCallback(() => {
+		updateSwitcher(CLOSED_SWITCHER);
+		restoreSavedFocus(prevFocusRef);
+	}, [updateSwitcher]);
+
+	const commitSwitcherWindow = useCallback(
+		(id: string) => {
+			restoreAndFocusWindow(id);
+			prevFocusRef.current = null;
+			updateSwitcher(CLOSED_SWITCHER);
+		},
+		[updateSwitcher]
+	);
 
 	const exitExpose = useCallback(() => {
 		setExposeOpen(false);
-		const el = prevFocusRef.current as HTMLElement | null;
-		prevFocusRef.current = null;
-		if (el && el.isConnected) el.focus();
+		restoreSavedFocus(prevFocusRef);
 	}, []);
 
 	const enterExpose = useCallback(() => {
@@ -39,65 +86,103 @@ function Desktop() {
 
 	const selectExposeWindow = useCallback(
 		(id: string) => {
-			const target = useWindowsStore.getState().windows.find(w => w.id === id);
-			if (target?.isMinimized) {
-				useWindowsStore.getState().updateWindow(id, { isMinimized: false });
-			}
-			if (target) useWindowsStore.getState().focusWindow(id);
+			restoreAndFocusWindow(id);
 			exitExpose();
 		},
 		[exitExpose]
 	);
 
 	useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
+		const commitHighlighted = () => {
+			const picked = switcherRef.current.items[switcherRef.current.index];
+			if (picked) commitSwitcherWindow(picked.id);
+			else cancelSwitcher();
+		};
+
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (switcherRef.current.open) {
+				const nav = resolveSwitcherKey(e);
+				if (!nav) return;
+				e.preventDefault();
+				if (nav === 'cancel') return cancelSwitcher();
+				if (nav === 'commit') return commitHighlighted();
+				const cur = switcherRef.current;
+				const nextIdx = nextSwitcherIndex(cur.index, cur.items.length, nav === 'prev');
+				if (nextIdx >= 0) updateSwitcher({ ...cur, index: nextIdx });
+				return;
+			}
+
 			if (e.key === 'F3') {
 				e.preventDefault();
 				if (exposeOpen) exitExpose();
 				else enterExpose();
-			} else if (e.key === 'Escape' && exposeOpen) {
-				exitExpose();
+				return;
 			}
+			if (e.key === 'Escape' && exposeOpen) return exitExpose();
+			if (exposeOpen) return;
+
+			const action = resolveDesktopShortcut(e);
+			if (!action || isEditableTarget(e.target) || isModalOrSpotlightOpen()) return;
+			e.preventDefault();
+
+			const store = useWindowsStore.getState();
+			if (action === 'close' || action === 'minimize') {
+				const focused = store.windows.find(w => w.isFocused && !w.isMinimized);
+				if (!focused) return;
+				if (action === 'close') store.closeWindow(focused.id);
+				else store.minimizeWindow(focused.id);
+				const next = findTopVisibleWindow(store.windows, focused.id);
+				if (next) store.focusWindow(next.id);
+				return;
+			}
+
+			const ordered = orderWindowsForSwitcher(store.windows);
+			const startIndex = initialSwitcherIndex(ordered.length, action === 'switch-prev');
+			if (startIndex < 0) return;
+			prevFocusRef.current = document.activeElement;
+			updateSwitcher({ open: true, items: ordered, index: startIndex });
 		};
-		window.addEventListener('keydown', onKey);
-		return () => window.removeEventListener('keydown', onKey);
-	}, [exposeOpen, enterExpose, exitExpose]);
+
+		const onKeyUp = (e: KeyboardEvent) => {
+			if (e.key !== 'Alt' || !switcherRef.current.open) return;
+			e.preventDefault();
+			commitHighlighted();
+		};
+
+		window.addEventListener('keydown', onKeyDown);
+		window.addEventListener('keyup', onKeyUp);
+		return () => {
+			window.removeEventListener('keydown', onKeyDown);
+			window.removeEventListener('keyup', onKeyUp);
+		};
+	}, [exposeOpen, enterExpose, exitExpose, updateSwitcher, cancelSwitcher, commitSwitcherWindow]);
 
 	useEffect(() => {
 		if (exposeOpen && windows.length === 0) exitExpose();
-	}, [exposeOpen, windows.length, exitExpose]);
+		if (switcherRef.current.open && windows.length === 0) cancelSwitcher();
+	}, [exposeOpen, windows.length, exitExpose, cancelSwitcher]);
 
 	const exposeTiles = useMemo(() => {
 		if (!exposeOpen) return {};
 		// Reserve the menubar strip on top and the dock zone at the bottom.
-		const areaW = window.innerWidth;
-		const areaH = Math.max(1, window.innerHeight - 170);
 		const tiles = layoutExposeTiles(
 			windows.map(w => ({ id: w.id, width: w.width, height: w.height })),
-			{ width: areaW, height: areaH }
+			{ width: window.innerWidth, height: Math.max(1, window.innerHeight - 170) }
 		);
-		const yOffset = 40;
-		for (const tile of Object.values(tiles)) tile.y += yOffset;
+		for (const tile of Object.values(tiles)) tile.y += 40;
 		return tiles;
 	}, [exposeOpen, windows]);
-
-	const handleContextMenu = (e: React.MouseEvent) => {
-		e.preventDefault();
-		setContextMenu({ x: e.pageX, y: e.pageY });
-	};
-
-	const closeContextMenu = () => {
-		if (contextMenu) setContextMenu(null);
-	};
 
 	return (
 		<ErrorBoundary>
 			<div
 				className="desktop w-screen h-screen overflow-hidden relative font-sans select-none"
-				onContextMenu={handleContextMenu}
-				onClick={closeContextMenu}
+				onContextMenu={e => {
+					e.preventDefault();
+					setContextMenu({ x: e.pageX, y: e.pageY });
+				}}
+				onClick={() => contextMenu && setContextMenu(null)}
 			>
-				{/* Wallpaper */}
 				<div className="wallpaper absolute inset-0 z-0 select-none will-change-transform">
 					{wallpaper.startsWith('/') ? (
 						<Image
@@ -112,24 +197,16 @@ function Desktop() {
 						<div className="w-full h-full" style={{ background: wallpaper }} />
 					)}
 				</div>
-
-				{/* Desktop Icons */}
 				<DesktopIcons />
-
-				{/* Menu Bar */}
 				<MenuBar />
-
-				{/* Windows */}
-				{windows.map(window => (
+				{windows.map(win => (
 					<Window
-						key={window.id}
-						window={window}
-						exposeTile={exposeOpen ? (exposeTiles[window.id] ?? null) : null}
+						key={win.id}
+						window={win}
+						exposeTile={exposeOpen ? (exposeTiles[win.id] ?? null) : null}
 						onExposeSelect={selectExposeWindow}
 					/>
 				))}
-
-				{/* Exposé dim layer: below tiles, above wallpaper/icons. */}
 				{exposeOpen && (
 					<div
 						className="expose-dim fixed inset-0 z-40 bg-black/45"
@@ -137,13 +214,17 @@ function Desktop() {
 						aria-hidden="true"
 					/>
 				)}
-
-				{/* Dock */}
+				{switcher.open && (
+					<AppSwitcher
+						windows={switcher.items}
+						selectedIndex={switcher.index}
+						onSelect={commitSwitcherWindow}
+						onCancel={cancelSwitcher}
+					/>
+				)}
 				<Dock />
-
-				{/* Context Menu */}
 				{contextMenu && (
-					<ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu} />
+					<ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={() => setContextMenu(null)} />
 				)}
 			</div>
 		</ErrorBoundary>

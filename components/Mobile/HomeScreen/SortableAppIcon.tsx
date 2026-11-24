@@ -61,7 +61,8 @@ function SortableAppIcon({
 		<div
 			ref={setNodeRef}
 			style={style}
-			{...attributes}
+			{...(isEmpty ? {} : attributes)}
+			aria-label={isEmpty ? undefined : app.name}
 			{...(isEmpty ? {} : listeners)}
 			className={`relative ${isEmpty ? '' : 'cursor-grab'} ${className || 'w-full h-full'}`}
 		>

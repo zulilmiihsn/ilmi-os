@@ -132,7 +132,9 @@ function StatusBar({
 				aria-label="Open Notification Center"
 				aria-haspopup="dialog"
 			>
-				<MobileClock textColor={statusTextColor} />
+				<span aria-hidden="true">
+					<MobileClock textColor={statusTextColor} />
+				</span>
 			</button>
 
 			{/* Right Side: Battery / WiFi */}
