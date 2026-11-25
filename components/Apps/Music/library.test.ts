@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	DEMO_TRACKS,
 	buildQueue,
+	createCatalogCache,
 	formatPlayerTime,
 	isValidLiked,
 	nextIndex,
@@ -83,5 +84,25 @@ describe('music queue', () => {
 			artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/600x600bb.jpg',
 		});
 		expect(parseItunesResults(null)).toEqual([]);
+	});
+
+	it('caches catalog search queries with normalization, TTL expiry, and LRU eviction', () => {
+		const cache = createCatalogCache(2, 1000);
+		const trackA = DEMO_TRACKS.slice(0, 1);
+		const trackB = DEMO_TRACKS.slice(1, 2);
+		const trackC = DEMO_TRACKS.slice(2, 3);
+
+		cache.set('  Tulus  ', trackA, 100);
+		expect(cache.get('tulus', 500)).toEqual(trackA);
+		expect(cache.get('tulus', 1100)).toBeNull();
+
+		cache.set('alpha', trackA, 2000);
+		cache.set('beta', trackB, 2000);
+		// Touch alpha so beta becomes least-recently-used.
+		expect(cache.get('alpha', 2100)).toEqual(trackA);
+		cache.set('gamma', trackC, 2200);
+		expect(cache.get('beta', 2300)).toBeNull();
+		expect(cache.get('alpha', 2300)).toEqual(trackA);
+		expect(cache.get('gamma', 2300)).toEqual(trackC);
 	});
 });

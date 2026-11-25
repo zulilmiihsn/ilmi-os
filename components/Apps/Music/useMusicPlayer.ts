@@ -3,6 +3,7 @@ import { triggerHaptic } from '../../../utils/haptic';
 import {
 	DEMO_TRACKS,
 	buildQueue,
+	createCatalogCache,
 	loadLiked,
 	nextIndex,
 	parseItunesResults,
@@ -12,6 +13,9 @@ import {
 	type DemoTrack,
 	type RepeatMode,
 } from './library';
+
+// Shared across window reopens in the same session to avoid burning iTunes rate limits.
+const appleMusicSearchCache = createCatalogCache();
 import { getEnginePosition, playTrack, setEngineVolume, stopPlayback } from './audioEngine';
 
 export function useMusicPlayer() {
@@ -209,16 +213,32 @@ export function useMusicPlayer() {
 			return;
 		}
 		const seq = ++searchSeq.current;
+		const cached = appleMusicSearchCache.get(term);
+		if (cached !== null) {
+			setCatalogLoading(false);
+			setCatalogTracks(cached);
+			setCatalogError(cached.length === 0 ? `No Apple Music songs found for "${term}".` : null);
+			return;
+		}
+
 		setCatalogLoading(true);
 		setCatalogError(null);
 		try {
 			const res = await fetch(
 				`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=12`
 			);
+			if (res.status === 429 || res.status === 403) {
+				if (seq !== searchSeq.current) return;
+				setCatalogError(
+					'Apple Music search limit reached — try again in a minute, or use offline library.'
+				);
+				return;
+			}
 			if (!res.ok) throw new Error('Catalog unavailable');
 			const json: unknown = await res.json();
 			if (seq !== searchSeq.current) return;
 			const parsed = parseItunesResults(json);
+			appleMusicSearchCache.set(term, parsed);
 			setCatalogTracks(parsed);
 			if (parsed.length === 0) setCatalogError(`No Apple Music songs found for "${term}".`);
 		} catch {

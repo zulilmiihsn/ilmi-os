@@ -1,92 +1,140 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { PhotosTab, ViewMode, LocalPhoto, Album } from '../types';
-
-const MOCK_PHOTOS = [
-	'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1458668383970-8ddd3927deed?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=400&fit=crop',
-	'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=400&h=400&fit=crop',
-];
+import { generateId } from '../../../../utils/id';
+import {
+	appendPhoto,
+	compressImageFile,
+	deletePhoto,
+	loadPhotos,
+	subscribePhotosChanged,
+	togglePhotoFavorite,
+	type StoredPhoto,
+} from '../../../../utils/photoStorage';
+import { buildPhotoAlbums, resolveDisplayedPhotos } from '../photoHelpers';
+import type { Album, AlbumId, PhotosTab, ViewMode } from '../types';
 
 export function usePhotos() {
 	const [activeTab, setActiveTab] = useState<PhotosTab>('library');
 	const [viewMode, setViewMode] = useState<ViewMode>('all');
-	const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
-	const [selectedImage, setSelectedImage] = useState<string | null>(null);
-	const [localPhotos, setLocalPhotos] = useState<string[]>([]);
+	const [selectedAlbum, setSelectedAlbum] = useState<AlbumId | null>(null);
+	const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+	const [searchQuery, setSearchQuery] = useState('');
+	const [photos, setPhotos] = useState<StoredPhoto[]>([]);
+	const [storageError, setStorageError] = useState<string | null>(null);
+	const [isImporting, setIsImporting] = useState(false);
 
-	const loadLocalPhotos = useCallback(() => {
-		try {
-			const stored = localStorage.getItem('camera_photos');
-			if (!stored) {
-				setLocalPhotos([]);
-				return;
-			}
-			const parsed: unknown = JSON.parse(stored);
-			if (!Array.isArray(parsed)) {
-				console.warn('[Photos] stored data failed validation, showing no local photos');
-				setLocalPhotos([]);
-				return;
-			}
-			const urls = parsed.filter(
-				(p): p is LocalPhoto =>
-					typeof p === 'object' && p !== null && typeof (p as { url?: unknown }).url === 'string'
-			);
-			if (urls.length !== parsed.length) {
-				console.warn('[Photos] some stored photo records were invalid and skipped');
-			}
-			setLocalPhotos(urls.map(p => p.url));
-		} catch (error) {
-			console.warn('[Photos] failed to read stored photos', error);
-			setLocalPhotos([]);
+	const reloadPhotos = useCallback(() => {
+		const result = loadPhotos();
+		setPhotos(result.photos);
+		if (result.status === 'corrupted' || result.status === 'unavailable') {
+			setStorageError(result.message);
+		} else {
+			setStorageError(null);
 		}
 	}, []);
 
 	useEffect(() => {
-		loadLocalPhotos();
-		window.addEventListener('storage', loadLocalPhotos);
-		return () => window.removeEventListener('storage', loadLocalPhotos);
-	}, [loadLocalPhotos]);
+		reloadPhotos();
+		return subscribePhotosChanged(reloadPhotos);
+	}, [reloadPhotos]);
 
-	const allPhotos = useMemo(() => {
-		return [...localPhotos, ...MOCK_PHOTOS];
-	}, [localPhotos]);
+	const albums: Album[] = useMemo(() => buildPhotoAlbums(photos), [photos]);
 
-	const albums: Album[] = useMemo(() => {
-		// Fixed 12-photo mock above: covers are always present; defaults only
-		// satisfy the index checker and never trigger at runtime.
-		const [c0 = '', c1 = '', c2 = '', c3 = '', c4 = '', c5 = ''] = MOCK_PHOTOS;
-		// Counts reflect the photos each album actually displays (see
-		// currentDisplayPhotos below), not vanity numbers.
-		const greatShots = MOCK_PHOTOS.slice(5, 10);
-		const favorites = MOCK_PHOTOS.slice(0, 5);
-		const triple = MOCK_PHOTOS.slice(0, 3);
-		return [
-			{ title: 'Recents', count: allPhotos.length, image: allPhotos[0] ?? c0 },
-			{ title: 'Great Shots', count: greatShots.length, image: c1 },
-			{ title: 'Favorites', count: favorites.length, image: c2 },
-			{ title: 'HDR Video', count: triple.length, image: c3 },
-			{ title: 'Instagram', count: triple.length, image: c4 },
-			{ title: 'WhatsApp', count: triple.length, image: c5 },
-		];
-	}, [allPhotos]);
+	const currentDisplayPhotos = useMemo(
+		() => resolveDisplayedPhotos(photos, activeTab, selectedAlbum, searchQuery),
+		[photos, activeTab, selectedAlbum, searchQuery]
+	);
 
-	const currentDisplayPhotos = useMemo(() => {
-		if (selectedAlbum === 'Favorites') return MOCK_PHOTOS.slice(0, 5);
-		if (selectedAlbum === 'Great Shots') return MOCK_PHOTOS.slice(5, 10);
-		if (selectedAlbum && selectedAlbum !== 'Recents') return MOCK_PHOTOS.slice(0, 3);
-		return allPhotos;
-	}, [selectedAlbum, allPhotos]);
+	const selectedIndex = useMemo(() => {
+		if (!selectedPhotoId) return -1;
+		return currentDisplayPhotos.findIndex(p => p.id === selectedPhotoId);
+	}, [currentDisplayPhotos, selectedPhotoId]);
+
+	const selectedPhoto: StoredPhoto | null = useMemo(() => {
+		if (!selectedPhotoId) return null;
+		return (
+			currentDisplayPhotos.find(p => p.id === selectedPhotoId) ??
+			photos.find(p => p.id === selectedPhotoId) ??
+			null
+		);
+	}, [currentDisplayPhotos, photos, selectedPhotoId]);
+
+	const handleToggleFavorite = useCallback((id: string) => {
+		const res = togglePhotoFavorite(id);
+		if (!res.ok) {
+			setStorageError(res.message);
+			return;
+		}
+		setStorageError(null);
+	}, []);
+
+	const handleDeletePhoto = useCallback(
+		(id: string) => {
+			const idx = currentDisplayPhotos.findIndex(p => p.id === id);
+			const res = deletePhoto(id);
+			if (!res.ok) {
+				setStorageError(res.message);
+				return;
+			}
+			setStorageError(null);
+			if (selectedPhotoId === id) {
+				const nextCandidate =
+					currentDisplayPhotos[idx + 1] ?? currentDisplayPhotos[idx - 1] ?? null;
+				setSelectedPhotoId(nextCandidate ? nextCandidate.id : null);
+			}
+		},
+		[currentDisplayPhotos, selectedPhotoId]
+	);
+
+	const handleImportFiles = useCallback(async (fileList: FileList | File[]) => {
+		const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+		if (files.length === 0) {
+			setStorageError('Please select valid image files.');
+			return;
+		}
+
+		setIsImporting(true);
+		setStorageError(null);
+		try {
+			for (const file of files) {
+				const dataUrl = await compressImageFile(file);
+				const res = appendPhoto({
+					id: generateId('photo'),
+					url: dataUrl,
+					date: new Date().toISOString(),
+					type: 'photo',
+					source: 'import',
+					isFavorite: false,
+					title: file.name,
+				});
+				if (!res.ok) {
+					setStorageError(res.message);
+					break;
+				}
+			}
+		} catch (error) {
+			setStorageError(error instanceof Error ? error.message : 'Failed to import photo.');
+		} finally {
+			setIsImporting(false);
+		}
+	}, []);
+
+	const selectPrevPhoto = useCallback(() => {
+		if (selectedIndex > 0) {
+			const prev = currentDisplayPhotos[selectedIndex - 1];
+			if (prev) setSelectedPhotoId(prev.id);
+		}
+	}, [currentDisplayPhotos, selectedIndex]);
+
+	const selectNextPhoto = useCallback(() => {
+		if (selectedIndex >= 0 && selectedIndex < currentDisplayPhotos.length - 1) {
+			const next = currentDisplayPhotos[selectedIndex + 1];
+			if (next) setSelectedPhotoId(next.id);
+		}
+	}, [currentDisplayPhotos, selectedIndex]);
+
+	const clearStorageError = useCallback(() => setStorageError(null), []);
 
 	return {
 		activeTab,
@@ -95,10 +143,22 @@ export function usePhotos() {
 		setViewMode,
 		selectedAlbum,
 		setSelectedAlbum,
-		selectedImage,
-		setSelectedImage,
-		allPhotos,
+		selectedPhoto,
+		setSelectedPhotoId,
+		searchQuery,
+		setSearchQuery,
+		allPhotos: photos,
 		albums,
 		currentDisplayPhotos,
+		storageError,
+		clearStorageError,
+		isImporting,
+		handleToggleFavorite,
+		handleDeletePhoto,
+		handleImportFiles,
+		selectPrevPhoto,
+		selectNextPhoto,
+		hasPrevPhoto: selectedIndex > 0,
+		hasNextPhoto: selectedIndex >= 0 && selectedIndex < currentDisplayPhotos.length - 1,
 	};
 }

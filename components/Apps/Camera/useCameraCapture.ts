@@ -3,6 +3,14 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type React from 'react';
 import { generateId } from '../../../utils/id';
+import {
+	appendPhoto,
+	computeScaledDimensions,
+	loadPhotos,
+	MAX_PHOTO_DIMENSION,
+	PHOTO_JPEG_QUALITY,
+	subscribePhotosChanged,
+} from '../../../utils/photoStorage';
 import { TIMING } from '../../../constants';
 import type { CameraMode, FilterType } from './types';
 import { applyCanvasFilter } from './cameraFilters';
@@ -19,39 +27,19 @@ interface UseCameraCaptureOptions {
 }
 
 function savePhotoToStorage(photoData: string, setError: (msg: string) => void): boolean {
-	try {
-		const stored = localStorage.getItem('camera_photos') || '[]';
-		const existingPhotos: unknown = JSON.parse(stored);
-		if (!Array.isArray(existingPhotos)) {
-			throw new SyntaxError('Stored camera photos have an unexpected shape');
-		}
-		const newPhoto = {
-			id: generateId('photo'),
-			url: photoData,
-			date: new Date().toISOString(),
-			type: 'photo',
-		};
-		localStorage.setItem('camera_photos', JSON.stringify([newPhoto, ...existingPhotos]));
-		return true;
-	} catch (e) {
-		console.error('Failed to save photo to localStorage', e);
-		if (e instanceof SyntaxError) {
-			setError('Saved photos look corrupted. Previously saved photos were kept.');
-		} else if (
-			e instanceof DOMException &&
-			(e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')
-		) {
-			setError('Storage full! Delete some photos, then capture again.');
-		} else if (
-			e instanceof DOMException &&
-			(e.name === 'SecurityError' || e.name === 'NotAllowedError')
-		) {
-			setError('Storage is not available in this browser session.');
-		} else {
-			setError('Could not save this photo. It was not stored.');
-		}
+	const result = appendPhoto({
+		id: generateId('photo'),
+		url: photoData,
+		date: new Date().toISOString(),
+		type: 'photo',
+		source: 'camera',
+		isFavorite: false,
+	});
+	if (!result.ok) {
+		setError(result.message);
 		return false;
 	}
+	return true;
 }
 
 export function useCameraCapture({
@@ -73,6 +61,16 @@ export function useCameraCapture({
 	const [lastPhoto, setLastPhoto] = useState<string | null>(null);
 	const [isRecording, setIsRecording] = useState(false);
 
+	// Keep the bottom-left gallery thumbnail in sync with stored photos.
+	useEffect(() => {
+		const syncLatest = () => {
+			const loaded = loadPhotos();
+			setLastPhoto(loaded.photos[0]?.url ?? null);
+		};
+		syncLatest();
+		return subscribePhotosChanged(syncLatest);
+	}, []);
+
 	const cancelCountdown = useCallback(() => {
 		if (countdownRef.current) {
 			clearInterval(countdownRef.current);
@@ -91,38 +89,41 @@ export function useCameraCapture({
 			const video = videoRef.current;
 			const canvas = canvasRef.current;
 
-			let width = video.videoWidth;
-			let height = video.videoHeight;
+			let sourceWidth = video.videoWidth;
+			let sourceHeight = video.videoHeight;
 
 			if (mode === 'SQUARE') {
-				const size = Math.min(width, height);
-				width = size;
-				height = size;
+				const size = Math.min(sourceWidth, sourceHeight);
+				sourceWidth = size;
+				sourceHeight = size;
 			} else if (mode === 'PANO') {
-				height = Math.floor(height / 2);
+				sourceHeight = Math.floor(sourceHeight / 2);
 			}
 
-			canvas.width = width;
-			canvas.height = height;
+			const scaled = computeScaledDimensions(sourceWidth, sourceHeight, MAX_PHOTO_DIMENSION);
+			if (scaled.width === 0 || scaled.height === 0) return;
+
+			canvas.width = scaled.width;
+			canvas.height = scaled.height;
 			const ctx = canvas.getContext('2d');
 
 			if (ctx) {
 				ctx.save();
-				ctx.translate(width / 2, height / 2);
+				ctx.translate(scaled.width / 2, scaled.height / 2);
 				ctx.rotate((rotation * Math.PI) / 180);
-				ctx.translate(-width / 2, -height / 2);
+				ctx.translate(-scaled.width / 2, -scaled.height / 2);
 
-				const sx = (video.videoWidth - width) / 2;
-				const sy = (video.videoHeight - height) / 2;
-				ctx.drawImage(video, sx, sy, width, height, 0, 0, width, height);
+				const sx = (video.videoWidth - sourceWidth) / 2;
+				const sy = (video.videoHeight - sourceHeight) / 2;
+				ctx.drawImage(video, sx, sy, sourceWidth, sourceHeight, 0, 0, scaled.width, scaled.height);
 
 				if (currentFilter !== 'none') {
-					applyCanvasFilter(ctx, width, height, currentFilter);
+					applyCanvasFilter(ctx, scaled.width, scaled.height, currentFilter);
 				}
 
 				ctx.restore();
 
-				const photoData = canvas.toDataURL('image/png');
+				const photoData = canvas.toDataURL('image/jpeg', PHOTO_JPEG_QUALITY);
 				if (savePhotoToStorage(photoData, setError)) {
 					setLastPhoto(photoData);
 				}

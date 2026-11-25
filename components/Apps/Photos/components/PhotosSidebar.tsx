@@ -1,14 +1,29 @@
 'use client';
 
 import Image from 'next/image';
-import type { PhotosTab, Album } from '../types';
+import { Camera, Folder, Heart, Image as ImageIcon, Search, Upload } from 'lucide-react';
+import type { Album, AlbumId, PhotosTab } from '../types';
 
 interface PhotosSidebarProps {
 	activeTab: PhotosTab;
 	setActiveTab: (tab: PhotosTab) => void;
-	selectedAlbum: string | null;
-	setSelectedAlbum: (album: string | null) => void;
+	selectedAlbum: AlbumId | null;
+	setSelectedAlbum: (album: AlbumId | null) => void;
 	albums: Album[];
+}
+
+function renderAlbumFallbackIcon(id: AlbumId, isSelected: boolean) {
+	const className = `w-3 h-3 ${isSelected ? 'text-white/90' : 'text-gray-400 dark:text-gray-500'}`;
+	switch (id) {
+		case 'Favorites':
+			return <Heart aria-hidden="true" className={className} />;
+		case 'Camera':
+			return <Camera aria-hidden="true" className={className} />;
+		case 'Imports':
+			return <Upload aria-hidden="true" className={className} />;
+		case 'Recents':
+			return <ImageIcon aria-hidden="true" className={className} />;
+	}
 }
 
 export default function PhotosSidebar({
@@ -18,27 +33,31 @@ export default function PhotosSidebar({
 	setSelectedAlbum,
 	albums,
 }: PhotosSidebarProps) {
-	const navItems: { id: PhotosTab; label: string; icon: string }[] = [
+	const navItems: { id: PhotosTab; label: string; icon: React.ReactNode }[] = [
 		{
 			id: 'library',
 			label: 'Library',
-			icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
+			icon: <ImageIcon aria-hidden="true" className="w-4 h-4 shrink-0" />,
 		},
 		{
 			id: 'foryou',
 			label: 'For You',
-			icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+			icon: <Heart aria-hidden="true" className="w-4 h-4 shrink-0" />,
 		},
 		{
 			id: 'albums',
 			label: 'Albums',
-			icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+			icon: <Folder aria-hidden="true" className="w-4 h-4 shrink-0" />,
 		},
-		{ id: 'search', label: 'Search', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
+		{
+			id: 'search',
+			label: 'Search',
+			icon: <Search aria-hidden="true" className="w-4 h-4 shrink-0" />,
+		},
 	];
 
 	return (
-		<div className="hidden md:flex flex-col w-56 h-full border-r border-gray-200 dark:border-black/50 bg-[#F6F6F6]/80 dark:bg-[#252525]/80 backdrop-blur-md shrink-0">
+		<aside className="hidden md:flex flex-col w-56 h-full border-r border-gray-200/80 dark:border-white/10 bg-[#f6f6f6]/85 dark:bg-[#1c1c1e]/85 backdrop-blur-xl shrink-0">
 			<div className="p-3 pt-4">
 				<h2 className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase px-2 mb-1.5 tracking-wider">
 					Photos
@@ -49,6 +68,7 @@ export default function PhotosSidebar({
 						return (
 							<li key={item.id}>
 								<button
+									type="button"
 									onClick={() => {
 										setActiveTab(item.id);
 										setSelectedAlbum(null);
@@ -59,15 +79,7 @@ export default function PhotosSidebar({
 											: 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300'
 									}`}
 								>
-									<svg
-										className="w-4 h-4 shrink-0"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										strokeWidth={2}
-									>
-										<path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-									</svg>
+									{item.icon}
 									<span>{item.label}</span>
 								</button>
 							</li>
@@ -82,13 +94,14 @@ export default function PhotosSidebar({
 				</h2>
 				<ul className="space-y-0.5">
 					{albums.map(album => {
-						const isSelected = selectedAlbum === album.title;
+						const isSelected = selectedAlbum === album.id;
 						return (
-							<li key={album.title}>
+							<li key={album.id}>
 								<button
+									type="button"
 									onClick={() => {
 										setActiveTab('albums');
-										setSelectedAlbum(album.title);
+										setSelectedAlbum(album.id);
 									}}
 									className={`w-full text-left px-2 py-1.5 rounded-md text-xs font-medium flex items-center gap-2.5 transition-colors ${
 										isSelected
@@ -96,8 +109,16 @@ export default function PhotosSidebar({
 											: 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300'
 									}`}
 								>
-									<div className="w-5 h-5 rounded overflow-hidden relative shrink-0">
-										<Image src={album.image} alt="" fill className="object-cover" unoptimized />
+									<div
+										className={`w-5 h-5 rounded overflow-hidden relative shrink-0 flex items-center justify-center ${
+											isSelected ? 'bg-white/20' : 'bg-black/5 dark:bg-white/10'
+										}`}
+									>
+										{album.image ? (
+											<Image src={album.image} alt="" fill className="object-cover" unoptimized />
+										) : (
+											renderAlbumFallbackIcon(album.id, isSelected)
+										)}
 									</div>
 									<span className="truncate flex-1">{album.title}</span>
 									<span className={`text-[11px] ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
@@ -109,6 +130,6 @@ export default function PhotosSidebar({
 					})}
 				</ul>
 			</div>
-		</div>
+		</aside>
 	);
 }

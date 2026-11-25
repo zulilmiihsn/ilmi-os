@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import StatusBar from '../StatusBar';
+import { isImageWallpaper } from '../../../stores/settings';
 
 interface HomeScreenHeaderProps {
 	wallpaper: string;
@@ -24,7 +25,7 @@ export default function HomeScreenHeader({
 		<>
 			{/* Wallpaper */}
 			<div key={wallpaper} className="wallpaper absolute inset-0 -z-10">
-				{wallpaper.startsWith('/') || wallpaper.startsWith('http') ? (
+				{isImageWallpaper(wallpaper) ? (
 					<Image
 						src={wallpaper}
 						alt="Wallpaper"

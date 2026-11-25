@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, forwardRef, memo, useImperativeHand
 import Image from 'next/image';
 import { useNotificationsStore } from '../../../stores/notifications';
 import { useControlCenterStore } from '../../../stores/controlCenter';
-import { useSettingsStore } from '../../../stores/settings';
+import { useSettingsStore, isImageWallpaper } from '../../../stores/settings';
 import { triggerHaptic } from '../../../utils/haptic';
 import NotificationList from './NotificationList';
 
@@ -107,14 +107,18 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 			>
 				{/* Authentic iOS Lockscreen Wallpaper Background */}
 				<div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-					<Image
-						src={wallpaper || '/media/Wallpaper-desktop-1.webp'}
-						alt="Lockscreen Wallpaper"
-						fill
-						className="object-cover"
-						priority
-						unoptimized
-					/>
+					{isImageWallpaper(wallpaper || '/media/Wallpaper-desktop-1.webp') ? (
+						<Image
+							src={wallpaper || '/media/Wallpaper-desktop-1.webp'}
+							alt="Lockscreen Wallpaper"
+							fill
+							className="object-cover"
+							priority
+							unoptimized
+						/>
+					) : (
+						<div className="w-full h-full" style={{ background: wallpaper }} />
+					)}
 					{/* Subtle iOS Depth Vignette */}
 					<div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/45" />
 				</div>

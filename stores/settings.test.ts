@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createJSONStorage } from 'zustand/middleware';
 import {
 	DEFAULT_WALLPAPER,
+	isImageWallpaper,
 	migrateSettingsState,
 	migrateWallpaper,
 	useSettingsStore,
@@ -55,9 +56,30 @@ describe('settings store actions', () => {
 	it('migrates legacy persisted settings snapshots', () => {
 		expect(
 			migrateSettingsState({ wallpaper: '/media/Wallpaper-1.png', darkMode: 'yes' })
-		).toMatchObject({ wallpaper: '/media/Wallpaper-1.webp', darkMode: false });
-		expect(migrateSettingsState({ wallpaper: '/media/custom.webp', darkMode: true })).toMatchObject(
-			{ wallpaper: '/media/custom.webp', darkMode: true }
-		);
+		).toMatchObject({
+			wallpaper: '/media/Wallpaper-1.webp',
+			darkMode: false,
+			notificationsEnabled: true,
+		});
+		expect(
+			migrateSettingsState({
+				wallpaper: '/media/custom.webp',
+				darkMode: true,
+				notificationsEnabled: false,
+			})
+		).toMatchObject({
+			wallpaper: '/media/custom.webp',
+			darkMode: true,
+			notificationsEnabled: false,
+		});
+	});
+
+	it('detects image wallpapers including uploaded data URLs and toggles notifications', () => {
+		expect(isImageWallpaper('/media/Wallpaper-1.webp')).toBe(true);
+		expect(isImageWallpaper('data:image/jpeg;base64,/9j/')).toBe(true);
+		expect(isImageWallpaper('linear-gradient(to right, #ff7e5f, #feb47b)')).toBe(false);
+
+		useSettingsStore.getState().setNotificationsEnabled(false);
+		expect(useSettingsStore.getState().notificationsEnabled).toBe(false);
 	});
 });

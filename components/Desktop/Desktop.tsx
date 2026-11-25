@@ -10,7 +10,7 @@ import ContextMenu from './ContextMenu';
 import AppSwitcher from './AppSwitcher';
 import { useWindowsStore } from '../../stores/windows';
 import { useAppsStore } from '../../stores/apps';
-import { useSettingsStore } from '../../stores/settings';
+import { useSettingsStore, isImageWallpaper } from '../../stores/settings';
 import { WINDOW } from '../../constants';
 import { isMacosApp } from '../../types';
 import { layoutExposeTiles } from '../../utils/exposeLayout';
@@ -217,7 +217,7 @@ function Desktop() {
 				onClick={() => contextMenu && setContextMenu(null)}
 			>
 				<div className="wallpaper absolute inset-0 z-0 select-none will-change-transform">
-					{wallpaper.startsWith('/') ? (
+					{isImageWallpaper(wallpaper) ? (
 						<Image
 							src={wallpaper}
 							alt="Wallpaper"

@@ -13,6 +13,7 @@ import {
 	type LucideIcon,
 } from 'lucide-react';
 import { triggerHaptic } from '../../../utils/haptic';
+import { isImageWallpaper } from '../../../stores/settings';
 
 export const SETTINGS_THEME = {
 	light: {
@@ -194,13 +195,14 @@ export const WallpaperOption = ({
 	darkMode: boolean;
 }) => (
 	<button
+		type="button"
 		className={`relative aspect-[16/10] rounded-xl overflow-hidden transition-all duration-200 group border ${active ? 'ring-2 ring-ios-blue ring-offset-2 border-transparent' : 'border-black/5 dark:border-white/10 hover:scale-[1.02]'} ${darkMode ? 'ring-offset-black' : 'ring-offset-[#f2f2f7]'}`}
 		onClick={() => {
 			triggerHaptic('light');
 			onClick();
 		}}
 	>
-		{src.startsWith('/') ? (
+		{isImageWallpaper(src) ? (
 			// eslint-disable-next-line @next/next/no-img-element
 			<img src={src} alt={label} className="w-full h-full object-cover" />
 		) : (
@@ -219,21 +221,36 @@ export const WallpaperOption = ({
 	</button>
 );
 
-export const ProfileHeader = ({ darkMode }: { darkMode: boolean }) => {
+export const ProfileHeader = ({
+	darkMode,
+	onClick,
+}: {
+	darkMode: boolean;
+	onClick?: () => void;
+}) => {
 	const theme = darkMode ? SETTINGS_THEME.dark : SETTINGS_THEME.light;
 
 	return (
-		<div className="flex items-center gap-4 px-4 py-3 mx-4 sm:mx-6 md:max-w-2xl md:mx-auto mb-6 rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 shadow-xs cursor-pointer active:scale-[0.99] transition-all">
+		<button
+			type="button"
+			onClick={() => {
+				if (onClick) {
+					triggerHaptic('light');
+					onClick();
+				}
+			}}
+			className="w-[calc(100%-2rem)] sm:w-[calc(100%-3rem)] md:w-full md:max-w-2xl mx-4 sm:mx-6 md:mx-auto mb-6 flex items-center gap-4 px-4 py-3 text-left rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 shadow-xs cursor-pointer active:scale-[0.99] transition-all"
+		>
 			<div className="relative shrink-0">
 				<div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-ios-blue to-ios-indigo text-white text-xl font-bold shadow-md">
 					U
 				</div>
 			</div>
 			<div className="flex-1 min-w-0">
-				<h1 className={`text-lg font-semibold tracking-tight ${theme.text}`}>User</h1>
-				<p className="text-xs text-gray-400 truncate">Apple ID, iCloud+, Media & Purchases</p>
+				<h2 className={`text-lg font-semibold tracking-tight ${theme.text}`}>User</h2>
+				<p className="text-xs text-gray-400 truncate">Apple ID, iCloud+, Media &amp; Purchases</p>
 			</div>
 			<ChevronRight aria-hidden="true" size={12} className="text-gray-300 dark:text-gray-600" />
-		</div>
+		</button>
 	);
 };

@@ -172,4 +172,78 @@ test.describe('media & browsing apps (Safari & Music)', () => {
 			'true'
 		);
 	});
+
+	test('Photos: empty state without mock photos, live localStorage sync from Camera, favorite, delete, and persist', async ({
+		page,
+	}) => {
+		await bootDesktop(page);
+
+		// Open Photos via Dock -> must start empty with zero mock Unsplash images.
+		await page.getByRole('button', { name: 'Launch Photos' }).click();
+		const photos = page.locator('.photos');
+		await expect(photos).toBeVisible({ timeout: 10000 });
+		await expect(photos.getByText('0 Photos')).toBeVisible();
+		await expect(photos.getByRole('heading', { name: 'No Photos' })).toBeVisible();
+		expect(await photos.locator('img[src*="unsplash.com"]').count()).toBe(0);
+
+		// Simulate a Camera capture persisted to localStorage in the same window.
+		const tinyPng =
+			'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+		await page.evaluate(url => {
+			localStorage.setItem(
+				'camera_photos',
+				JSON.stringify([
+					{
+						id: 'photo-cam-1',
+						url,
+						date: '2026-11-25T10:00:00.000Z',
+						type: 'photo',
+						source: 'camera',
+						isFavorite: false,
+					},
+				])
+			);
+			window.dispatchEvent(new CustomEvent('ilmi:photos-changed'));
+		}, tinyPng);
+
+		// Photos updates live without reloading.
+		await expect(photos.getByText('1 Photo')).toBeVisible();
+		const thumb = photos.getByRole('button', { name: /Open photo from/i }).first();
+		await expect(thumb).toBeVisible();
+
+		// Open viewer modal, mark favorite, close via Escape, verify focus returns.
+		await thumb.click();
+		const dialog = page.getByRole('dialog', { name: 'Photo preview' });
+		await expect(dialog).toBeVisible();
+
+		const favBtn = dialog.getByRole('button', { name: 'Add to favorites' });
+		await favBtn.click();
+		await expect(dialog.getByRole('button', { name: 'Remove from favorites' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+
+		await page.keyboard.press('Escape');
+		await expect(dialog).toBeHidden();
+
+		// Verify Favorites album reflects the favorited photo and survives reload.
+		await page.reload();
+		await expect(page.locator('.macos-menubar')).toBeVisible({ timeout: 20000 });
+		await page.getByRole('button', { name: 'Launch Photos' }).click();
+		const reloadedPhotos = page.locator('.photos');
+		await expect(reloadedPhotos.getByText('1 Photo')).toBeVisible();
+
+		await reloadedPhotos.getByRole('button', { name: /Favorites/i }).click();
+		await expect(reloadedPhotos.getByText('1 Photo')).toBeVisible();
+
+		// Delete photo from viewer and verify empty state returns.
+		await reloadedPhotos
+			.getByRole('button', { name: /Open photo from/i })
+			.first()
+			.click();
+		const reloadedDialog = page.getByRole('dialog', { name: 'Photo preview' });
+		await reloadedDialog.getByRole('button', { name: 'Delete photo' }).click();
+		await expect(reloadedDialog).toBeHidden();
+		await expect(reloadedPhotos.getByText('0 Photos')).toBeVisible();
+	});
 });

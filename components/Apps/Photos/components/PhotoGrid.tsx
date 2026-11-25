@@ -1,47 +1,94 @@
 'use client';
 
 import Image from 'next/image';
+import { Camera, Heart, Image as ImageIcon, Upload } from 'lucide-react';
+import type { LocalPhoto } from '../types';
+import { formatPhotoDate } from '../photoHelpers';
 
 interface PhotoGridProps {
-	photos: string[];
-	onSelectPhoto: (url: string) => void;
+	photos: LocalPhoto[];
+	onSelectPhoto: (photo: LocalPhoto) => void;
+	onOpenCamera?: () => void;
+	onTriggerImport?: () => void;
+	emptyTitle?: string;
+	emptyDescription?: string;
+	showEmptyActions?: boolean;
 }
 
-export default function PhotoGrid({ photos, onSelectPhoto }: PhotoGridProps) {
+export default function PhotoGrid({
+	photos,
+	onSelectPhoto,
+	onOpenCamera,
+	onTriggerImport,
+	emptyTitle = 'No Photos',
+	emptyDescription = 'Photos taken with Camera or imported from your device will appear here.',
+	showEmptyActions = true,
+}: PhotoGridProps) {
 	if (photos.length === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center h-64 text-gray-400">
-				<p className="text-sm font-medium">No Photos Found</p>
+			<div className="flex flex-col items-center justify-center min-h-[280px] h-[60%] px-6 text-center">
+				<div className="w-16 h-16 rounded-2xl bg-black/5 dark:bg-white/10 flex items-center justify-center mb-4">
+					<ImageIcon aria-hidden="true" className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+				</div>
+				<h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{emptyTitle}</h2>
+				<p className="text-xs text-gray-500 dark:text-gray-400 max-w-[260px] leading-relaxed">
+					{emptyDescription}
+				</p>
+				{showEmptyActions && (onOpenCamera || onTriggerImport) && (
+					<div className="flex flex-wrap items-center justify-center gap-2.5 mt-5">
+						{onOpenCamera && (
+							<button
+								type="button"
+								onClick={onOpenCamera}
+								className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-ios-blue text-white text-xs font-medium shadow-sm hover:opacity-90 active:scale-[0.98] transition-all"
+							>
+								<Camera aria-hidden="true" className="w-3.5 h-3.5" />
+								<span>Open Camera</span>
+							</button>
+						)}
+						{onTriggerImport && (
+							<button
+								type="button"
+								onClick={onTriggerImport}
+								className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-black/5 dark:bg-white/10 text-gray-800 dark:text-gray-100 text-xs font-medium hover:bg-black/10 dark:hover:bg-white/15 active:scale-[0.98] transition-all"
+							>
+								<Upload aria-hidden="true" className="w-3.5 h-3.5" />
+								<span>Import Photos</span>
+							</button>
+						)}
+					</div>
+				)}
 			</div>
 		);
 	}
 
 	return (
 		<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1 md:gap-3 p-1 md:p-4">
-			{photos.map(img => (
-				<div
-					key={img}
-					role="button"
-					tabIndex={0}
-					aria-label="Open photo"
-					onKeyDown={e => {
-						if (e.key === 'Enter' || e.key === ' ') {
-							e.preventDefault();
-							onSelectPhoto(img);
-						}
-					}}
-					className="aspect-square relative cursor-pointer overflow-hidden group rounded-sm md:rounded-lg bg-gray-100 dark:bg-white/5"
-					onClick={() => onSelectPhoto(img)}
+			{photos.map(photo => (
+				<button
+					key={photo.id}
+					type="button"
+					aria-label={`Open photo from ${formatPhotoDate(photo.date)}`}
+					className="aspect-square relative cursor-pointer overflow-hidden group rounded-sm md:rounded-lg bg-gray-200/70 dark:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ios-blue active:scale-[0.98] transition-transform"
+					onClick={() => onSelectPhoto(photo)}
 				>
 					<Image
-						src={img}
-						alt="Photo"
+						src={photo.url}
+						alt={photo.title || `Photo from ${formatPhotoDate(photo.date)}`}
 						fill
 						className="object-cover transition-transform duration-300 group-hover:scale-105"
 						unoptimized
 					/>
 					<div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
-				</div>
+					{photo.isFavorite && (
+						<span
+							aria-label="Favorited"
+							className="absolute bottom-1.5 right-1.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+						>
+							<Heart aria-hidden="true" className="w-3.5 h-3.5 text-white fill-white" />
+						</span>
+					)}
+				</button>
 			))}
 		</div>
 	);

@@ -26,6 +26,57 @@ const ITUNES_HUES: [string, string][] = [
 	['#bf5af2', '#5e5ce6'],
 ];
 
+export const CATALOG_CACHE_TTL_MS = 15 * 60 * 1000;
+export const CATALOG_CACHE_MAX_ENTRIES = 30;
+
+export function normalizeCatalogQuery(term: string): string {
+	return term.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+export interface CatalogCache {
+	get: (term: string, now?: number) => DemoTrack[] | null;
+	set: (term: string, tracks: DemoTrack[], now?: number) => void;
+	clear: () => void;
+}
+
+/** Bounded, TTL-expiring in-memory cache to protect against iTunes ~20 req/min limits. */
+export function createCatalogCache(
+	maxEntries = CATALOG_CACHE_MAX_ENTRIES,
+	ttlMs = CATALOG_CACHE_TTL_MS
+): CatalogCache {
+	const store = new Map<string, { tracks: DemoTrack[]; expiresAt: number }>();
+
+	return {
+		get(term: string, now = Date.now()): DemoTrack[] | null {
+			const key = normalizeCatalogQuery(term);
+			if (!key) return null;
+			const entry = store.get(key);
+			if (!entry) return null;
+			if (now >= entry.expiresAt) {
+				store.delete(key);
+				return null;
+			}
+			// Refresh recency for LRU eviction.
+			store.delete(key);
+			store.set(key, entry);
+			return entry.tracks;
+		},
+		set(term: string, tracks: DemoTrack[], now = Date.now()): void {
+			const key = normalizeCatalogQuery(term);
+			if (!key || maxEntries <= 0) return;
+			store.delete(key);
+			if (store.size >= maxEntries) {
+				const oldestKey = store.keys().next().value;
+				if (oldestKey !== undefined) store.delete(oldestKey);
+			}
+			store.set(key, { tracks, expiresAt: now + ttlMs });
+		},
+		clear(): void {
+			store.clear();
+		},
+	};
+}
+
 /** Validates an iTunes Search API JSON payload into playable tracks. Pure and testable. */
 export function parseItunesResults(payload: unknown): DemoTrack[] {
 	if (typeof payload !== 'object' || payload === null) return [];
