@@ -18,4 +18,15 @@ describe('parseTerminalInput (Tahap 7)', () => {
 			args: ['hello', 'world'],
 		});
 	});
+
+	it('preserves quoted strings with spaces as single arguments', () => {
+		expect(parseTerminalInput('mkdir "My Folder"')).toEqual({
+			command: 'mkdir',
+			args: ['My Folder'],
+		});
+		expect(parseTerminalInput("touch 'project notes.txt'")).toEqual({
+			command: 'touch',
+			args: ['project notes.txt'],
+		});
+	});
 });

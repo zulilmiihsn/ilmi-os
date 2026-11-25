@@ -34,10 +34,13 @@ export default function DeleteConfirmDialog({
 			onKeyDown={e => {
 				if (e.key === 'Escape') onClose();
 			}}
-			className="absolute inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 animate-fade-in"
+			className="absolute inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50"
 		>
 			<div
-				className={`${theme.modalBg} backdrop-blur-md rounded-2xl w-72 p-0 shadow-2xl animate-scale-in transition-colors`}
+				role="alertdialog"
+				aria-modal="true"
+				aria-label="Delete Item"
+				className={`${theme.modalBg} backdrop-blur-md rounded-2xl w-72 p-0 shadow-2xl transition-colors`}
 			>
 				<div className="p-4 text-center">
 					<h3 className={`text-lg font-semibold mb-1 ${theme.text}`}>Delete Item?</h3>
@@ -47,6 +50,7 @@ export default function DeleteConfirmDialog({
 					className={`flex border-t ${darkMode ? 'border-ios-dark-separator' : 'border-ios-gray4/50'}`}
 				>
 					<button
+						type="button"
 						onClick={onClose}
 						className="flex-1 py-3 text-ios-blue font-medium active:bg-ios-gray6/10 transition-colors"
 					>
@@ -54,6 +58,7 @@ export default function DeleteConfirmDialog({
 					</button>
 					<div className={`w-px ${darkMode ? 'bg-ios-dark-separator' : 'bg-ios-gray4'}`} />
 					<button
+						type="button"
 						onClick={onConfirm}
 						className="flex-1 py-3 text-ios-red font-semibold active:bg-ios-red/10 transition-colors"
 					>

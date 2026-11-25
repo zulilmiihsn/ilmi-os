@@ -47,7 +47,7 @@ export default function MailboxesPane({
 		>
 			{/* Mailboxes Navigation Bar */}
 			<div
-				className={`pt-10 px-4 pb-2 flex items-center justify-end shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}
+				className={`pt-3 px-4 pb-2 flex items-center justify-end shrink-0 ${darkMode ? 'bg-black' : 'bg-[#f2f2f7]'}`}
 			>
 				<button
 					onClick={onToggleEditMode}
@@ -127,7 +127,10 @@ export default function MailboxesPane({
 											key={`${account.id}-${folder.id}`}
 											item={{
 												...folder,
-												count: emails.filter(e => e.mailbox === folder.id && !e.read).length,
+												count:
+													folder.id === 'inbox'
+														? emails.filter(e => e.mailbox === 'inbox' && !e.read).length
+														: emails.filter(e => e.mailbox === folder.id).length,
 											}}
 											isActive={selectedMailbox === folder.id}
 											dimmed={hiddenMailboxes.includes(`${account.id}-${folder.id}`)}

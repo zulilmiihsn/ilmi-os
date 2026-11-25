@@ -52,6 +52,7 @@ function Desktop() {
 	const windows = useWindowsStore(state => state.windows);
 	const { wallpaper } = useSettingsStore();
 	const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+	const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
 	const [exposeOpen, setExposeOpen] = useState(false);
 	const [switcher, setSwitcher] = useState<SwitcherState>(CLOSED_SWITCHER);
 	const switcherRef = useRef<SwitcherState>(CLOSED_SWITCHER);
@@ -123,6 +124,16 @@ function Desktop() {
 			}
 			if (e.key === 'Escape' && exposeOpen) return exitExpose();
 			if (exposeOpen) return;
+
+			if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey) {
+				const isSpace = e.code === 'Space' || e.key === ' ';
+				const isK = e.key.toLowerCase() === 'k';
+				if (isSpace || (isK && !isEditableTarget(e.target))) {
+					e.preventDefault();
+					window.dispatchEvent(new CustomEvent('ilmi:toggle-spotlight'));
+					return;
+				}
+			}
 
 			const action = resolveDesktopShortcut(e);
 			if (!action || isEditableTarget(e.target) || isModalOrSpotlightOpen()) return;
@@ -209,12 +220,15 @@ function Desktop() {
 	return (
 		<ErrorBoundary>
 			<div
-				className="desktop w-screen h-screen overflow-hidden relative font-sans select-none"
+				className="desktop w-screen h-[100dvh] overflow-hidden relative font-sans select-none"
 				onContextMenu={e => {
 					e.preventDefault();
 					setContextMenu({ x: e.pageX, y: e.pageY });
 				}}
-				onClick={() => contextMenu && setContextMenu(null)}
+				onClick={() => {
+					if (contextMenu) setContextMenu(null);
+					if (selectedIconId !== null) setSelectedIconId(null);
+				}}
 			>
 				<div className="wallpaper absolute inset-0 z-0 select-none will-change-transform">
 					{isImageWallpaper(wallpaper) ? (
@@ -230,7 +244,7 @@ function Desktop() {
 						<div className="w-full h-full" style={{ background: wallpaper }} />
 					)}
 				</div>
-				<DesktopIcons />
+				<DesktopIcons selectedId={selectedIconId} onSelectId={setSelectedIconId} />
 				<MenuBar />
 				{windows.map(win => (
 					<Window

@@ -23,14 +23,19 @@ export function useClockState() {
 	const [showCityPicker, setShowCityPicker] = useState(false);
 
 	const [alarms, setAlarms] = useState<Alarm[]>([]);
+	const [isEditingAlarms, setIsEditingAlarms] = useState(false);
+	const [showAddAlarm, setShowAddAlarm] = useState(false);
 	const [stopwatchTime, setStopwatchTime] = useState(0);
 	const [stopwatchRunning, setStopwatchRunning] = useState(false);
 	const [lapTimes, setLapTimes] = useState<LapTime[]>([]);
 
+	const [timerHours, setTimerHours] = useState(0);
 	const [timerMinutes, setTimerMinutes] = useState(0);
 	const [timerSeconds, setTimerSeconds] = useState(0);
 	const [timerRunning, setTimerRunning] = useState(false);
 	const [timerRemaining, setTimerRemaining] = useState(0);
+	const [timerTotalMs, setTimerTotalMs] = useState(0);
+	const [timerCompleted, setTimerCompleted] = useState(false);
 
 	useEffect(() => {
 		const interval = setInterval(() => {
@@ -66,24 +71,24 @@ export function useClockState() {
 				if (remaining <= 0) {
 					setTimerRemaining(0);
 					setTimerRunning(false);
+					setTimerCompleted(true);
 				} else {
 					setTimerRemaining(remaining);
 				}
 			}, TIMING.TIMER_INTERVAL);
 		}
 		return () => clearInterval(interval);
-	}, [timerRunning, timerRemaining]);
+		// timerRemaining is intentionally read once when starting/resuming.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [timerRunning]);
 
 	const cityTimes = useMemo(() => computeCityTimes(cities, currentTime), [currentTime, cities]);
 
-	const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 	const [deletingAlarmId, setDeletingAlarmId] = useState<string | null>(null);
 	const [resetKey, setResetKey] = useState(0);
 
 	const handleTabChange = (newTab: typeof activeTab) => {
-		const tabOrder = { world: 0, alarms: 1, stopwatch: 2, timers: 3 };
 		if (activeTab === newTab) return;
-		setDirection(tabOrder[newTab] > tabOrder[activeTab] ? 'forward' : 'backward');
 		setActiveTab(newTab);
 	};
 
@@ -112,27 +117,35 @@ export function useClockState() {
 	}, [stopwatchTime, lapTimes]);
 
 	const formatTimerTime = useCallback((ms: number) => {
-		const totalSeconds = Math.floor(ms / 1000);
-		const minutes = Math.floor(totalSeconds / 60);
+		const totalSeconds = Math.ceil(ms / 1000);
+		const hours = Math.floor(totalSeconds / 3600);
+		const minutes = Math.floor((totalSeconds % 3600) / 60);
 		const seconds = totalSeconds % 60;
+		if (hours > 0) {
+			return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+		}
 		return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 	}, []);
 
 	const handleTimerStart = useCallback(() => {
+		setTimerCompleted(false);
 		if (!timerRunning && timerRemaining === 0) {
-			const totalMs = (timerMinutes * 60 + timerSeconds) * 1000;
+			const totalMs = (timerHours * 3600 + timerMinutes * 60 + timerSeconds) * 1000;
 			if (totalMs > 0) {
+				setTimerTotalMs(totalMs);
 				setTimerRemaining(totalMs);
 				setTimerRunning(true);
 			}
 		} else {
 			setTimerRunning(prev => !prev);
 		}
-	}, [timerRunning, timerRemaining, timerMinutes, timerSeconds]);
+	}, [timerRunning, timerRemaining, timerHours, timerMinutes, timerSeconds]);
 
 	const handleTimerReset = useCallback(() => {
 		setTimerRemaining(0);
+		setTimerTotalMs(0);
 		setTimerRunning(false);
+		setTimerCompleted(false);
 		setResetKey(prev => prev + 1);
 	}, []);
 
@@ -155,19 +168,21 @@ export function useClockState() {
 		c => !cities.some(existing => existing.timezone === c.timezone)
 	);
 
-	const handleAddAlarm = useCallback(() => {
-		const now = new Date();
-		const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+	const handleAddAlarm = useCallback((time: string, label: string) => {
 		setAlarms(prev => [
 			...prev,
-			{ id: generateId('alarm'), time: timeString, enabled: true, label: 'Alarm' },
+			{ id: generateId('alarm'), time, enabled: true, label: label || 'Alarm' },
 		]);
 	}, []);
 
 	const handleDeleteAlarm = useCallback((id: string) => {
 		setDeletingAlarmId(id);
 		setTimeout(() => {
-			setAlarms(prev => prev.filter(alarm => alarm.id !== id));
+			setAlarms(prev => {
+				const next = prev.filter(alarm => alarm.id !== id);
+				if (next.length === 0) setIsEditingAlarms(false);
+				return next;
+			});
 			setDeletingAlarmId(null);
 		}, TIMING.ALARM_DELETE_DURATION);
 	}, []);
@@ -240,6 +255,10 @@ export function useClockState() {
 		activeTab,
 		isEditingCities,
 		setIsEditingCities,
+		isEditingAlarms,
+		setIsEditingAlarms,
+		showAddAlarm,
+		setShowAddAlarm,
 		showCityPicker,
 		setShowCityPicker,
 		alarms,
@@ -247,14 +266,18 @@ export function useClockState() {
 		stopwatchTime,
 		stopwatchRunning,
 		lapTimes,
+		timerHours,
+		setTimerHours,
 		timerMinutes,
 		setTimerMinutes,
 		timerSeconds,
 		setTimerSeconds,
 		timerRunning,
 		timerRemaining,
+		timerTotalMs,
+		timerCompleted,
+		setTimerCompleted,
 		cityTimes,
-		direction,
 		deletingAlarmId,
 		resetKey,
 		deletableAlarmId,

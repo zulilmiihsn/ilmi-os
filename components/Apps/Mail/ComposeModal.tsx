@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, memo } from 'react';
-import { CirclePlus } from 'lucide-react';
 import { triggerHaptic } from '../../../utils/haptic';
 import { useRestoreFocus } from '../../../utils/hooks/useRestoreFocus';
 import { useFocusTrap } from '../../../utils/hooks/useFocusTrap';
@@ -10,12 +9,22 @@ interface ComposeModalProps {
 	onClose: () => void;
 	onSend: (to: string, subject: string, body: string) => boolean;
 	darkMode?: boolean;
+	initialTo?: string;
+	initialSubject?: string;
+	initialBody?: string;
 }
 
-function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) {
-	const [to, setTo] = useState('');
-	const [subject, setSubject] = useState('');
-	const [body, setBody] = useState('');
+function ComposeModal({
+	onClose,
+	onSend,
+	darkMode = false,
+	initialTo = '',
+	initialSubject = '',
+	initialBody = '',
+}: ComposeModalProps) {
+	const [to, setTo] = useState(initialTo);
+	const [subject, setSubject] = useState(initialSubject);
+	const [body, setBody] = useState(initialBody);
 	const [sendError, setSendError] = useState(false);
 	const [isClosing, setIsClosing] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
@@ -63,6 +72,9 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 			{/* iOS Sheet Modal */}
 			<div
 				ref={modalRef}
+				role="dialog"
+				aria-modal="true"
+				aria-label="New Message"
 				onKeyDown={e => {
 					if (e.key === 'Escape') handleClose();
 				}}
@@ -86,9 +98,9 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 					<span className="font-semibold text-base">New Message</span>
 					<button
 						onClick={handleSend}
-						disabled={!to}
+						disabled={!to.trim()}
 						className={`font-semibold text-base transition-opacity ${
-							to ? 'text-ios-blue active:opacity-50' : 'text-gray-300 dark:text-gray-600'
+							to.trim() ? 'text-ios-blue active:opacity-50' : 'text-gray-300 dark:text-gray-600'
 						}`}
 					>
 						Send
@@ -111,7 +123,7 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 							darkMode ? 'border-white/10' : 'border-gray-100'
 						}`}
 					>
-						<span className="text-gray-400 w-16">To:</span>
+						<span className="text-gray-500 dark:text-gray-400 w-16">To:</span>
 						<input
 							type="text"
 							value={to}
@@ -119,26 +131,23 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 							placeholder="recipient@example.com"
 							aria-label="To"
 							className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
-							autoFocus
+							autoFocus={!initialTo}
 						/>
-						<button className="text-ios-blue ml-2 text-base" aria-label="Add recipient">
-							<CirclePlus aria-hidden="true" size={16} />
-						</button>
 					</div>
 					<div
 						className={`flex items-center px-4 py-2.5 border-b ${
 							darkMode ? 'border-white/10' : 'border-gray-100'
 						}`}
 					>
-						<span className="text-gray-400 w-16">Cc/Bcc:</span>
-						<span className="text-gray-500">user@ilmi.os</span>
+						<span className="text-gray-500 dark:text-gray-400 w-16">From:</span>
+						<span className="text-gray-500 dark:text-gray-400">user@ilmi.os</span>
 					</div>
 					<div
 						className={`flex items-center px-4 py-2.5 border-b ${
 							darkMode ? 'border-white/10' : 'border-gray-100'
 						}`}
 					>
-						<span className="text-gray-400 w-16">Subject:</span>
+						<span className="text-gray-500 dark:text-gray-400 w-16">Subject:</span>
 						<input
 							type="text"
 							value={subject}
@@ -155,8 +164,9 @@ function ComposeModal({ onClose, onSend, darkMode = false }: ComposeModalProps) 
 					value={body}
 					onChange={e => setBody(e.target.value)}
 					className="flex-1 p-4 bg-transparent outline-none resize-none text-[15px] leading-relaxed placeholder-gray-400"
-					placeholder="Sent from my iPhone"
+					placeholder="Sent from iLmi Mail"
 					aria-label="Message body"
+					autoFocus={Boolean(initialTo)}
 				/>
 			</div>
 		</div>

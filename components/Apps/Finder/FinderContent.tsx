@@ -1,8 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { FileItem, formatDate, formatFileSize } from '../../../utils/fileSystem';
 import { DialogState } from './types';
+
+type SortField = 'name' | 'modified' | 'size';
+type SortDirection = 'asc' | 'desc';
 
 interface FinderContentProps {
 	currentItems: FileItem[];
@@ -23,6 +27,42 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 	setDialog,
 	selectedItem,
 }) => {
+	const [sortField, setSortField] = useState<SortField>('name');
+	const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+	const toggleSort = (field: SortField) => {
+		if (sortField === field) {
+			setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+		} else {
+			setSortField(field);
+			setSortDirection(field === 'modified' || field === 'size' ? 'desc' : 'asc');
+		}
+	};
+
+	const sortedItems = useMemo(() => {
+		const dir = sortDirection === 'asc' ? 1 : -1;
+		return [...currentItems].sort((a, b) => {
+			if (sortField === 'name') {
+				return a.name.localeCompare(b.name) * dir;
+			}
+			if (sortField === 'modified') {
+				return (new Date(a.modified).getTime() - new Date(b.modified).getTime()) * dir;
+			}
+			const sizeA = a.type === 'file' ? (a.size ?? 0) : -1;
+			const sizeB = b.type === 'file' ? (b.size ?? 0) : -1;
+			return (sizeA - sizeB) * dir;
+		});
+	}, [currentItems, sortField, sortDirection]);
+
+	const renderSortIcon = (field: SortField) => {
+		if (sortField !== field) return null;
+		return sortDirection === 'asc' ? (
+			<ChevronUp aria-hidden="true" className="w-3 h-3 inline-block ml-0.5" />
+		) : (
+			<ChevronDown aria-hidden="true" className="w-3 h-3 inline-block ml-0.5" />
+		);
+	};
+
 	return (
 		<div className="flex-1 flex flex-col overflow-hidden">
 			{/* Content Area */}
@@ -30,9 +70,10 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 				className="flex-1 overflow-y-auto p-4 bg-white dark:bg-[#1E1E1E]"
 				onClick={() => setSelectedItemId(null)}
 			>
-				{currentItems.length === 0 ? (
-					<div className="flex flex-col items-center justify-center h-full text-gray-400">
+				{sortedItems.length === 0 ? (
+					<div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
 						<svg
+							aria-hidden="true"
 							className="w-12 h-12 mb-2 text-gray-300 dark:text-gray-600"
 							viewBox="0 0 24 24"
 							fill="none"
@@ -44,8 +85,8 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 						<p className="text-sm font-medium">This folder is empty</p>
 					</div>
 				) : viewMode === 'grid' ? (
-					<div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
-						{currentItems.map(item => {
+					<div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-4">
+						{sortedItems.map(item => {
 							const isSelected = selectedItemId === item.id;
 							return (
 								<div
@@ -74,36 +115,44 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 											setDialog({ type: 'preview', targetItem: item });
 										}
 									}}
-									className={`group flex flex-col items-center p-2 rounded-lg cursor-pointer transition-colors ${
-										isSelected
-											? 'bg-ios-blue text-white'
-											: 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-800 dark:text-gray-200'
-									}`}
+									className="group flex flex-col items-center p-1.5 rounded-lg cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5 text-gray-800 dark:text-gray-200"
 								>
-									{item.type === 'folder' ? (
-										<svg
-											className={`w-12 h-12 mb-1.5 ${isSelected ? 'text-white' : 'text-ios-blue'}`}
-											viewBox="0 0 24 24"
-											fill="currentColor"
-										>
-											<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
-										</svg>
-									) : (
-										<svg
-											className={`w-12 h-12 mb-1.5 ${isSelected ? 'text-white' : 'text-gray-400'}`}
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											strokeWidth="1.5"
-										>
-											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-											<polyline points="14 2 14 8 20 8" />
-											<line x1="16" y1="13" x2="8" y2="13" />
-											<line x1="16" y1="17" x2="8" y2="17" />
-											<line x1="10" y1="9" x2="8" y2="9" />
-										</svg>
-									)}
-									<span className="text-xs text-center break-all line-clamp-2 max-w-full font-medium">
+									<div
+										className={`p-1.5 rounded-lg mb-1 transition-colors ${
+											isSelected ? 'bg-black/10 dark:bg-white/15' : ''
+										}`}
+									>
+										{item.type === 'folder' ? (
+											<svg
+												aria-hidden="true"
+												className="w-12 h-12 text-ios-blue"
+												viewBox="0 0 24 24"
+												fill="currentColor"
+											>
+												<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+											</svg>
+										) : (
+											<svg
+												aria-hidden="true"
+												className="w-12 h-12 text-gray-400 dark:text-gray-300"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												strokeWidth="1.5"
+											>
+												<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+												<polyline points="14 2 14 8 20 8" />
+												<line x1="16" y1="13" x2="8" y2="13" />
+												<line x1="16" y1="17" x2="8" y2="17" />
+												<line x1="10" y1="9" x2="8" y2="9" />
+											</svg>
+										)}
+									</div>
+									<span
+										className={`text-xs text-center break-all line-clamp-2 max-w-full font-medium px-1.5 py-0.5 rounded ${
+											isSelected ? 'bg-ios-blue text-white' : ''
+										}`}
+									>
 										{item.name}
 									</span>
 								</div>
@@ -112,13 +161,43 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 					</div>
 				) : (
 					<div className="w-full">
-						<div className="grid grid-cols-12 text-[11px] font-semibold text-gray-400 border-b border-gray-200 dark:border-white/10 pb-1 mb-1 px-2">
-							<span className="col-span-6">Name</span>
-							<span className="col-span-3">Date Modified</span>
-							<span className="col-span-3 text-right">Size</span>
+						<div className="grid grid-cols-12 text-[11px] font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-white/10 pb-1.5 mb-1 px-2">
+							<button
+								type="button"
+								onClick={e => {
+									e.stopPropagation();
+									toggleSort('name');
+								}}
+								className="col-span-6 text-left hover:text-gray-900 dark:hover:text-white flex items-center"
+							>
+								<span>Name</span>
+								{renderSortIcon('name')}
+							</button>
+							<button
+								type="button"
+								onClick={e => {
+									e.stopPropagation();
+									toggleSort('modified');
+								}}
+								className="col-span-3 text-left hover:text-gray-900 dark:hover:text-white flex items-center"
+							>
+								<span>Date Modified</span>
+								{renderSortIcon('modified')}
+							</button>
+							<button
+								type="button"
+								onClick={e => {
+									e.stopPropagation();
+									toggleSort('size');
+								}}
+								className="col-span-3 text-right hover:text-gray-900 dark:hover:text-white flex items-center justify-end"
+							>
+								<span>Size</span>
+								{renderSortIcon('size')}
+							</button>
 						</div>
 						<div className="space-y-0.5">
-							{currentItems.map(item => {
+							{sortedItems.map(item => {
 								const isSelected = selectedItemId === item.id;
 								return (
 									<div
@@ -156,6 +235,7 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 										<div className="col-span-6 flex items-center gap-2 truncate">
 											{item.type === 'folder' ? (
 												<svg
+													aria-hidden="true"
 													className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-ios-blue'}`}
 													viewBox="0 0 24 24"
 													fill="currentColor"
@@ -164,6 +244,7 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 												</svg>
 											) : (
 												<svg
+													aria-hidden="true"
 													className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-gray-400'}`}
 													viewBox="0 0 24 24"
 													fill="none"
@@ -176,10 +257,18 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 											)}
 											<span className="truncate">{item.name}</span>
 										</div>
-										<span className="col-span-3 text-[11px] text-gray-400 truncate">
+										<span
+											className={`col-span-3 text-[11px] truncate ${
+												isSelected ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'
+											}`}
+										>
 											{formatDate(item.modified)}
 										</span>
-										<span className="col-span-3 text-[11px] text-gray-400 text-right truncate">
+										<span
+											className={`col-span-3 text-[11px] text-right truncate ${
+												isSelected ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'
+											}`}
+										>
 											{item.type === 'file' && item.size !== undefined
 												? formatFileSize(item.size)
 												: '--'}
@@ -193,7 +282,7 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 			</div>
 
 			{/* Status Bar */}
-			<div className="h-6 bg-[#F6F6F6] dark:bg-[#282828] border-t border-gray-300/40 dark:border-black/50 px-3 flex items-center justify-between text-[11px] text-gray-400 shrink-0">
+			<div className="h-6 bg-[#F6F6F6] dark:bg-[#282828] border-t border-gray-300/40 dark:border-black/50 px-3 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 shrink-0">
 				<span>{currentItems.length} items</span>
 				{selectedItem && (
 					<span>

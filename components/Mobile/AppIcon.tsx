@@ -42,6 +42,7 @@ function AppIcon({
 	return (
 		<>
 			<button
+				type="button"
 				data-app-id={app.id}
 				className={`ios-icon w-full flex flex-col items-center justify-center transition-all ${
 					isPressed && !isDragging ? 'ios-tap-animation scale-90' : ''
@@ -101,12 +102,12 @@ function AppIcon({
 							alt={app.name}
 							width={64}
 							height={64}
-							className="w-16 h-16 drop-shadow-lg"
+							className="w-16 h-16 rounded-[22.5%] overflow-hidden drop-shadow-lg"
 							style={{ width: 'auto', height: 'auto' }}
 							unoptimized
 						/>
 					) : (
-						<div className="ios-app-box w-16 h-16 flex items-center justify-center">
+						<div className="ios-app-box w-16 h-16 rounded-[22.5%] flex items-center justify-center">
 							<AppWindow aria-hidden="true" size={30} className="text-white drop-shadow-lg" />
 						</div>
 					)
@@ -119,20 +120,20 @@ function AppIcon({
 									alt={app.name}
 									width={64}
 									height={64}
-									className="w-full aspect-square mb-1.5 max-w-[64px] mx-auto drop-shadow-lg"
+									className="w-full aspect-square mb-1.5 max-w-[64px] mx-auto rounded-[22.5%] overflow-hidden drop-shadow-lg"
 									style={{ width: '100%', height: 'auto' }}
 									unoptimized
 								/>
-								<span className="text-xs font-medium text-white drop-shadow-md text-center leading-tight w-full">
+								<span className="text-xs font-medium text-white drop-shadow-md text-center leading-tight truncate max-w-[68px]">
 									{app.name}
 								</span>
 							</>
 						) : (
 							<>
-								<div className="ios-app-box w-full aspect-square flex items-center justify-center mb-1.5 max-w-[64px] mx-auto">
+								<div className="ios-app-box w-full aspect-square rounded-[22.5%] flex items-center justify-center mb-1.5 max-w-[64px] mx-auto">
 									<AppWindow aria-hidden="true" size={30} className="text-white drop-shadow-lg" />
 								</div>
-								<span className="text-xs font-medium text-white drop-shadow-md text-center leading-tight w-full">
+								<span className="text-xs font-medium text-white drop-shadow-md text-center leading-tight truncate max-w-[68px]">
 									{app.name}
 								</span>
 							</>

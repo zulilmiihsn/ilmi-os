@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import { useControlCenterStore } from '../../../stores/controlCenter';
 import { triggerHaptic } from '../../../utils/haptic';
 
 interface ControlCenterQuickGridProps {
@@ -23,7 +24,8 @@ export default function ControlCenterQuickGrid({
 	onClose,
 	onOpenApp,
 }: ControlCenterQuickGridProps) {
-	const [lowPowerMode, setLowPowerMode] = useState(false);
+	const lowPowerMode = useControlCenterStore(state => state.lowPowerMode);
+	const toggleLowPowerMode = useControlCenterStore(state => state.toggleLowPowerMode);
 
 	const openQuickApp = (appId: string) => {
 		triggerHaptic('light');
@@ -35,11 +37,13 @@ export default function ControlCenterQuickGrid({
 		<div className="grid grid-cols-4 gap-3 pt-1">
 			{/* 1. Calculator App (Liquid Glass Bubble) */}
 			<button
+				type="button"
 				onClick={() => openQuickApp('calculator')}
 				className={glassTileClass}
 				aria-label="Open Calculator"
 			>
 				<svg
+					aria-hidden="true"
 					width="32"
 					height="32"
 					viewBox="0 0 24 24"
@@ -61,6 +65,7 @@ export default function ControlCenterQuickGrid({
 
 			{/* 2. Flashlight Toggle (Liquid Glass Bubble) */}
 			<button
+				type="button"
 				onClick={() => {
 					triggerHaptic('medium');
 					onToggleFlashlight();
@@ -71,17 +76,19 @@ export default function ControlCenterQuickGrid({
 						: 'bg-white/10 text-white border-white/20'
 				}`}
 				aria-label="Toggle Flashlight"
+				aria-pressed={flashlight}
 			>
-				<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+				<svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
 					<path d="M18 4H6l2 4v11a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8l2-4zm-5 7h-2V9h2v2z" />
 				</svg>
 			</button>
 
 			{/* 3. Low Power Mode / Battery (Liquid Glass Bubble) */}
 			<button
+				type="button"
 				onClick={() => {
 					triggerHaptic('light');
-					setLowPowerMode(!lowPowerMode);
+					toggleLowPowerMode();
 				}}
 				className={`w-full aspect-square rounded-full shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.4),0_4px_16px_rgba(0,0,0,0.25)] flex items-center justify-center transition-all active:scale-88 border ${
 					lowPowerMode
@@ -89,8 +96,10 @@ export default function ControlCenterQuickGrid({
 						: 'bg-white/10 text-white border-white/20'
 				}`}
 				aria-label="Low Power Mode"
+				aria-pressed={lowPowerMode}
 			>
 				<svg
+					aria-hidden="true"
 					width="32"
 					height="32"
 					viewBox="0 0 24 24"
@@ -108,11 +117,13 @@ export default function ControlCenterQuickGrid({
 
 			{/* 4. Clock / Timer (Liquid Glass Bubble) */}
 			<button
+				type="button"
 				onClick={() => openQuickApp('clock')}
 				className={glassTileClass}
 				aria-label="Open Clock"
 			>
 				<svg
+					aria-hidden="true"
 					width="32"
 					height="32"
 					viewBox="0 0 24 24"
@@ -131,6 +142,7 @@ export default function ControlCenterQuickGrid({
 
 			{/* 5. Dark Mode (Liquid Glass Bubble) */}
 			<button
+				type="button"
 				onClick={() => {
 					triggerHaptic('light');
 					onToggleDarkMode();
@@ -139,8 +151,9 @@ export default function ControlCenterQuickGrid({
 					darkMode ? 'bg-white text-black border-white' : 'bg-white/10 text-white border-white/20'
 				}`}
 				aria-label="Toggle Dark Mode"
+				aria-pressed={darkMode}
 			>
-				<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+				<svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
 					<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2.4" />
 					<path d="M12 3a9 9 0 0 0 0 18z" />
 				</svg>
@@ -148,11 +161,13 @@ export default function ControlCenterQuickGrid({
 
 			{/* 6. Notes App (Liquid Glass Bubble) */}
 			<button
+				type="button"
 				onClick={() => openQuickApp('notes')}
 				className={glassTileClass}
 				aria-label="Open Notes"
 			>
 				<svg
+					aria-hidden="true"
 					width="32"
 					height="32"
 					viewBox="0 0 24 24"
@@ -172,11 +187,13 @@ export default function ControlCenterQuickGrid({
 
 			{/* 7. Photos App (Liquid Glass Bubble) */}
 			<button
+				type="button"
 				onClick={() => openQuickApp('photos')}
 				className={glassTileClass}
 				aria-label="Open Photos"
 			>
 				<svg
+					aria-hidden="true"
 					width="32"
 					height="32"
 					viewBox="0 0 24 24"
@@ -194,11 +211,13 @@ export default function ControlCenterQuickGrid({
 
 			{/* 8. Camera App (Liquid Glass Bubble) */}
 			<button
+				type="button"
 				onClick={() => openQuickApp('camera')}
 				className={glassTileClass}
 				aria-label="Open Camera"
 			>
 				<svg
+					aria-hidden="true"
 					width="32"
 					height="32"
 					viewBox="0 0 24 24"

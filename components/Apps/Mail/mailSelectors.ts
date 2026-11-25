@@ -2,7 +2,7 @@ import type { Email, Mailbox } from './types';
 
 export type MailboxWithCount = Mailbox & { count?: number };
 
-/** Unread counts for smart mailboxes; account rows stay at zero. Pure and testable. */
+/** Mailbox counts: unread for inbox/VIP, active count for Flagged and folders; accounts stay at zero. */
 export function getMailboxCounts(mailboxes: Mailbox[], emails: Email[]): MailboxWithCount[] {
 	return mailboxes.map(box => {
 		if (box.id === 'all_inboxes') {
@@ -11,8 +11,14 @@ export function getMailboxCounts(mailboxes: Mailbox[], emails: Email[]): Mailbox
 		if (box.id === 'vip') {
 			return { ...box, count: emails.filter(e => e.isVip && !e.read).length };
 		}
+		if (box.id === 'flagged') {
+			return { ...box, count: emails.filter(e => e.isFlagged && e.mailbox !== 'trash').length };
+		}
 		if (box.type === 'account') {
 			return { ...box, count: 0 };
+		}
+		if (box.type === 'folder') {
+			return { ...box, count: emails.filter(e => e.mailbox === box.id).length };
 		}
 		return box;
 	});
@@ -48,6 +54,8 @@ export function filterDisplayEmails(emails: Email[], filter: MailFilter): Email[
 		filtered = filtered.filter(e => e.mailbox === 'inbox');
 	} else if (filter.mailboxId === 'vip') {
 		filtered = filtered.filter(e => e.isVip);
+	} else if (filter.mailboxId === 'flagged') {
+		filtered = filtered.filter(e => e.isFlagged && e.mailbox !== 'trash');
 	} else {
 		filtered = filtered.filter(e => e.mailbox === filter.mailboxId);
 	}

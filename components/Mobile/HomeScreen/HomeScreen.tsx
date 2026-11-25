@@ -191,7 +191,7 @@ function HomeScreen() {
 	return (
 		<ErrorBoundary>
 			<div
-				className="ios-homescreen w-screen h-screen overflow-hidden relative touch-pan-x"
+				className="ios-homescreen w-screen h-[100dvh] overflow-hidden relative touch-pan-x"
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
 				onTouchEnd={handleTouchEnd}
@@ -238,6 +238,7 @@ function HomeScreen() {
 						currentPage={currentPage}
 						totalPages={2}
 						visible={!currentApp && !appToOpen}
+						onPageChange={setCurrentPage}
 					/>
 
 					<DragOverlay>{activeApp ? <DragOverlayAppIcon app={activeApp} /> : null}</DragOverlay>

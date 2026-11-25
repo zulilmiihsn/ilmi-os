@@ -6,6 +6,7 @@ import { FileText, Folder, Search } from 'lucide-react';
 import { useAppsStore } from '../../stores/apps';
 import { isMacosApp } from '../../types';
 import { searchItems } from '../../utils/fileSystem';
+import { useFocusTrap } from '../../utils/hooks/useFocusTrap';
 import { useRestoreFocus } from '../../utils/hooks/useRestoreFocus';
 
 interface SpotlightProps {
@@ -28,6 +29,7 @@ export default function Spotlight({ isOpen, onClose }: SpotlightProps) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const allApps = useAppsStore(state => state.apps);
+	useFocusTrap(isOpen, containerRef);
 	useRestoreFocus(isOpen, containerRef);
 
 	const openDesktopApp = useCallback(
@@ -172,57 +174,78 @@ export default function Spotlight({ isOpen, onClose }: SpotlightProps) {
 								<div role="listbox" aria-label="Spotlight results" className="space-y-0.5">
 									{results.map((item, idx) => {
 										const isSelected = idx === activeIndex;
+										const prevItem = idx > 0 ? results[idx - 1] : undefined;
+										const showAppsHeader = item.kind === 'app' && idx === 0;
+										const showFilesHeader =
+											item.kind !== 'app' && (idx === 0 || prevItem?.kind === 'app');
 										return (
-											<button
-												key={item.id}
-												type="button"
-												role="option"
-												aria-selected={isSelected}
-												onMouseEnter={() => setActiveIndex(idx)}
-												onClick={item.onSelect}
-												className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 transition-colors ${
-													isSelected
-														? 'bg-ios-blue text-white'
-														: 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-900 dark:text-white'
-												}`}
-											>
-												{item.kind === 'app' && item.icon?.startsWith('/') ? (
-													<div className="relative w-7 h-7 shrink-0">
-														<Image
-															src={item.icon}
-															alt=""
-															width={28}
-															height={28}
-															className="object-contain rounded-[6px]"
-															unoptimized
-														/>
-													</div>
-												) : (
-													<div
-														className={`w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0 ${
-															isSelected ? 'bg-white/20 text-white' : 'bg-ios-blue/15 text-ios-blue'
-														}`}
-													>
-														{item.kind === 'folder' ? (
-															<Folder aria-hidden="true" size={15} />
-														) : (
-															<FileText aria-hidden="true" size={15} />
-														)}
+											<div key={item.id}>
+												{showAppsHeader && (
+													<div className="px-3 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+														Applications
 													</div>
 												)}
-												<div className="min-w-0 flex-1">
-													<div className="text-[13px] font-medium leading-tight truncate">
-														{item.title}
-													</div>
+												{showFilesHeader && (
 													<div
-														className={`text-[11px] leading-tight mt-0.5 truncate ${
-															isSelected ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'
+														className={`px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 ${
+															idx > 0 ? 'pt-2.5' : 'pt-1'
 														}`}
 													>
-														{item.subtitle}
+														Files
 													</div>
-												</div>
-											</button>
+												)}
+												<button
+													type="button"
+													role="option"
+													aria-selected={isSelected}
+													onMouseEnter={() => setActiveIndex(idx)}
+													onClick={item.onSelect}
+													className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 transition-colors ${
+														isSelected
+															? 'bg-ios-blue text-white'
+															: 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-900 dark:text-white'
+													}`}
+												>
+													{item.kind === 'app' && item.icon?.startsWith('/') ? (
+														<div className="relative w-7 h-7 shrink-0">
+															<Image
+																src={item.icon}
+																alt=""
+																width={28}
+																height={28}
+																className="object-contain rounded-[6px]"
+																unoptimized
+															/>
+														</div>
+													) : (
+														<div
+															className={`w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0 ${
+																isSelected
+																	? 'bg-white/20 text-white'
+																	: 'bg-ios-blue/15 text-ios-blue'
+															}`}
+														>
+															{item.kind === 'folder' ? (
+																<Folder aria-hidden="true" size={15} />
+															) : (
+																<FileText aria-hidden="true" size={15} />
+															)}
+														</div>
+													)}
+													<div className="min-w-0 flex-1">
+														<div className="text-[13px] font-medium leading-tight truncate">
+															{item.title}
+														</div>
+														<div
+															className={`text-[11px] leading-tight mt-0.5 truncate ${
+																isSelected ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'
+															}`}
+														>
+															{item.subtitle}
+														</div>
+													</div>
+												</button>
+											</div>
 										);
 									})}
 								</div>

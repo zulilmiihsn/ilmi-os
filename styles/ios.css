@@ -28,10 +28,6 @@
 		0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.ios-tap-animation {
-	transition: transform 0.1s ease-out;
-}
-
 .ios-dragging {
 	transition: none;
 }
@@ -68,7 +64,7 @@
 
 /* iOS Status Bar */
 .ios-statusbar {
-	height: 44px;
+	min-height: 44px;
 	font-size: 14px;
 	font-weight: 600;
 }
@@ -85,9 +81,13 @@
 .ios-home-indicator {
 	width: 134px;
 	height: 5px;
-	background: rgba(255, 255, 255, 0.6);
+	background: rgba(0, 0, 0, 0.35);
 	border-radius: 3px;
 	margin: 8px auto;
+}
+
+.dark .ios-home-indicator {
+	background: rgba(255, 255, 255, 0.6);
 }
 
 /* iOS Spring Animation */
@@ -127,24 +127,6 @@
 
 .ios-tap-animation {
 	animation: ios-spring 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* iOS Wiggle Animation for Edit Mode */
-@keyframes ios-wiggle {
-	0%,
-	100% {
-		transform: rotate(0deg);
-	}
-	25% {
-		transform: rotate(-3deg);
-	}
-	75% {
-		transform: rotate(3deg);
-	}
-}
-
-.ios-wiggle {
-	animation: ios-wiggle 0.3s ease-in-out infinite;
 }
 
 /* iOS Widget */

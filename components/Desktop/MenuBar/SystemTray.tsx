@@ -2,6 +2,7 @@
 
 import type React from 'react';
 import { Search, Signal, SlidersHorizontal, Wifi } from 'lucide-react';
+import { useControlCenterStore } from '../../../stores/controlCenter';
 import DesktopClock from '../DesktopClock';
 
 interface SystemTrayProps {
@@ -23,9 +24,12 @@ export default function SystemTray({
 	batteryFillWidth,
 	onToggleControlCenter,
 }: SystemTrayProps) {
+	const wifiEnabled = useControlCenterStore(state => state.wifi);
+
 	return (
 		<div className="flex items-center gap-2.5 text-black dark:text-white">
 			<button
+				type="button"
 				className={`w-5 h-5 flex items-center justify-center rounded transition-opacity hover:opacity-70 ${isSpotlightOpen ? 'bg-gray-200/50 dark:bg-gray-700/50' : ''}`}
 				aria-label="Search"
 				onClick={onToggleSpotlight}
@@ -33,8 +37,11 @@ export default function SystemTray({
 				<Search aria-hidden="true" size={12} />
 			</button>
 			<button
-				className="w-5 h-5 flex items-center justify-center rounded transition-opacity hover:opacity-70"
+				type="button"
+				className={`w-5 h-5 flex items-center justify-center rounded transition-opacity hover:opacity-70 ${wifiEnabled ? '' : 'opacity-40'}`}
 				aria-label="Wi-Fi"
+				aria-pressed={wifiEnabled}
+				onClick={() => useControlCenterStore.getState().toggleWifi()}
 			>
 				{isWifi ? <Wifi aria-hidden="true" size={12} /> : <Signal aria-hidden="true" size={12} />}
 			</button>
@@ -45,12 +52,10 @@ export default function SystemTray({
 					<div className="w-[22px] h-[10px] border border-black/30 dark:border-white/30 rounded-[2.6px] p-px relative">
 						{/* Battery Fill */}
 						<div
-							className={`h-full rounded-[1.5px] transition-all duration-300 ${
-								batteryCharging ? 'bg-green-500' : ''
-							}`}
+							className="h-full rounded-[1.5px] transition-all duration-300"
 							style={{
 								width: `${batteryFillWidth}%`,
-								backgroundColor: batteryCharging ? 'var(--color-ios-green)' : batteryColor,
+								backgroundColor: batteryColor,
 							}}
 						></div>
 

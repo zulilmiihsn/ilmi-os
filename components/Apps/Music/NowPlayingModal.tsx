@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef } from 'react';
 import Image from 'next/image';
 import {
 	ChevronDown,
+	Heart,
 	Music as MusicIcon,
 	Pause,
 	Play,
@@ -11,10 +13,11 @@ import {
 	Shuffle,
 	SkipBack,
 	SkipForward,
-	Star,
 	Volume1,
 	Volume2,
 } from 'lucide-react';
+import { useFocusTrap } from '../../../utils/hooks/useFocusTrap';
+import { useRestoreFocus } from '../../../utils/hooks/useRestoreFocus';
 import { formatPlayerTime, type DemoTrack, type RepeatMode } from './library';
 
 interface NowPlayingModalProps {
@@ -56,15 +59,58 @@ export default function NowPlayingModal({
 	onToggleShuffle,
 	onCycleRepeat,
 }: NowPlayingModalProps) {
+	const modalRef = useRef<HTMLDivElement>(null);
+	useRestoreFocus(true, modalRef);
+	useFocusTrap(true, modalRef);
+
 	return (
-		<div className="absolute inset-0 z-50 flex flex-col bg-[#f2f2f7] dark:bg-black text-black dark:text-white">
-			<div className="pt-10 px-4 shrink-0 flex items-center justify-between">
+		<div
+			ref={modalRef}
+			role="dialog"
+			aria-modal="true"
+			aria-label={`Now playing: ${current.title}`}
+			onKeyDown={e => {
+				if (e.key === 'Escape') onClose();
+			}}
+			className="absolute inset-0 z-50 flex flex-col overflow-hidden text-white bg-[#121216]"
+		>
+			{/* Dynamic blurred artwork / gradient mesh backdrop */}
+			<div aria-hidden="true" className="absolute inset-0 pointer-events-none overflow-hidden">
+				{current.artworkUrl ? (
+					<Image
+						src={current.artworkUrl}
+						alt=""
+						fill
+						sizes="400px"
+						unoptimized
+						className="object-cover scale-125 blur-3xl opacity-65"
+					/>
+				) : (
+					<div
+						className="w-full h-full scale-110 blur-2xl opacity-85"
+						style={{
+							background: `radial-gradient(circle at 25% 20%, ${current.hue[0]} 0%, transparent 60%), radial-gradient(circle at 80% 75%, ${current.hue[1]} 0%, #111115 70%)`,
+						}}
+					/>
+				)}
+				<div className="absolute inset-0 bg-black/45 backdrop-blur-xl" />
+			</div>
+
+			{/* Top drag pill */}
+			<div
+				aria-hidden="true"
+				className="relative z-10 w-9 h-1 rounded-full bg-white/40 mx-auto mt-3 shrink-0"
+			/>
+
+			{/* Header */}
+			<div className="relative z-10 pt-2 px-4 shrink-0 flex items-center justify-between">
 				<button
 					onClick={onClose}
 					aria-label="Close player"
-					className="relative p-2 active:opacity-50 transition-opacity after:absolute after:-inset-2 after:content-['']"
+					autoFocus
+					className="relative p-2 text-white/80 hover:text-white active:opacity-50 transition-opacity after:absolute after:-inset-2 after:content-['']"
 				>
-					<ChevronDown aria-hidden="true" size={22} className="text-gray-500" />
+					<ChevronDown aria-hidden="true" size={22} />
 				</button>
 				<button
 					onClick={() => onToggleLike(current.id)}
@@ -72,19 +118,19 @@ export default function NowPlayingModal({
 					aria-pressed={isLiked}
 					className="relative w-11 h-11 flex items-center justify-center active:scale-90 transition-transform after:absolute after:-inset-1 after:content-['']"
 				>
-					<Star
+					<Heart
 						aria-hidden="true"
 						size={20}
-						className={isLiked ? 'text-ios-yellow' : 'text-gray-400'}
+						className={isLiked ? 'text-[#fa2d48]' : 'text-white/70'}
 						fill={isLiked ? 'currentColor' : 'none'}
 					/>
 				</button>
 			</div>
 
-			<div className="flex-1 overflow-y-auto px-8 py-4 flex flex-col">
+			<div className="relative z-10 flex-1 overflow-y-auto px-8 pt-2 pb-[max(env(safe-area-inset-bottom),2rem)] flex flex-col max-w-md w-full mx-auto">
 				<span
 					aria-hidden="true"
-					className={`relative overflow-hidden w-full max-w-[200px] mx-auto shrink-0 aspect-square rounded-2xl text-white flex items-center justify-center shadow-2xl transition-transform duration-500 ${
+					className={`relative overflow-hidden w-full max-w-[210px] mx-auto shrink-0 aspect-square rounded-2xl text-white flex items-center justify-center shadow-2xl transition-transform duration-500 ${
 						isPlaying ? '' : 'scale-95'
 					}`}
 					style={{ background: `linear-gradient(135deg, ${current.hue[0]}, ${current.hue[1]})` }}
@@ -102,10 +148,10 @@ export default function NowPlayingModal({
 						<MusicIcon size={64} strokeWidth={1.5} />
 					)}
 				</span>
-				<p className="text-xl font-semibold tracking-tight mt-4 truncate shrink-0">
+				<p className="text-xl font-semibold tracking-tight mt-5 truncate shrink-0">
 					{current.title}
 				</p>
-				<p className="text-base text-gray-500 dark:text-gray-400 truncate shrink-0">
+				<p className="text-base text-white/75 truncate shrink-0">
 					{current.artist} — {current.album ?? 'Demo Mix'}
 				</p>
 
@@ -118,9 +164,9 @@ export default function NowPlayingModal({
 						value={Math.min(position, Math.max(1, duration))}
 						onChange={e => onSeek(Number(e.target.value))}
 						aria-label="Seek"
-						className="w-full accent-gray-300 dark:accent-white"
+						className="w-full accent-[#fa2d48]"
 					/>
-					<div className="flex justify-between text-xs text-gray-400 tabular-nums mt-1">
+					<div className="flex justify-between text-xs text-white/70 tabular-nums mt-1">
 						<span>{formatPlayerTime(position)}</span>
 						<span>-{formatPlayerTime(Math.max(0, duration - position))}</span>
 					</div>
@@ -155,7 +201,7 @@ export default function NowPlayingModal({
 				</div>
 
 				<div className="flex items-center gap-3 mt-4">
-					<Volume1 aria-hidden="true" size={14} className="text-gray-400 shrink-0" />
+					<Volume1 aria-hidden="true" size={14} className="text-white/70 shrink-0" />
 					<input
 						type="range"
 						min={0}
@@ -164,9 +210,9 @@ export default function NowPlayingModal({
 						value={volume}
 						onChange={e => onChangeVolume(Number(e.target.value))}
 						aria-label="Volume"
-						className="flex-1 accent-gray-300 dark:accent-white"
+						className="flex-1 accent-[#fa2d48]"
 					/>
-					<Volume2 aria-hidden="true" size={16} className="text-gray-400 shrink-0" />
+					<Volume2 aria-hidden="true" size={16} className="text-white/70 shrink-0" />
 				</div>
 
 				<div className="flex items-center justify-between mt-5 px-6">
@@ -174,8 +220,8 @@ export default function NowPlayingModal({
 						onClick={onToggleShuffle}
 						aria-label={shuffle ? 'Turn shuffle off' : 'Turn shuffle on'}
 						aria-pressed={shuffle}
-						className={`w-11 h-11 flex items-center justify-center active:opacity-50 transition-opacity ${
-							shuffle ? 'text-ios-blue' : 'text-gray-400'
+						className={`w-11 h-11 rounded-xl flex items-center justify-center active:opacity-50 transition-all ${
+							shuffle ? 'text-[#fa2d48] bg-white/15' : 'text-white/65'
 						}`}
 					>
 						<Shuffle aria-hidden="true" size={20} />
@@ -186,8 +232,8 @@ export default function NowPlayingModal({
 							repeat === 'one' ? 'Repeat one on' : repeat === 'all' ? 'Repeat all on' : 'Repeat off'
 						}
 						aria-pressed={repeat !== 'off'}
-						className={`w-11 h-11 flex items-center justify-center active:opacity-50 transition-opacity ${
-							repeat !== 'off' ? 'text-ios-blue' : 'text-gray-400'
+						className={`w-11 h-11 rounded-xl flex items-center justify-center active:opacity-50 transition-all ${
+							repeat !== 'off' ? 'text-[#fa2d48] bg-white/15' : 'text-white/65'
 						}`}
 					>
 						{repeat === 'one' ? (

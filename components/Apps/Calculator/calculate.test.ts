@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateResult } from './calculate';
+import { calculateResult, formatCalcNumber, formatOperatorSymbol } from './calculate';
 
 describe('calculateResult', () => {
 	it('computes the four operations', () => {
@@ -16,5 +16,25 @@ describe('calculateResult', () => {
 
 	it('returns the current value for unknown operations', () => {
 		expect(calculateResult(5, 3, '')).toBe(3);
+	});
+});
+
+describe('formatCalcNumber', () => {
+	it('preserves Error without turning it into NaN', () => {
+		expect(formatCalcNumber('Error')).toBe('Error');
+	});
+
+	it('formats leading decimals safely without NaN', () => {
+		expect(formatCalcNumber('.')).toBe('0.');
+		expect(formatCalcNumber('.5')).toBe('0.5');
+		expect(formatCalcNumber('-.5')).toBe('-0.5');
+		expect(formatCalcNumber('1234.50')).toBe('1,234.50');
+	});
+
+	it('formats operator symbols for display', () => {
+		expect(formatOperatorSymbol('*')).toBe('×');
+		expect(formatOperatorSymbol('/')).toBe('÷');
+		expect(formatOperatorSymbol('-')).toBe('−');
+		expect(formatOperatorSymbol('+')).toBe('+');
 	});
 });

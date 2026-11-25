@@ -34,6 +34,7 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 		const touchStartRef = useRef<{ y: number; active: boolean } | null>(null);
 
 		useEffect(() => {
+			if (!isOpen) return;
 			const updateTime = () => {
 				const now = new Date();
 				setTimeString(
@@ -46,7 +47,20 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 			updateTime();
 			const timer = setInterval(updateTime, 1000);
 			return () => clearInterval(timer);
-		}, []);
+		}, [isOpen]);
+
+		// Escape to close when open
+		useEffect(() => {
+			if (!isOpen) return;
+			const handleKeyDown = (e: KeyboardEvent) => {
+				if (e.key === 'Escape') {
+					triggerHaptic('light');
+					onClose();
+				}
+			};
+			window.addEventListener('keydown', handleKeyDown);
+			return () => window.removeEventListener('keydown', handleKeyDown);
+		}, [isOpen, onClose]);
 
 		// Swipe up to dismiss handlers
 		const handleTouchStart = (e: React.TouchEvent) => {
@@ -88,6 +102,10 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 		return (
 			<div
 				ref={internalRef}
+				role={isOpen ? 'dialog' : undefined}
+				aria-modal={isOpen ? true : undefined}
+				aria-label="Notification Center"
+				aria-hidden={!isOpen}
 				className="ios-cover-sheet fixed inset-0 z-80 flex flex-col justify-between select-none overflow-hidden"
 				style={{
 					transform: isOpen ? 'translate3d(0, 0%, 0)' : 'translate3d(0, -100%, 0)',
@@ -124,17 +142,14 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 				</div>
 
 				{/* Top Status Bar & Clock Header */}
-				<div className="w-full pt-14 pb-2 flex flex-col items-center justify-center shrink-0">
+				<div className="w-full pt-[max(env(safe-area-inset-top),3.5rem)] pb-2 flex flex-col items-center justify-center shrink-0">
 					{/* Date */}
 					<div className="text-white/90 text-[18px] font-semibold tracking-normal mb-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
 						{dateString}
 					</div>
 
-					{/* Time - iOS Authentic Display Font */}
-					<div
-						className="text-white font-bold text-[84px] tracking-normal leading-none drop-shadow-[0_2px_16px_rgba(0,0,0,0.35)]"
-						style={{ fontVariantNumeric: 'tabular-nums' }}
-					>
+					{/* Time - iOS Authentic Display Font with glass vibrancy */}
+					<div className="text-white/90 font-bold text-[84px] tracking-normal leading-none drop-shadow-[0_4px_16px_rgba(0,0,0,0.28)] tabular-nums">
 						{timeString}
 					</div>
 				</div>
@@ -150,22 +165,26 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 				/>
 
 				{/* Bottom Controls Area (Pinned to corners like authentic iPhone Lock Screen) */}
-				<div className="w-full relative pb-8 pt-4 px-8 flex flex-col items-center">
+				<div className="w-full relative pb-[max(env(safe-area-inset-bottom),2rem)] pt-4 px-8 flex flex-col items-center">
 					<div className="w-full flex items-center justify-between mb-3 px-2">
 						{/* Flashlight Shortcut Pod */}
 						<button
+							type="button"
+							tabIndex={isOpen ? 0 : -1}
 							onClick={() => {
 								triggerHaptic('medium');
 								toggleFlashlight();
 							}}
-							className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-2xl border active:scale-90 transition-all duration-150 ${
+							className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-2xl border active:scale-90 transition-all duration-150 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue ${
 								flashlight
 									? 'bg-white text-black border-white shadow-[0_0_25px_rgba(255,255,255,0.8)]'
 									: 'bg-black/35 text-white border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:bg-black/45'
 							}`}
 							aria-label="Toggle Flashlight"
+							aria-pressed={flashlight}
 						>
 							<svg
+								aria-hidden="true"
 								width="24"
 								height="24"
 								viewBox="0 0 24 24"
@@ -178,15 +197,18 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 
 						{/* Camera Shortcut Pod */}
 						<button
+							type="button"
+							tabIndex={isOpen ? 0 : -1}
 							onClick={() => {
 								triggerHaptic('medium');
 								onClose();
 								if (onOpenApp) onOpenApp('camera');
 							}}
-							className="w-14 h-14 rounded-full bg-black/35 text-white border border-white/20 flex items-center justify-center backdrop-blur-2xl shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:bg-black/45 active:scale-90 transition-all duration-150"
+							className="w-14 h-14 rounded-full bg-black/35 text-white border border-white/20 flex items-center justify-center backdrop-blur-2xl shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:bg-black/45 active:scale-90 transition-all duration-150 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue"
 							aria-label="Open Camera"
 						>
 							<svg
+								aria-hidden="true"
 								width="24"
 								height="24"
 								viewBox="0 0 24 24"
@@ -204,13 +226,21 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 					</div>
 
 					{/* Home Indicator Pill */}
-					<div
+					<button
+						type="button"
+						tabIndex={isOpen ? 0 : -1}
+						aria-label="Close Notification Center"
 						onClick={() => {
 							triggerHaptic('light');
 							onClose();
 						}}
-						className="w-36 h-1 bg-white/70 rounded-full cursor-pointer hover:bg-white active:scale-95 transition-all"
-					/>
+						className="py-2 px-4 bg-transparent border-0 cursor-pointer group focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue rounded-full"
+					>
+						<span
+							aria-hidden="true"
+							className="block w-36 h-1.5 bg-white/70 rounded-full group-hover:bg-white group-active:scale-95 transition-all"
+						/>
+					</button>
 				</div>
 			</div>
 		);

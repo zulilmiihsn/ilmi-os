@@ -13,7 +13,7 @@ function HomeScreenDock({ apps, onAppClick, isEditing }: HomeScreenDockProps) {
 	const itemIds = useMemo(() => apps.map(app => app.id), [apps]);
 
 	return (
-		<div className="ios-dock fixed bottom-2 left-2 right-2 h-[96px] flex items-center justify-around px-4 ios-safe-area z-20 bg-white/10 backdrop-blur-3xl border-[1.5px] border-white/50 rounded-[35px] shadow-[0_20px_40px_rgba(0,0,0,0.3),inset_0_0_20px_rgba(255,255,255,0.2)]">
+		<div className="ios-dock fixed bottom-[max(env(safe-area-inset-bottom),0.5rem)] left-2 right-2 h-[96px] flex items-center justify-around px-4 z-20 bg-white/25 dark:bg-black/35 backdrop-blur-3xl border-[1.5px] border-white/30 dark:border-white/15 rounded-[35px] shadow-[0_20px_40px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.25)]">
 			<SortableContext items={itemIds} strategy={horizontalListSortingStrategy}>
 				{apps.map(app => (
 					<SortableAppIcon

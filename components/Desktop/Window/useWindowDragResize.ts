@@ -124,7 +124,7 @@ export function useWindowDragResize(
 					const vw = typeof window !== 'undefined' ? window.innerWidth : 1440;
 					const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
 					const newX = interactionRef.current.initialX + deltaX;
-					const newY = Math.max(0, Math.min(vh - 30, interactionRef.current.initialY + deltaY));
+					const newY = Math.max(28, Math.min(vh - 30, interactionRef.current.initialY + deltaY));
 					interactionRef.current.currentX = newX;
 					interactionRef.current.currentY = newY;
 					if (windowRef.current) {
@@ -173,7 +173,7 @@ export function useWindowDragResize(
 				const deltaY = pointer.y - interactionRef.current.startY;
 				interactionRef.current.currentX = interactionRef.current.initialX + deltaX;
 				interactionRef.current.currentY = Math.max(
-					0,
+					28,
 					Math.min(vh - 30, interactionRef.current.initialY + deltaY)
 				);
 				snapZoneRef.current = detectSnapZone(pointer.x, pointer.y, { width: vw, height: vh });

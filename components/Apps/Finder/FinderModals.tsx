@@ -39,13 +39,29 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 		if (e.key === 'Escape') setDialog({ type: null });
 	};
 
+	const dialogLabel =
+		dialog.type === 'createFolder'
+			? 'New Folder'
+			: dialog.type === 'createFile'
+				? 'New File'
+				: dialog.type === 'rename'
+					? 'Rename Item'
+					: dialog.type === 'delete'
+						? 'Delete Item'
+						: dialog.targetItem?.name || 'File Preview';
+
 	return (
 		<div
 			ref={rootRef}
 			onKeyDown={closeOnEscape}
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs animate-in fade-in duration-150"
+			className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs"
 		>
-			<div className="bg-white dark:bg-[#2A2A2A] rounded-xl shadow-2xl border border-black/10 dark:border-white/10 w-80 p-5 text-gray-800 dark:text-gray-200">
+			<div
+				role={dialog.type === 'delete' ? 'alertdialog' : 'dialog'}
+				aria-modal="true"
+				aria-label={dialogLabel}
+				className="bg-white dark:bg-[#2A2A2A] rounded-xl shadow-2xl border border-black/10 dark:border-white/10 w-80 p-5 text-gray-800 dark:text-gray-200"
+			>
 				{dialogError && (
 					<div
 						role="alert"
@@ -63,16 +79,19 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							value={dialogInput}
 							onChange={e => setDialogInput(e.target.value)}
 							onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
+							aria-label="Folder name"
 							className="w-full bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/10 rounded-md px-3 py-1.5 text-sm outline-none focus:border-ios-blue mb-4"
 						/>
 						<div className="flex justify-end gap-2">
 							<button
+								type="button"
 								onClick={() => setDialog({ type: null })}
-								className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-white/10 hover:bg-gray-300"
+								className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
 							>
 								Cancel
 							</button>
 							<button
+								type="button"
 								onClick={handleCreateFolder}
 								className="px-3 py-1 text-xs rounded-md bg-ios-blue text-white hover:brightness-110 font-medium"
 							>
@@ -91,16 +110,19 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							value={dialogInput}
 							onChange={e => setDialogInput(e.target.value)}
 							onKeyDown={e => e.key === 'Enter' && handleCreateFile()}
+							aria-label="File name"
 							className="w-full bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/10 rounded-md px-3 py-1.5 text-sm outline-none focus:border-ios-blue mb-4"
 						/>
 						<div className="flex justify-end gap-2">
 							<button
+								type="button"
 								onClick={() => setDialog({ type: null })}
-								className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-white/10 hover:bg-gray-300"
+								className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
 							>
 								Cancel
 							</button>
 							<button
+								type="button"
 								onClick={handleCreateFile}
 								className="px-3 py-1 text-xs rounded-md bg-ios-blue text-white hover:brightness-110 font-medium"
 							>
@@ -119,16 +141,19 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 							value={dialogInput}
 							onChange={e => setDialogInput(e.target.value)}
 							onKeyDown={e => e.key === 'Enter' && handleRename()}
+							aria-label="New name"
 							className="w-full bg-gray-100 dark:bg-white/10 border border-gray-300 dark:border-white/10 rounded-md px-3 py-1.5 text-sm outline-none focus:border-ios-blue mb-4"
 						/>
 						<div className="flex justify-end gap-2">
 							<button
+								type="button"
 								onClick={() => setDialog({ type: null })}
-								className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-white/10 hover:bg-gray-300"
+								className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
 							>
 								Cancel
 							</button>
 							<button
+								type="button"
 								onClick={handleRename}
 								className="px-3 py-1 text-xs rounded-md bg-ios-blue text-white hover:brightness-110 font-medium"
 							>
@@ -141,17 +166,19 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 				{dialog.type === 'delete' && (
 					<>
 						<h3 className="font-semibold text-sm mb-2 text-ios-red">Delete Item?</h3>
-						<p className="text-xs text-gray-500 mb-4">
+						<p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
 							Are you sure you want to delete &quot;{dialog.targetItem?.name}&quot;?
 						</p>
 						<div className="flex justify-end gap-2">
 							<button
+								type="button"
 								onClick={() => setDialog({ type: null })}
-								className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-white/10 hover:bg-gray-300"
+								className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
 							>
 								Cancel
 							</button>
 							<button
+								type="button"
 								onClick={handleDelete}
 								className="px-3 py-1 text-xs rounded-md bg-ios-red text-white hover:brightness-110 font-medium"
 							>
@@ -166,8 +193,9 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 						<div className="flex justify-between items-center mb-3">
 							<h3 className="font-semibold text-sm truncate">{dialog.targetItem.name}</h3>
 							<button
+								type="button"
 								onClick={() => setDialog({ type: null })}
-								className="text-gray-400 hover:text-gray-600"
+								className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
 								aria-label="Close preview"
 							>
 								×
@@ -176,9 +204,10 @@ export const FinderModals: React.FC<FinderModalsProps> = ({
 						<div className="bg-gray-50 dark:bg-black/40 rounded-md p-3 text-xs font-mono max-h-48 overflow-y-auto mb-3 whitespace-pre-wrap">
 							{dialog.targetItem.content || '(Empty file)'}
 						</div>
-						<div className="flex justify-between items-center text-[11px] text-gray-400">
+						<div className="flex justify-between items-center text-[11px] text-gray-500 dark:text-gray-400">
 							<span>Size: {formatFileSize(dialog.targetItem.size || 0)}</span>
 							<button
+								type="button"
 								onClick={() => setDialog({ type: null })}
 								className="px-3 py-1 text-xs rounded-md bg-ios-blue text-white"
 							>

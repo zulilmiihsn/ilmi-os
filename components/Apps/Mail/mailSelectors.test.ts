@@ -91,4 +91,31 @@ describe('mail selectors (Tahap 7)', () => {
 		});
 		expect(result.map(e => e.id)).toEqual(['2', '1']);
 	});
+
+	it('filters flagged emails excluding trash and computes folder counts', () => {
+		const emails: Email[] = [
+			{ ...base, id: '1', mailbox: 'inbox', isFlagged: true, read: true },
+			{ ...base, id: '2', mailbox: 'trash', isFlagged: true, read: true },
+			{ ...base, id: '3', mailbox: 'sent', read: true },
+			{ ...base, id: '4', mailbox: 'archive', read: true },
+			{ ...base, id: '5', mailbox: 'drafts', read: true },
+			{ ...base, id: '6', mailbox: 'junk', read: true },
+		];
+		const flagged = filterDisplayEmails(emails, {
+			mailboxId: 'flagged',
+			searchQuery: '',
+			unreadOnly: false,
+		});
+		expect(flagged.map(e => e.id)).toEqual(['1']);
+
+		const counts = Object.fromEntries(
+			getMailboxCounts(MOCK_MAILBOXES_STATIC, emails).map(m => [m.id, m.count])
+		);
+		expect(counts.flagged).toBe(1);
+		expect(counts.sent).toBe(1);
+		expect(counts.archive).toBe(1);
+		expect(counts.drafts).toBe(1);
+		expect(counts.junk).toBe(1);
+		expect(counts.trash).toBe(1);
+	});
 });

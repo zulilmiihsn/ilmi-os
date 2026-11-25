@@ -1,5 +1,7 @@
 'use client';
 
+import { ChevronLeft, Ellipsis, Search, X } from 'lucide-react';
+
 interface FilesHeaderProps {
 	activeTab: 'recents' | 'shared' | 'browse';
 	canGoBack: boolean;
@@ -27,75 +29,49 @@ export default function FilesHeader({
 	onOpenActionMenu,
 	theme,
 }: FilesHeaderProps) {
+	const title =
+		activeTab === 'recents' ? 'Recents' : activeTab === 'shared' ? 'Shared' : currentPathName;
+
 	return (
 		<div className={`shrink-0 border-b transition-colors ${theme.headerBg}`}>
 			{/* Top Navigation */}
-			<div className="relative flex items-center justify-between px-4 pt-6 pb-2">
+			<div className="relative flex items-center justify-between px-4 pt-3 pb-1">
 				{/* Left Side */}
-				<div className="flex-1 flex items-center">
+				<div className="flex items-center min-h-8">
 					{canGoBack ? (
 						<button
+							type="button"
 							onClick={onBack}
-							className="flex items-center text-ios-blue text-base font-medium"
+							className="flex items-center text-ios-blue text-base font-medium active:opacity-60 transition-opacity"
 						>
-							<svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M15 19l-7-7 7-7"
-								/>
-							</svg>
-							Browse
+							<ChevronLeft aria-hidden="true" className="w-5 h-5 -ml-1 mr-0.5" />
+							<span>Browse</span>
 						</button>
 					) : null}
 				</div>
 
-				{/* Center Title */}
-				<h1 className={`text-lg font-semibold text-center mx-2 truncate max-w-[60%] ${theme.text}`}>
-					{activeTab === 'recents'
-						? 'Recents'
-						: activeTab === 'shared'
-							? 'Shared'
-							: currentPathName}
-				</h1>
-
 				{/* Right Side */}
-				<div className="flex-1 flex items-center justify-end">
+				<div className="flex items-center justify-end">
 					<button
+						type="button"
 						onClick={onOpenActionMenu}
 						aria-label="More actions"
-						className="relative w-8 h-8 flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
+						className="relative w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center active:scale-95 transition-all after:absolute after:-inset-1.5 after:content-['']"
 					>
-						<svg
-							aria-hidden="true"
-							className={`w-5 h-5 ${theme.activeTab}`}
-							fill="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-						</svg>
+						<Ellipsis aria-hidden="true" className={`w-4 h-4 ${theme.activeTab}`} />
 					</button>
 				</div>
 			</div>
 
+			{/* Apple Large Title */}
+			<div className="px-4 pb-2">
+				<h1 className={`text-ios-large-title truncate ${theme.text}`}>{title}</h1>
+			</div>
+
 			{/* Search Bar */}
 			<div className="px-4 pb-3">
-				<div className={`relative flex items-center rounded-lg px-3 py-2 ${theme.searchBg}`}>
-					<svg
-						aria-hidden="true"
-						className="w-4 h-4 text-gray-500 mr-2"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							strokeWidth={2}
-							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-						/>
-					</svg>
+				<div className={`relative flex items-center rounded-xl px-3 py-2 ${theme.searchBg}`}>
+					<Search aria-hidden="true" className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
 					<input
 						type="text"
 						placeholder="Search"
@@ -104,11 +80,16 @@ export default function FilesHeader({
 						onChange={e => onSearchChange(e.target.value)}
 						className={`flex-1 bg-transparent border-none outline-none text-sm ${theme.text} ${theme.searchPlaceholder}`}
 					/>
-					<span className="ml-2" aria-hidden="true">
-						<svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-							<path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
-						</svg>
-					</span>
+					{searchQuery && (
+						<button
+							type="button"
+							onClick={() => onSearchChange('')}
+							aria-label="Clear search"
+							className="ml-2 p-0.5 rounded-full text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+						>
+							<X aria-hidden="true" className="w-4 h-4" />
+						</button>
+					)}
 				</div>
 			</div>
 		</div>

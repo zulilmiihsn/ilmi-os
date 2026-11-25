@@ -45,7 +45,11 @@ function MobileClock({ textColor }: MobileClockProps) {
 
 	if (!mounted) return null;
 
-	return <span style={{ color: textColor }}>{currentTime}</span>;
+	return (
+		<span className="tabular-nums" style={{ color: textColor }}>
+			{currentTime}
+		</span>
+	);
 }
 
 export default memo(MobileClock);

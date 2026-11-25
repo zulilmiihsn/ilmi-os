@@ -9,7 +9,15 @@ import { useWindowsStore } from '../../stores/windows';
 import { WINDOW } from '../../constants';
 import type { WindowState } from '../../types';
 
-export default function DesktopIcons() {
+interface DesktopIconsProps {
+	selectedId?: string | null;
+	onSelectId?: (id: string | null) => void;
+}
+
+export default function DesktopIcons({
+	selectedId: controlledSelectedId,
+	onSelectId,
+}: DesktopIconsProps = {}) {
 	const allApps = useAppsStore(state => state.apps);
 	const apps = useMemo(
 		() => allApps.filter(app => isMacosApp(app) && app.showOnDesktop),
@@ -20,14 +28,22 @@ export default function DesktopIcons() {
 	const windows = useWindowsStore(state => state.windows) as WindowState[];
 	const openWindow = useWindowsStore(state => state.openWindow);
 	const focusWindow = useWindowsStore(state => state.focusWindow);
+	const updateWindow = useWindowsStore(state => state.updateWindow);
 
-	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
+	const selectedId = controlledSelectedId !== undefined ? controlledSelectedId : internalSelectedId;
+	const setSelectedId = onSelectId ?? setInternalSelectedId;
 
 	function handleDoubleClick(app: (typeof apps)[number]) {
 		launchApp(app.id);
-		const existingWindow = windows.find(w => w.appId === app.id && !w.isMinimized);
+		const existingWindow =
+			windows.find(w => w.appId === app.id && !w.isMinimized) ??
+			windows.find(w => w.appId === app.id);
 
 		if (existingWindow) {
+			if (existingWindow.isMinimized) {
+				updateWindow(existingWindow.id, { isMinimized: false });
+			}
 			focusWindow(existingWindow.id);
 		} else {
 			openWindow({
@@ -59,15 +75,7 @@ export default function DesktopIcons() {
 						role="button"
 						tabIndex={0}
 						aria-label={`Open ${app.name}`}
-						className={`
-							pointer-events-auto
-							w-[84px] h-[92px] 
-							flex flex-col items-center justify-start gap-1 
-							group cursor-default rounded-[4px]
-							border border-transparent
-							focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80
-							${isSelected ? 'bg-white/20 border-white/10 backdrop-blur-sm' : 'hover:bg-white/10'}
-						`}
+						className="pointer-events-auto w-[84px] h-[92px] flex flex-col items-center justify-start gap-1 group cursor-default rounded-md focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80"
 						onClick={e => {
 							e.stopPropagation();
 							setSelectedId(app.id);
@@ -84,33 +92,43 @@ export default function DesktopIcons() {
 							}
 						}}
 					>
-						<div className="relative w-[54px] h-[54px] mt-2 filter drop-shadow-lg transition-transform duration-200 group-active:scale-95">
-							{isSvgIcon ? (
-								<Image
-									src={app.icon}
-									alt={app.name}
-									fill
-									className="object-contain"
-									priority
-									unoptimized
-									sizes="64px"
-									draggable={false}
-								/>
-							) : (
-								<div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-xl text-white">
-									<AppWindow aria-hidden="true" size={24} />
-								</div>
-							)}
+						<div
+							className={`relative w-[60px] h-[60px] mt-1 p-1 rounded-lg border transition-all duration-150 group-active:scale-95 ${
+								isSelected
+									? 'bg-black/25 border-white/30 backdrop-blur-sm'
+									: 'border-transparent group-hover:bg-white/10'
+							}`}
+						>
+							<div className="relative w-full h-full filter drop-shadow-lg">
+								{isSvgIcon ? (
+									<Image
+										src={app.icon}
+										alt={app.name}
+										fill
+										className="object-contain"
+										priority
+										unoptimized
+										sizes="64px"
+										draggable={false}
+									/>
+								) : (
+									<div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-xl text-white">
+										<AppWindow aria-hidden="true" size={24} />
+									</div>
+								)}
+							</div>
 						</div>
 						<span
-							className={`
-								text-[13px] font-medium text-white text-center leading-tight
-								px-1
-								line-clamp-2
-							`}
-							style={{
-								textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-							}}
+							className={`text-[12px] font-medium text-white text-center leading-tight px-1.5 py-0.5 rounded line-clamp-2 transition-colors ${
+								isSelected ? 'bg-ios-blue' : ''
+							}`}
+							style={
+								isSelected
+									? undefined
+									: {
+											textShadow: '0 1px 3px rgba(0,0,0,0.85)',
+										}
+							}
 						>
 							{app.name}
 						</span>

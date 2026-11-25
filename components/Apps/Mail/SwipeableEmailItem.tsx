@@ -145,8 +145,14 @@ function SwipeableEmailItem({
 					}
 				}}
 				className={`relative transition-transform duration-200 ease-out select-none ${
-					darkMode ? 'bg-black active:bg-[#1c1c1e]' : 'bg-white active:bg-gray-50'
-				} ${isSelected && !isEditing ? (darkMode ? 'bg-[#1c1c1e]' : 'bg-ios-blue/10') : ''}`}
+					isSelected && !isEditing
+						? darkMode
+							? 'bg-[#1c1c1e]'
+							: 'bg-ios-blue/10'
+						: darkMode
+							? 'bg-black active:bg-[#1c1c1e]'
+							: 'bg-white active:bg-gray-50'
+				}`}
 				style={{ transform: `translateX(${offset}px)` }}
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
@@ -206,7 +212,9 @@ function SwipeableEmailItem({
 									<Flag aria-hidden="true" size={12} className="text-ios-orange" />
 								)}
 								{email.isVip && <Star aria-hidden="true" size={12} className="text-ios-yellow" />}
-								<span className="text-[13px] text-gray-400 font-normal">{email.date}</span>
+								<span className="text-[13px] text-gray-500 dark:text-gray-400 font-normal">
+									{email.date}
+								</span>
 							</div>
 						</div>
 
@@ -222,7 +230,7 @@ function SwipeableEmailItem({
 						</div>
 
 						{/* 2-line snippet preview */}
-						<div className="text-[13px] leading-snug text-gray-400 dark:text-gray-500 line-clamp-2">
+						<div className="text-[13px] leading-snug text-gray-500 dark:text-gray-400 line-clamp-2">
 							{email.preview}
 						</div>
 					</div>

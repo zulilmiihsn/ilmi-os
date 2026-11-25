@@ -7,6 +7,7 @@ import {
 	DeleteConfirmDialog,
 	ActionMenu,
 	ActionSheet,
+	FilePreviewModal,
 } from './Modals';
 import TabBar from './TabBar';
 import FilesHeader from './FilesHeader';
@@ -37,7 +38,7 @@ export default function Files() {
 
 	return (
 		<div
-			className={`files-app w-full h-full flex flex-col overflow-hidden font-sans transition-colors duration-300 ${theme.bg} ${theme.text}`}
+			className={`files-app relative w-full h-full flex flex-col overflow-hidden font-sans transition-colors duration-300 ${theme.bg} ${theme.text}`}
 		>
 			{state.persistError && (
 				<div
@@ -73,6 +74,12 @@ export default function Files() {
 			/>
 
 			<TabBar activeTab={state.activeTab} onTabChange={state.handleTabChange} darkMode={darkMode} />
+
+			<FilePreviewModal
+				item={state.previewItem}
+				onClose={() => state.setPreviewItem(null)}
+				darkMode={darkMode}
+			/>
 
 			<CreateFolderDialog
 				isOpen={state.showCreateDialog}

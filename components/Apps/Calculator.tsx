@@ -1,10 +1,21 @@
 'use client';
 
-import { useState, useCallback, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import { Delete } from 'lucide-react';
-import { calculateResult } from './Calculator/calculate';
+import { calculateResult, formatCalcNumber, formatOperatorSymbol } from './Calculator/calculate';
 import { useSettingsStore } from '../../stores/settings';
 import { triggerHaptic } from '../../utils/haptic';
+
+interface LastOperation {
+	op: string;
+	operand: number;
+}
+
+function isEditableElement(target: EventTarget | null): boolean {
+	if (!(target instanceof HTMLElement)) return false;
+	const tag = target.tagName;
+	return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+}
 
 function Calculator() {
 	const [display, setDisplay] = useState('0');
@@ -12,35 +23,29 @@ function Calculator() {
 	const [operation, setOperation] = useState<string | null>(null);
 	const [waitingForNewValue, setWaitingForNewValue] = useState(false);
 	const [calculationHistory, setCalculationHistory] = useState<string>('');
+	const [lastOperation, setLastOperation] = useState<LastOperation | null>(null);
 
 	const { darkMode } = useSettingsStore();
 
-	// Format number with commas
-	const formatNumber = useCallback((num: string | number): string => {
-		if (typeof num === 'string') {
-			if (num.includes('.')) {
-				const [integer, decimal] = num.split('.');
-				return `${parseFloat(integer ?? '').toLocaleString('en-US')}.${decimal}`;
-			}
-			return parseFloat(num).toLocaleString('en-US');
-		}
-		return num.toLocaleString('en-US');
-	}, []);
-
 	// Format display value
 	const formattedDisplay = useMemo(() => {
-		return formatNumber(display);
-	}, [display, formatNumber]);
+		return formatCalcNumber(display);
+	}, [display]);
 
 	const inputNumber = useCallback(
 		(num: string) => {
 			triggerHaptic('light');
+			setLastOperation(null);
 			if (waitingForNewValue || display === 'Error') {
-				setDisplay(num);
+				setDisplay(num === '.' ? '0.' : num);
 				setWaitingForNewValue(false);
 			} else {
 				if (num === '.' && display.includes('.')) return;
-				setDisplay(display === '0' ? num : display + num);
+				if (num === '.' && display === '0') {
+					setDisplay('0.');
+				} else {
+					setDisplay(display === '0' ? num : display + num);
+				}
 			}
 		},
 		[display, waitingForNewValue]
@@ -54,11 +59,22 @@ function Calculator() {
 	const inputOperation = useCallback(
 		(op: string) => {
 			triggerHaptic('medium');
+			if (display === 'Error') return;
+			setLastOperation(null);
+			const symbol = formatOperatorSymbol(op);
+
+			// Swap operator without re-evaluating when user taps two operators in a row.
+			if (waitingForNewValue && previousValue !== null) {
+				setOperation(op);
+				setCalculationHistory(`${formatCalcNumber(previousValue)} ${symbol}`);
+				return;
+			}
+
 			const inputValue = parseFloat(display);
 
 			if (previousValue === null) {
 				setPreviousValue(inputValue);
-				setCalculationHistory(`${formatNumber(display)}${op}`);
+				setCalculationHistory(`${formatCalcNumber(display)} ${symbol}`);
 			} else if (operation) {
 				const result = calculate();
 				if (result === 'Error') {
@@ -66,36 +82,61 @@ function Calculator() {
 					setPreviousValue(null);
 					setOperation(null);
 					setCalculationHistory('');
-				} else {
-					setDisplay(String(result));
-					setPreviousValue(result);
-					setCalculationHistory(`${formatNumber(result)}${op}`);
+					setWaitingForNewValue(true);
+					return;
 				}
+				setDisplay(String(result));
+				setPreviousValue(result);
+				setCalculationHistory(`${formatCalcNumber(result)} ${symbol}`);
 			} else {
-				setCalculationHistory(`${formatNumber(display)}${op}`);
+				setCalculationHistory(`${formatCalcNumber(display)} ${symbol}`);
 			}
 
 			setWaitingForNewValue(true);
 			setOperation(op);
 		},
-		[display, previousValue, operation, formatNumber, calculate]
+		[display, previousValue, operation, waitingForNewValue, calculate]
 	);
 
 	const performCalculation = useCallback(() => {
 		triggerHaptic('medium');
+		if (display === 'Error') return;
+
 		if (operation && previousValue !== null) {
+			const currentOperand = parseFloat(display);
 			const result = calculate();
+			const symbol = formatOperatorSymbol(operation);
 			if (result === 'Error') {
 				setDisplay('Error');
+				setCalculationHistory('');
+				setLastOperation(null);
 			} else {
 				setDisplay(String(result));
+				setCalculationHistory(
+					`${formatCalcNumber(previousValue)} ${symbol} ${formatCalcNumber(currentOperand)} =`
+				);
+				setLastOperation({ op: operation, operand: currentOperand });
 			}
-			setCalculationHistory('');
 			setPreviousValue(null);
 			setOperation(null);
 			setWaitingForNewValue(true);
+		} else if (lastOperation) {
+			const currentVal = parseFloat(display);
+			const result = calculateResult(currentVal, lastOperation.operand, lastOperation.op);
+			const symbol = formatOperatorSymbol(lastOperation.op);
+			if (result === 'Error') {
+				setDisplay('Error');
+				setCalculationHistory('');
+				setLastOperation(null);
+			} else {
+				setDisplay(String(result));
+				setCalculationHistory(
+					`${formatCalcNumber(currentVal)} ${symbol} ${formatCalcNumber(lastOperation.operand)} =`
+				);
+			}
+			setWaitingForNewValue(true);
 		}
-	}, [operation, previousValue, calculate]);
+	}, [display, operation, previousValue, calculate, lastOperation]);
 
 	const clear = useCallback(() => {
 		triggerHaptic('light');
@@ -104,10 +145,12 @@ function Calculator() {
 		setOperation(null);
 		setWaitingForNewValue(false);
 		setCalculationHistory('');
+		setLastOperation(null);
 	}, []);
 
 	const handlePercentage = useCallback(() => {
 		triggerHaptic('light');
+		if (display === 'Error') return;
 		const currentValue = parseFloat(display);
 		const result = currentValue / 100;
 		setDisplay(String(result));
@@ -115,6 +158,7 @@ function Calculator() {
 
 	const handlePlusMinus = useCallback(() => {
 		triggerHaptic('light');
+		if (display === 'Error') return;
 		const currentValue = parseFloat(display);
 		const result = currentValue * -1;
 		setDisplay(String(result));
@@ -125,15 +169,49 @@ function Calculator() {
 		if (display === 'Error') {
 			setDisplay('0');
 		} else if (display.length > 1) {
-			setDisplay(display.slice(0, -1));
+			const next = display.slice(0, -1);
+			setDisplay(next === '-' ? '0' : next);
 		} else {
 			setDisplay('0');
 		}
 	}, [display]);
 
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.metaKey || e.ctrlKey || e.altKey) return;
+			if (isEditableElement(e.target)) return;
+
+			if (e.key >= '0' && e.key <= '9') {
+				e.preventDefault();
+				inputNumber(e.key);
+			} else if (e.key === '.') {
+				e.preventDefault();
+				inputNumber('.');
+			} else if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+				e.preventDefault();
+				inputOperation(e.key);
+			} else if (e.key === 'Enter' || e.key === '=') {
+				e.preventDefault();
+				performCalculation();
+			} else if (e.key === 'Backspace') {
+				e.preventDefault();
+				backspace();
+			} else if (e.key === 'Escape') {
+				e.preventDefault();
+				clear();
+			} else if (e.key === '%') {
+				e.preventDefault();
+				handlePercentage();
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [inputNumber, inputOperation, performCalculation, backspace, clear, handlePercentage]);
+
 	// iOS 26 Liquid Glass Button Classes
 	const btnBase =
-		'calc-button aspect-square rounded-full flex items-center justify-center font-medium text-2xl select-none active:scale-90 transition-transform duration-100 shadow-xs';
+		'aspect-square rounded-full flex items-center justify-center font-medium text-2xl select-none active:scale-90 transition-transform duration-100 shadow-xs';
 	const btnNumber = darkMode
 		? 'bg-[#2c2c2e]/90 text-white border border-white/10 active:bg-white/30'
 		: 'bg-white text-black border border-black/5 active:bg-gray-200';
@@ -141,7 +219,9 @@ function Calculator() {
 		? 'bg-[#505054]/80 text-white border border-white/15 active:bg-white/40'
 		: 'bg-[#d2d2d7]/80 text-black border border-black/5 active:bg-gray-300';
 	const btnOperator = 'bg-[#ff9f0a] text-white border border-white/20 active:brightness-110';
-	const btnOperatorActive = 'bg-white text-[#ff9f0a] shadow-[0_0_15px_rgba(255,159,10,0.5)]';
+	const btnOperatorActive = darkMode
+		? 'bg-white text-[#ff9f0a] shadow-[0_0_15px_rgba(255,159,10,0.5)]'
+		: 'ring-2 ring-ios-orange bg-ios-orange/15 text-ios-orange';
 
 	return (
 		<div
@@ -150,9 +230,9 @@ function Calculator() {
 			}`}
 		>
 			{/* Display Area */}
-			<div className="flex-1 min-h-[72px] flex flex-col justify-end items-end px-3 mb-4 max-w-[280px] mx-auto w-full">
+			<div className="flex-1 min-h-[72px] flex flex-col justify-end items-end px-3 mb-4 max-w-[330px] mx-auto w-full">
 				{calculationHistory && (
-					<div className="text-gray-400 text-lg font-normal mb-1 tracking-tight">
+					<div className="text-gray-500 dark:text-gray-400 text-lg font-normal mb-1 tracking-tight tabular-nums">
 						{calculationHistory}
 					</div>
 				)}
@@ -172,86 +252,168 @@ function Calculator() {
 			</div>
 
 			{/* iOS 26 Keypad Grid */}
-			<div className="grid grid-cols-4 gap-2.5 max-w-[280px] mx-auto w-full shrink-0">
+			<div className="grid grid-cols-4 gap-2.5 max-w-[330px] mx-auto w-full shrink-0">
 				{/* Row 1 */}
-				<button className={`${btnBase} ${btnFunction}`} onClick={clear}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnFunction}`}
+					onClick={clear}
+					aria-label={display !== '0' ? 'Clear' : 'All clear'}
+				>
 					{display !== '0' ? 'C' : 'AC'}
 				</button>
-				<button className={`${btnBase} ${btnFunction}`} onClick={handlePlusMinus}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnFunction}`}
+					onClick={handlePlusMinus}
+					aria-label="Toggle sign"
+				>
 					±
 				</button>
-				<button className={`${btnBase} ${btnFunction}`} onClick={handlePercentage}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnFunction}`}
+					onClick={handlePercentage}
+					aria-label="Percent"
+				>
 					%
 				</button>
 				<button
+					type="button"
 					className={`${btnBase} ${operation === '/' ? btnOperatorActive : btnOperator}`}
 					onClick={() => inputOperation('/')}
+					aria-label="Divide"
+					aria-pressed={operation === '/'}
 				>
 					÷
 				</button>
 
 				{/* Row 2 */}
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('7')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('7')}
+				>
 					7
 				</button>
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('8')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('8')}
+				>
 					8
 				</button>
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('9')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('9')}
+				>
 					9
 				</button>
 				<button
+					type="button"
 					className={`${btnBase} ${operation === '*' ? btnOperatorActive : btnOperator}`}
 					onClick={() => inputOperation('*')}
+					aria-label="Multiply"
+					aria-pressed={operation === '*'}
 				>
 					×
 				</button>
 
 				{/* Row 3 */}
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('4')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('4')}
+				>
 					4
 				</button>
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('5')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('5')}
+				>
 					5
 				</button>
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('6')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('6')}
+				>
 					6
 				</button>
 				<button
+					type="button"
 					className={`${btnBase} ${operation === '-' ? btnOperatorActive : btnOperator}`}
 					onClick={() => inputOperation('-')}
+					aria-label="Subtract"
+					aria-pressed={operation === '-'}
 				>
 					−
 				</button>
 
 				{/* Row 4 */}
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('1')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('1')}
+				>
 					1
 				</button>
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('2')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('2')}
+				>
 					2
 				</button>
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('3')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('3')}
+				>
 					3
 				</button>
 				<button
+					type="button"
 					className={`${btnBase} ${operation === '+' ? btnOperatorActive : btnOperator}`}
 					onClick={() => inputOperation('+')}
+					aria-label="Add"
+					aria-pressed={operation === '+'}
 				>
 					+
 				</button>
 
 				{/* Row 5 */}
-				<button className={`${btnBase} ${btnNumber}`} onClick={backspace} aria-label="Backspace">
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={backspace}
+					aria-label="Backspace"
+				>
 					<Delete aria-hidden="true" size={20} />
 				</button>
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('0')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('0')}
+				>
 					0
 				</button>
-				<button className={`${btnBase} ${btnNumber}`} onClick={() => inputNumber('.')}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnNumber}`}
+					onClick={() => inputNumber('.')}
+					aria-label="Decimal point"
+				>
 					.
 				</button>
-				<button className={`${btnBase} ${btnOperator}`} onClick={performCalculation}>
+				<button
+					type="button"
+					className={`${btnBase} ${btnOperator}`}
+					onClick={performCalculation}
+					aria-label="Equals"
+				>
 					=
 				</button>
 			</div>

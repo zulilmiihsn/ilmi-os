@@ -1,113 +1,67 @@
 'use client';
 
-import { useMemo } from 'react';
+import { Clock, Folder, Users } from 'lucide-react';
+import { triggerHaptic } from '../../../utils/haptic';
+
+type FilesTabId = 'recents' | 'shared' | 'browse';
 
 interface TabBarProps {
-	activeTab: 'recents' | 'shared' | 'browse';
-	onTabChange: (tab: 'recents' | 'shared' | 'browse') => void;
+	activeTab: FilesTabId;
+	onTabChange: (tab: FilesTabId) => void;
 	darkMode: boolean;
 }
 
+const TABS: { id: FilesTabId; label: string }[] = [
+	{ id: 'recents', label: 'Recents' },
+	{ id: 'shared', label: 'Shared' },
+	{ id: 'browse', label: 'Browse' },
+];
+
+function renderTabIcon(id: FilesTabId, isActive: boolean) {
+	const className = `w-5 h-5 mb-0.5 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.7]'}`;
+	switch (id) {
+		case 'recents':
+			return <Clock aria-hidden="true" className={className} />;
+		case 'shared':
+			return <Users aria-hidden="true" className={className} />;
+		case 'browse':
+			return <Folder aria-hidden="true" className={className} />;
+	}
+}
+
 export default function TabBar({ activeTab, onTabChange, darkMode }: TabBarProps) {
-	// Reconstruct theme for tab bar specifically
-	const theme = useMemo(
-		() => ({
-			tabBarBg: darkMode
-				? 'bg-ios-dark-gray6/90 backdrop-blur-md border-ios-dark-separator'
-				: 'bg-ios-gray6/90 backdrop-blur-md border-ios-separator',
-			tabHighlight: darkMode ? 'bg-ios-blue/20' : 'bg-ios-blue/10',
-			activeTab: 'text-ios-blue',
-			inactiveTab: darkMode ? 'text-ios-gray' : 'text-ios-gray',
-		}),
-		[darkMode]
-	);
-
 	return (
-		<div className={`border-t pb-safe transition-colors ${theme.tabBarBg}`}>
-			<div className="flex items-center justify-around px-4 pt-2 pb-4">
-				<button
-					onClick={() => onTabChange('recents')}
-					className="flex flex-col items-center justify-center py-2 px-4 transition-all duration-200"
-				>
-					<div
-						className={`px-4 py-2 rounded-full transition-all duration-200 mb-1 ${
-							activeTab === 'recents' ? theme.tabHighlight : 'bg-transparent'
-						}`}
-					>
-						<svg
-							className={`w-6 h-6 transition-colors duration-200 ${
-								activeTab === 'recents' ? theme.activeTab : theme.inactiveTab
+		<div className="pb-safe absolute bottom-3 left-4 right-4 z-20 flex justify-center pointer-events-none select-none">
+			<div
+				role="tablist"
+				aria-label="Files navigation"
+				className={`w-full max-w-[340px] px-3 py-2 rounded-full backdrop-blur-2xl flex items-center justify-around border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] pointer-events-auto transition-colors ${
+					darkMode ? 'bg-[#1c1c1e]/85 border-white/15' : 'bg-white/85 border-black/5'
+				}`}
+			>
+				{TABS.map(tab => {
+					const isActive = activeTab === tab.id;
+					return (
+						<button
+							key={tab.id}
+							type="button"
+							role="tab"
+							aria-selected={isActive}
+							onClick={() => {
+								triggerHaptic('light');
+								onTabChange(tab.id);
+							}}
+							className={`relative flex flex-col items-center justify-center py-1.5 px-4 rounded-full transition-all duration-200 active:scale-90 ${
+								isActive
+									? 'text-ios-blue bg-ios-blue/10'
+									: 'text-ios-gray hover:text-gray-900 dark:hover:text-white'
 							}`}
-							fill="currentColor"
-							viewBox="0 0 24 24"
 						>
-							<path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
-						</svg>
-					</div>
-					<span
-						className={`text-xs font-medium transition-colors duration-200 ${
-							activeTab === 'recents' ? theme.activeTab : theme.inactiveTab
-						}`}
-					>
-						Recents
-					</span>
-				</button>
-
-				<button
-					onClick={() => onTabChange('shared')}
-					className="flex flex-col items-center justify-center py-2 px-4 transition-all duration-200"
-				>
-					<div
-						className={`px-4 py-2 rounded-full transition-all duration-200 mb-1 ${
-							activeTab === 'shared' ? theme.tabHighlight : 'bg-transparent'
-						}`}
-					>
-						<svg
-							className={`w-6 h-6 transition-colors duration-200 ${
-								activeTab === 'shared' ? theme.activeTab : theme.inactiveTab
-							}`}
-							fill="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 11 8.76l1-1.36 1 1.36L15.38 12 17 10.83 14.92 8H20v6z" />
-						</svg>
-					</div>
-					<span
-						className={`text-xs font-medium transition-colors duration-200 ${
-							activeTab === 'shared' ? theme.activeTab : theme.inactiveTab
-						}`}
-					>
-						Shared
-					</span>
-				</button>
-
-				<button
-					onClick={() => onTabChange('browse')}
-					className="flex flex-col items-center justify-center py-2 px-4 transition-all duration-200"
-				>
-					<div
-						className={`px-4 py-2 rounded-full transition-all duration-200 mb-1 ${
-							activeTab === 'browse' ? theme.tabHighlight : 'bg-transparent'
-						}`}
-					>
-						<svg
-							className={`w-6 h-6 transition-colors duration-200 ${
-								activeTab === 'browse' ? theme.activeTab : theme.inactiveTab
-							}`}
-							fill="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z" />
-						</svg>
-					</div>
-					<span
-						className={`text-xs font-medium transition-colors duration-200 ${
-							activeTab === 'browse' ? theme.activeTab : theme.inactiveTab
-						}`}
-					>
-						Browse
-					</span>
-				</button>
+							{renderTabIcon(tab.id, isActive)}
+							<span className="text-[11px] font-medium tracking-tight">{tab.label}</span>
+						</button>
+					);
+				})}
 			</div>
 		</div>
 	);

@@ -3,13 +3,18 @@
 import React from 'react';
 import {
 	Bell,
+	Bluetooth,
 	Check,
 	ChevronRight,
 	Cog,
+	Folder,
 	Images,
 	Info,
 	Moon,
 	Server,
+	StickyNote,
+	SunMoon,
+	Wifi,
 	type LucideIcon,
 } from 'lucide-react';
 import { triggerHaptic } from '../../../utils/haptic';
@@ -19,7 +24,7 @@ export const SETTINGS_THEME = {
 	light: {
 		bg: 'bg-[#f2f2f7]',
 		text: 'text-black',
-		textSecondary: 'text-gray-400',
+		textSecondary: 'text-gray-500',
 		sectionBg: 'bg-white border border-black/5',
 		separator: 'border-gray-100',
 	},
@@ -34,8 +39,13 @@ export const SETTINGS_THEME = {
 
 const SETTINGS_ICONS: Record<string, LucideIcon> = {
 	moon: Moon,
+	'sun-moon': SunMoon,
+	wifi: Wifi,
+	bluetooth: Bluetooth,
 	bell: Bell,
 	images: Images,
+	folder: Folder,
+	'sticky-note': StickyNote,
 	'info-circle': Info,
 	gear: Cog,
 	cog: Cog,
@@ -71,6 +81,7 @@ export const Section = ({
 export const ListItem = ({
 	icon,
 	label,
+	subtitle,
 	value,
 	hasArrow = true,
 	iconColor = 'bg-gray-400',
@@ -83,6 +94,7 @@ export const ListItem = ({
 }: {
 	icon?: React.ReactNode;
 	label: string;
+	subtitle?: string;
 	value?: string;
 	hasArrow?: boolean;
 	iconColor?: string;
@@ -126,13 +138,20 @@ export const ListItem = ({
 
 			{/* Content Column */}
 			<div
-				className={`flex-1 flex items-center justify-between py-3 pr-4 border-b ${!isLast && showSeparator ? theme.separator : 'border-transparent'} transition-colors`}
+				className={`flex-1 flex items-center justify-between py-3 pr-4 border-b min-w-0 ${!isLast && showSeparator ? theme.separator : 'border-transparent'} transition-colors`}
 			>
-				<span className={`text-[15px] ${theme.text} font-normal truncate pr-2 tracking-tight`}>
-					{label}
-				</span>
+				<div className="min-w-0 pr-2">
+					<span className={`block text-[15px] ${theme.text} font-normal truncate tracking-tight`}>
+						{label}
+					</span>
+					{subtitle && (
+						<span className={`block text-xs ${theme.textSecondary} mt-0.5 leading-snug`}>
+							{subtitle}
+						</span>
+					)}
+				</div>
 
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-2 shrink-0">
 					{children}
 					{value && <span className={`${theme.textSecondary} text-sm`}>{value}</span>}
 					{hasArrow && onClick && (
@@ -152,10 +171,12 @@ export const Toggle = ({
 	checked,
 	onChange,
 	darkMode,
+	label,
 }: {
 	checked: boolean;
 	onChange: (checked: boolean) => void;
 	darkMode: boolean;
+	label?: string;
 }) => (
 	<div
 		className={`w-[51px] h-[31px] rounded-full p-[2px] cursor-pointer transition-colors duration-300 ease-in-out ${checked ? 'bg-ios-green' : darkMode ? 'bg-[#39393d]' : 'bg-[#e9e9ea]'}`}
@@ -173,6 +194,7 @@ export const Toggle = ({
 		}}
 		role="switch"
 		aria-checked={checked}
+		aria-label={label}
 		tabIndex={0}
 	>
 		<div
@@ -186,17 +208,16 @@ export const WallpaperOption = ({
 	label,
 	active,
 	onClick,
-	darkMode,
 }: {
 	src: string;
 	label: string;
 	active: boolean;
 	onClick: () => void;
-	darkMode: boolean;
+	darkMode?: boolean;
 }) => (
 	<button
 		type="button"
-		className={`relative aspect-[16/10] rounded-xl overflow-hidden transition-all duration-200 group border ${active ? 'ring-2 ring-ios-blue ring-offset-2 border-transparent' : 'border-black/5 dark:border-white/10 hover:scale-[1.02]'} ${darkMode ? 'ring-offset-black' : 'ring-offset-[#f2f2f7]'}`}
+		className={`relative aspect-[16/10] rounded-xl overflow-hidden transition-all duration-200 group border ${active ? 'ring-2 ring-ios-blue ring-offset-2 ring-offset-white dark:ring-offset-[#1c1c1e] border-transparent' : 'border-black/5 dark:border-white/10 hover:scale-[1.02]'}`}
 		onClick={() => {
 			triggerHaptic('light');
 			onClick();
@@ -248,7 +269,9 @@ export const ProfileHeader = ({
 			</div>
 			<div className="flex-1 min-w-0">
 				<h2 className={`text-lg font-semibold tracking-tight ${theme.text}`}>User</h2>
-				<p className="text-xs text-gray-400 truncate">Apple ID, iCloud+, Media &amp; Purchases</p>
+				<p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+					Apple ID, iCloud+, Media &amp; Purchases
+				</p>
 			</div>
 			<ChevronRight aria-hidden="true" size={12} className="text-gray-300 dark:text-gray-600" />
 		</button>

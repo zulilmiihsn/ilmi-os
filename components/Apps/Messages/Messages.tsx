@@ -24,6 +24,7 @@ export default function Messages() {
 	const [query, setQuery] = useState('');
 	const [draft, setDraft] = useState('');
 	const [draftTo, setDraftTo] = useState('');
+	const [recipientError, setRecipientError] = useState<string | null>(null);
 	const [persistError, setPersistError] = useState(false);
 	const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +41,7 @@ export default function Messages() {
 		triggerHaptic('light');
 		persist(markRead(convos, id));
 		setDraft('');
+		setRecipientError(null);
 		setView({ name: 'chat', id });
 	};
 
@@ -47,13 +49,19 @@ export default function Messages() {
 		triggerHaptic('light');
 		setDraft('');
 		setDraftTo('');
+		setRecipientError(null);
 		setView({ name: 'list' });
 	};
 
 	const send = () => {
 		const body = draft.trim();
 		if (!body) return;
+		if (view.name === 'new' && !draftTo.trim()) {
+			setRecipientError('Enter a recipient name or number.');
+			return;
+		}
 		triggerHaptic('medium');
+		setRecipientError(null);
 		if (view.name === 'new') {
 			const next = createConversation(convos, draftTo, body);
 			if (next.length === convos.length) return;
@@ -109,6 +117,7 @@ export default function Messages() {
 						triggerHaptic('light');
 						setDraft('');
 						setDraftTo('');
+						setRecipientError(null);
 						setView({ name: 'new' });
 					}}
 				/>
@@ -122,7 +131,11 @@ export default function Messages() {
 					draft={draft}
 					setDraft={setDraft}
 					draftTo={draftTo}
-					setDraftTo={setDraftTo}
+					setDraftTo={value => {
+						setDraftTo(value);
+						if (recipientError && value.trim()) setRecipientError(null);
+					}}
+					recipientError={recipientError}
 					onBack={goBack}
 					onSend={send}
 					onCallContact={callContact}

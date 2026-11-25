@@ -15,7 +15,7 @@ function Clock() {
 
 	return (
 		<div
-			className={`clock-app w-full h-full flex flex-col overflow-hidden transition-colors duration-300 ${state.theme.bg} ${state.theme.text}`}
+			className={`clock-app relative w-full h-full flex flex-col overflow-hidden transition-colors duration-300 ${state.theme.bg} ${state.theme.text}`}
 			style={{
 				fontFamily:
 					'-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
@@ -25,27 +25,28 @@ function Clock() {
 			<ClockNavBar
 				activeTab={state.activeTab}
 				isEditingCities={state.isEditingCities}
+				isEditingAlarms={state.isEditingAlarms}
 				alarmsCount={state.alarms.length}
 				onToggleEditCities={() => state.setIsEditingCities(prev => !prev)}
 				onOpenCityPicker={() => state.setShowCityPicker(true)}
-				onClearAlarms={() => {
-					if (state.alarms.length > 0) {
-						state.setAlarms([]);
-						state.setDeletableAlarmId(null);
-					}
+				onToggleEditAlarms={() => {
+					state.setIsEditingAlarms(prev => !prev);
+					state.setDeletableAlarmId(null);
 				}}
-				onAddAlarm={state.handleAddAlarm}
+				onOpenAddAlarm={() => {
+					state.setIsEditingAlarms(false);
+					state.setShowAddAlarm(true);
+				}}
 				theme={state.theme}
 			/>
 
 			<div
-				className="flex-1 overflow-y-auto overflow-x-hidden"
+				className="flex-1 overflow-y-auto overflow-x-hidden pb-24"
 				onScroll={() => state.setDeletableAlarmId(null)}
 			>
 				{state.activeTab === 'world' && (
 					<ClockWorldTab
 						cityTimes={state.cityTimes}
-						direction={state.direction}
 						theme={state.theme}
 						isEditingCities={state.isEditingCities}
 						onRemoveCity={state.handleRemoveCity}
@@ -55,11 +56,14 @@ function Clock() {
 				{state.activeTab === 'alarms' && (
 					<ClockAlarmsTab
 						alarms={state.alarms}
-						direction={state.direction}
+						isEditingAlarms={state.isEditingAlarms}
+						showAddAlarm={state.showAddAlarm}
 						deletableAlarmId={state.deletableAlarmId}
 						deletingAlarmId={state.deletingAlarmId}
 						onToggleAlarm={state.handleToggleAlarm}
 						onDeleteAlarm={state.handleDeleteAlarm}
+						onAddAlarm={state.handleAddAlarm}
+						onCloseAddAlarm={() => state.setShowAddAlarm(false)}
 						onPressStart={state.handlePressStart}
 						onPressEnd={state.handlePressEnd}
 						onClearDeletable={() => state.setDeletableAlarmId(null)}
@@ -73,7 +77,6 @@ function Clock() {
 						stopwatchRunning={state.stopwatchRunning}
 						lapTimes={state.lapTimes}
 						resetKey={state.resetKey}
-						direction={state.direction}
 						formatStopwatchTime={state.formatStopwatchTime}
 						onStartStop={state.handleStopwatchStartStop}
 						onReset={state.handleStopwatchReset}
@@ -84,17 +87,21 @@ function Clock() {
 
 				{state.activeTab === 'timers' && (
 					<ClockTimerTab
+						timerHours={state.timerHours}
 						timerMinutes={state.timerMinutes}
 						timerSeconds={state.timerSeconds}
 						timerRunning={state.timerRunning}
 						timerRemaining={state.timerRemaining}
+						timerTotalMs={state.timerTotalMs}
+						timerCompleted={state.timerCompleted}
 						resetKey={state.resetKey}
-						direction={state.direction}
 						formatTimerTime={state.formatTimerTime}
+						onHoursChange={state.setTimerHours}
 						onMinutesChange={state.setTimerMinutes}
 						onSecondsChange={state.setTimerSeconds}
 						onStart={state.handleTimerStart}
 						onReset={state.handleTimerReset}
+						onDismissCompleted={() => state.setTimerCompleted(false)}
 						theme={state.theme}
 					/>
 				)}

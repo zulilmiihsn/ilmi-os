@@ -40,20 +40,31 @@ export default function ActionMenu({
 			{/* Dropdown Menu */}
 			<div
 				ref={rootRef}
+				role="dialog"
+				aria-modal="true"
+				aria-label="File actions"
 				onKeyDown={e => {
 					if (e.key === 'Escape') onClose();
 				}}
-				className="absolute top-14 right-4 z-50 animate-scale-in"
+				className="absolute top-14 right-4 z-50"
 			>
 				<div
-					className={`${theme.actionMenuBg} backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden min-w-[240px] border`}
+					className={`${theme.actionMenuBg} backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden min-w-[240px] border ${darkMode ? 'border-white/10' : 'border-black/10'}`}
 					style={{ willChange: 'backdrop-filter' }}
 				>
 					<button
+						type="button"
+						autoFocus
 						onClick={onNewFolder}
 						className={`w-full py-3 px-4 flex items-center gap-3 text-left font-medium active:bg-white/20 transition-colors border-b ${darkMode ? 'text-white border-gray-700' : 'text-black border-gray-200'}`}
 					>
-						<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg
+							aria-hidden="true"
+							className="w-5 h-5"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
 							<path
 								strokeLinecap="round"
 								strokeLinejoin="round"
@@ -64,10 +75,17 @@ export default function ActionMenu({
 						<span>New Folder</span>
 					</button>
 					<button
+						type="button"
 						onClick={onUpload}
 						className={`w-full py-3 px-4 flex items-center gap-3 text-left font-medium active:bg-white/20 transition-colors border-b ${darkMode ? 'text-white border-gray-700' : 'text-black border-gray-200'}`}
 					>
-						<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg
+							aria-hidden="true"
+							className="w-5 h-5"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
 							<path
 								strokeLinecap="round"
 								strokeLinejoin="round"
@@ -78,10 +96,17 @@ export default function ActionMenu({
 						<span>Upload File</span>
 					</button>
 					<button
+						type="button"
 						onClick={onCycleSort}
 						className={`w-full py-3 px-4 flex items-center gap-3 text-left font-medium active:bg-white/20 transition-colors ${darkMode ? 'text-white' : 'text-black'}`}
 					>
-						<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg
+							aria-hidden="true"
+							className="w-5 h-5"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
 							<path
 								strokeLinecap="round"
 								strokeLinejoin="round"

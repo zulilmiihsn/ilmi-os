@@ -13,6 +13,7 @@ export function useCameraStream({ mode }: UseCameraStreamProps) {
 	const [stream, setStream] = useState<MediaStream | null>(null);
 	const [error, setError] = useState<string>('');
 	const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+	const [retryToken, setRetryToken] = useState(0);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -79,13 +80,18 @@ export function useCameraStream({ mode }: UseCameraStreamProps) {
 				streamRef.current = null;
 			}
 		};
-	}, [facingMode, mode]);
+	}, [facingMode, mode, retryToken]);
 
 	const flipCamera = useCallback(() => {
 		if (streamRef.current) {
 			streamRef.current.getTracks().forEach(track => track.stop());
 		}
 		setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
+	}, []);
+
+	const retryCamera = useCallback(() => {
+		setError('');
+		setRetryToken(prev => prev + 1);
 	}, []);
 
 	return {
@@ -95,5 +101,6 @@ export function useCameraStream({ mode }: UseCameraStreamProps) {
 		setError,
 		facingMode,
 		flipCamera,
+		retryCamera,
 	};
 }

@@ -26,12 +26,14 @@ describe('Maps Web Mercator math & Nominatim parsing', () => {
 		expect(pt.y).toBeCloseTo(300, 4);
 	});
 
-	it('computes Carto Voyager (light) and Dark Matter (dark) tiles', () => {
+	it('computes Carto Voyager (light), Dark Matter (dark), and Esri Satellite tiles', () => {
 		const light = computeVisibleTiles(-6.1754, 106.8272, 13, 800, 600, false);
 		const dark = computeVisibleTiles(-6.1754, 106.8272, 13, 800, 600, true);
+		const sat = computeVisibleTiles(-6.1754, 106.8272, 13, 800, 600, false, 'satellite');
 		expect(light.length).toBeGreaterThan(6);
 		expect(light[0]?.url).toContain('rastertiles/voyager/13/');
 		expect(dark[0]?.url).toContain('dark_all/13/');
+		expect(sat[0]?.url).toContain('World_Imagery/MapServer/tile/13/');
 	});
 
 	it('computes realistic distance and drive estimates', () => {

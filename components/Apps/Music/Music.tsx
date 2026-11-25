@@ -38,6 +38,8 @@ export default function Music() {
 					tracks={player.libraryTracks}
 					rowCard={rowCard}
 					liked={player.liked}
+					currentTrackId={player.current?.id ?? null}
+					isPlaying={player.isPlaying}
 					onPlayTrack={player.playTrackId}
 					onToggleLike={player.toggleLike}
 					onImportFiles={player.importLocalFiles}
@@ -52,6 +54,8 @@ export default function Music() {
 					catalogTracks={player.catalogTracks}
 					catalogLoading={player.catalogLoading}
 					catalogError={player.catalogError}
+					currentTrackId={player.current?.id ?? null}
+					isPlaying={player.isPlaying}
 					onSearchChange={player.setSearchQuery}
 					onSearchAppleMusic={player.searchAppleMusic}
 					onPlayTrack={player.playTrackId}
@@ -60,7 +64,7 @@ export default function Music() {
 
 			{/* MiniPlayer */}
 			{player.current && (
-				<div className="shrink-0 mx-3 mb-2 rounded-2xl backdrop-blur-2xl border shadow-lg bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 flex items-center gap-1 pl-2 pr-1 py-1.5">
+				<div className="shrink-0 mx-3 mb-2 rounded-2xl backdrop-blur-2xl border shadow-lg bg-white/85 dark:bg-[#1c1c1e]/85 border-black/5 dark:border-white/15 flex items-center gap-1 pl-2 pr-1 py-1.5">
 					<button
 						onClick={() => {
 							triggerHaptic('light');
@@ -72,7 +76,9 @@ export default function Music() {
 						<TrackArt track={player.current} className="w-11 h-11" />
 						<span className="flex-1 min-w-0">
 							<span className="block text-sm font-medium truncate">{player.current.title}</span>
-							<span className="block text-xs text-gray-400 truncate">{player.current.artist}</span>
+							<span className="block text-xs text-gray-500 dark:text-gray-400 truncate">
+								{player.current.artist}
+							</span>
 						</span>
 					</button>
 					<button
@@ -96,36 +102,38 @@ export default function Music() {
 				</div>
 			)}
 
-			{/* Bottom tabs */}
-			<div
-				role="tablist"
-				aria-label="Music sections"
-				className="shrink-0 border-t backdrop-blur-xl bg-white/80 dark:bg-black/80 border-black/5 dark:border-white/15 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
-			>
-				<div className="flex items-start justify-around">
-					{(
-						[
-							{ id: 'library', label: 'Library', Icon: MusicIcon },
-							{ id: 'search', label: 'Search', Icon: Search },
-						] as const
-					).map(({ id, label, Icon }) => (
-						<button
-							key={id}
-							role="tab"
-							aria-selected={tab === id}
-							aria-label={label}
-							onClick={() => {
-								triggerHaptic('light');
-								setTab(id);
-							}}
-							className={`relative flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 active:scale-90 after:absolute after:-inset-2 after:content-[''] ${
-								tab === id ? 'text-ios-red' : 'text-ios-gray'
-							}`}
-						>
-							<Icon aria-hidden="true" size={24} className="mb-0.5" />
-							<span className="text-[10px] font-medium tracking-tight">{label}</span>
-						</button>
-					))}
+			{/* Floating Liquid Glass pill tab bar */}
+			<div className="shrink-0 px-4 pt-1 pb-[max(env(safe-area-inset-bottom),1.75rem)] flex items-center justify-center">
+				<div
+					role="tablist"
+					aria-label="Music sections"
+					className="w-full max-w-[260px] rounded-full backdrop-blur-2xl border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.12)] bg-white/85 dark:bg-[#1c1c1e]/85 border-black/5 dark:border-white/15 px-2 py-1.5"
+				>
+					<div className="flex items-center justify-around gap-1">
+						{(
+							[
+								{ id: 'library', label: 'Library', Icon: MusicIcon },
+								{ id: 'search', label: 'Search', Icon: Search },
+							] as const
+						).map(({ id, label, Icon }) => (
+							<button
+								key={id}
+								role="tab"
+								aria-selected={tab === id}
+								aria-label={label}
+								onClick={() => {
+									triggerHaptic('light');
+									setTab(id);
+								}}
+								className={`relative flex-1 flex flex-col items-center justify-center py-1 rounded-full transition-all duration-200 active:scale-95 ${
+									tab === id ? 'text-[#fa2d48] bg-[#fa2d48]/10' : 'text-gray-500 dark:text-gray-400'
+								}`}
+							>
+								<Icon aria-hidden="true" size={20} className="mb-0.5" />
+								<span className="text-[10px] font-semibold tracking-tight">{label}</span>
+							</button>
+						))}
+					</div>
 				</div>
 			</div>
 

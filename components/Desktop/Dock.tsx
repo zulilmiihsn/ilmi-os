@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo, useRef, useEffect } from 'react';
+import { memo, useMemo, useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { AppWindow } from 'lucide-react';
 import { useAppsStore } from '../../stores/apps';
@@ -23,30 +23,35 @@ function Dock() {
 	const windows = useWindowsStore(state => state.windows) as WindowState[];
 	const openWindow = useWindowsStore(state => state.openWindow);
 	const focusWindow = useWindowsStore(state => state.focusWindow);
+	const updateWindow = useWindowsStore(state => state.updateWindow);
 
 	const dockRef = useRef<HTMLDivElement>(null);
 	const iconRefs = useRef<(HTMLButtonElement | null)[]>([]);
+	const [bouncingAppId, setBouncingAppId] = useState<string | null>(null);
+	const bounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Reset refs array when apps change
 	useEffect(() => {
 		iconRefs.current = iconRefs.current.slice(0, apps.length);
 	}, [apps.length]);
 
+	useEffect(() => {
+		return () => {
+			if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current);
+		};
+	}, []);
+
 	function handleAppClick(app: (typeof apps)[number], index: number) {
 		launchApp(app.id);
-		// Bounce the icon while the app opens (macOS cue). Direct DOM so the
-		// RAF magnification loop keeps running re-render free.
+		// Bounce the icon while the app opens (macOS cue); state-driven so
+		// React re-renders from opening the window never strip the class.
+		setBouncingAppId(app.id);
+		if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current);
+		bounceTimerRef.current = setTimeout(() => setBouncingAppId(null), 650);
 		const iconEl = iconRefs.current[index];
-		if (iconEl) {
-			iconEl.classList.remove('dock-bounce');
-			// Restart the keyframes when the same icon is clicked twice.
-			void iconEl.offsetWidth;
-			iconEl.classList.add('dock-bounce');
-			iconEl.addEventListener('animationend', () => iconEl.classList.remove('dock-bounce'), {
-				once: true,
-			});
-		}
-		const existingWindow = windows.find(w => w.appId === app.id && !w.isMinimized);
+		const existingWindow =
+			windows.find(w => w.appId === app.id && !w.isMinimized) ??
+			windows.find(w => w.appId === app.id);
 
 		// Get icon position for animation
 		let originRect;
@@ -61,6 +66,9 @@ function Dock() {
 		}
 
 		if (existingWindow) {
+			if (existingWindow.isMinimized) {
+				updateWindow(existingWindow.id, { isMinimized: false });
+			}
 			focusWindow(existingWindow.id);
 		} else {
 			openWindow({
@@ -109,14 +117,11 @@ function Dock() {
 						scale = 1 + (MAX_SCALE - 1) * eased;
 					}
 
-					// Apply styles directly
+					// Apply styles directly; items-end keeps icons anchored to the dock baseline
+					// while expanding cleanly upwards without stretching the tray height.
 					const size = BASE_SIZE * scale;
 					icon.style.width = `${size}px`;
 					icon.style.height = `${size}px`;
-					icon.style.marginBottom = `${(size - BASE_SIZE) / 2}px`; // Keep vertically centered visually? No, dock grows up
-					// Actually usually dock items grow from bottom, let's just adjust width/height and flex handles the rest if we align items to bottom?
-					// Flexbox with 'items-end' will keep them aligned bottom if container height adjusts or if we just scale.
-					// But changing width/height in flex changes layout.
 				});
 			});
 		};
@@ -124,12 +129,11 @@ function Dock() {
 		const handleMouseLeave = () => {
 			if (rafId) cancelAnimationFrame(rafId);
 
-			// Reset all to base size using transition
+			// Reset all to base size (smooth return via .macos-dock:not(:hover) .dock-item)
 			iconRefs.current.forEach(icon => {
 				if (!icon) return;
 				icon.style.width = `${BASE_SIZE}px`;
 				icon.style.height = `${BASE_SIZE}px`;
-				icon.style.marginBottom = '0px';
 			});
 		};
 
@@ -147,19 +151,21 @@ function Dock() {
 		<div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
 			<div
 				ref={dockRef}
-				className="macos-dock flex items-end justify-center gap-3 px-4 py-3 bg-white/20 dark:bg-black/20 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl transition-all duration-200 ease-out"
-				style={{ height: 'auto' }} // auto height to grow with icons
+				className="macos-dock h-[68px] flex items-end justify-center gap-3 px-4 py-3 bg-white/20 dark:bg-black/20 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl"
 			>
 				{apps.map((app, index) => {
 					const isSvgIcon = app.icon.startsWith('/');
 					return (
 						<button
 							key={app.id}
+							type="button"
 							data-app-id={app.id}
 							ref={el => {
 								iconRefs.current[index] = el;
 							}}
-							className="dock-item group relative rounded-2xl flex items-center justify-center transition-all duration-100 ease-out will-change-transform"
+							className={`dock-item group relative rounded-2xl flex items-center justify-center will-change-transform ${
+								bouncingAppId === app.id ? 'dock-bounce' : ''
+							}`}
 							style={{ width: `${BASE_SIZE}px`, height: `${BASE_SIZE}px` }}
 							onClick={() => handleAppClick(app, index)}
 							aria-label={isAppRunning(app.id) ? `Focus ${app.name}` : `Launch ${app.name}`}
@@ -167,7 +173,7 @@ function Dock() {
 							{/* Name tooltip like macOS: CSS-only so magnification stays re-render free. */}
 							<span
 								aria-hidden="true"
-								className="dock-tooltip pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-black/70 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-hover:delay-300"
+								className="dock-tooltip pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-white/90 dark:bg-[#1e1e20]/90 text-gray-900 dark:text-white border border-black/10 dark:border-white/15 backdrop-blur-xl px-2.5 py-1 text-xs font-medium opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-hover:delay-300"
 							>
 								{app.name}
 							</span>
@@ -188,7 +194,7 @@ function Dock() {
 
 							{/* Running indicator dot */}
 							{isAppRunning(app.id) && (
-								<div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-white/80 rounded-full shadow-sm"></div>
+								<div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-black/70 dark:bg-white/85 rounded-full shadow-sm"></div>
 							)}
 						</button>
 					);

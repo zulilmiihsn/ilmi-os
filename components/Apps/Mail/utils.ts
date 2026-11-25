@@ -55,7 +55,7 @@ export const SEED_EMAILS: Email[] = [
 	},
 	{
 		id: '6',
-		from: 'John Doe',
+		from: 'Raka Pratama',
 		subject: 'The best vacation',
 		preview:
 			'Just wanted to say thanks for organizing the trip. It was absolutely the best vacation ever!',

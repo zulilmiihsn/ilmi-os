@@ -49,11 +49,13 @@ export default function NotificationList({
 					Notification Center
 				</span>
 				<button
+					type="button"
+					tabIndex={isOpen ? 0 : -1}
 					onClick={() => {
 						triggerHaptic('light');
 						onClearAll();
 					}}
-					className="text-xs bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-full backdrop-blur-md transition-colors"
+					className="text-xs bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-full backdrop-blur-md transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue"
 				>
 					Clear All
 				</button>
@@ -63,7 +65,7 @@ export default function NotificationList({
 				<div
 					key={item.id}
 					role="button"
-					tabIndex={0}
+					tabIndex={isOpen ? 0 : -1}
 					aria-label={`Open ${item.appName}: ${item.title}`}
 					onClick={() => openNotificationApp(item.appId)}
 					onKeyDown={e => {
@@ -71,7 +73,7 @@ export default function NotificationList({
 						e.preventDefault();
 						openNotificationApp(item.appId);
 					}}
-					className="relative group bg-white/25 dark:bg-black/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl p-3.5 shadow-lg active:scale-[0.98] transition-transform cursor-pointer will-change-transform focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80"
+					className="relative group bg-white/80 dark:bg-[#1c1c1e]/80 backdrop-blur-2xl border border-white/50 dark:border-white/15 text-gray-900 dark:text-white rounded-2xl p-3.5 shadow-lg active:scale-[0.98] transition-transform cursor-pointer will-change-transform focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue"
 					style={{
 						transition: 'transform 0.42s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.35s ease',
 						transitionDelay: isOpen ? `${Math.min(180, 40 + idx * 35)}ms` : '0ms',
@@ -81,7 +83,7 @@ export default function NotificationList({
 				>
 					<div className="flex items-center justify-between mb-1.5">
 						<div className="flex items-center gap-2">
-							<div className="w-5 h-5 relative rounded-md overflow-hidden bg-white/20 flex items-center justify-center">
+							<div className="w-5 h-5 relative rounded-md overflow-hidden bg-black/10 dark:bg-white/15 flex items-center justify-center">
 								{item.appIcon.startsWith('/') ? (
 									<Image
 										src={item.appIcon}
@@ -92,30 +94,38 @@ export default function NotificationList({
 										unoptimized
 									/>
 								) : (
-									<Bell aria-hidden="true" size={12} className="text-white" />
+									<Bell aria-hidden="true" size={12} className="text-gray-800 dark:text-white" />
 								)}
 							</div>
-							<span className="text-xs font-semibold text-white/90 uppercase tracking-wide">
+							<span className="text-xs font-semibold text-gray-700 dark:text-white/85 uppercase tracking-wide">
 								{item.appName}
 							</span>
 						</div>
 						<div className="flex items-center gap-2">
-							<span className="text-[11px] text-white/60 font-medium">{item.time}</span>
+							<span className="text-[11px] text-gray-600 dark:text-gray-300 font-medium">
+								{item.time}
+							</span>
 							<button
+								type="button"
+								tabIndex={isOpen ? 0 : -1}
 								onClick={e => {
 									e.stopPropagation();
 									triggerHaptic('light');
 									onDismiss(item.id);
 								}}
-								className="w-4 h-4 rounded-full bg-white/20 text-white/80 hover:bg-white/40 flex items-center justify-center text-[10px]"
+								className="w-4 h-4 rounded-full bg-black/10 dark:bg-white/15 text-gray-700 dark:text-white/80 hover:bg-black/20 dark:hover:bg-white/30 flex items-center justify-center text-[10px]"
 								aria-label="Dismiss notification"
 							>
 								<X aria-hidden="true" size={10} />
 							</button>
 						</div>
 					</div>
-					<div className="text-sm font-semibold text-white tracking-tight mb-0.5">{item.title}</div>
-					<div className="text-xs text-white/80 leading-relaxed line-clamp-2">{item.message}</div>
+					<div className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight mb-0.5">
+						{item.title}
+					</div>
+					<div className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2">
+						{item.message}
+					</div>
 				</div>
 			))}
 		</div>

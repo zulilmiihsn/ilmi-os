@@ -49,7 +49,7 @@ export default function AppSwitcher({
 				role="dialog"
 				aria-modal="true"
 				aria-label="App Switcher"
-				className="bg-black/65 backdrop-blur-2xl border border-white/20 rounded-3xl px-5 py-4 shadow-2xl flex items-center gap-3 max-w-[90vw] overflow-x-auto"
+				className="bg-white/85 dark:bg-[#1c1c1e]/85 text-gray-900 dark:text-white backdrop-blur-2xl border border-black/10 dark:border-white/15 rounded-3xl px-5 py-4 shadow-2xl flex items-center gap-3 max-w-[90vw] overflow-x-auto"
 			>
 				{windows.map((w, idx) => {
 					const app = apps.find(a => a.id === w.appId);
@@ -69,8 +69,8 @@ export default function AppSwitcher({
 							onClick={() => onSelect(w.id)}
 							className={`flex flex-col items-center justify-center gap-2 w-24 px-2 py-2.5 rounded-2xl transition-all duration-150 focus:outline-none active:scale-[0.98] ${
 								isSelected
-									? 'bg-white/20 ring-2 ring-white/70 text-white'
-									: 'bg-transparent text-white/80 hover:bg-white/10'
+									? 'bg-black/10 dark:bg-white/20 ring-2 ring-ios-blue text-gray-900 dark:text-white'
+									: 'bg-transparent text-gray-700 dark:text-white/80 hover:bg-black/5 dark:hover:bg-white/10'
 							}`}
 						>
 							<div className="w-14 h-14 flex items-center justify-center rounded-xl shrink-0">
@@ -84,7 +84,7 @@ export default function AppSwitcher({
 										unoptimized
 									/>
 								) : (
-									<div className="w-14 h-14 flex items-center justify-center rounded-xl bg-white/10 text-white">
+									<div className="w-14 h-14 flex items-center justify-center rounded-xl bg-black/10 dark:bg-white/10 text-gray-900 dark:text-white">
 										<AppWindow aria-hidden="true" size={28} />
 									</div>
 								)}
@@ -93,7 +93,7 @@ export default function AppSwitcher({
 								{w.title}
 							</span>
 							{w.isMinimized && (
-								<span className="text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-white/15 text-white/75">
+								<span className="text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-black/10 dark:bg-white/15 text-gray-700 dark:text-white/75">
 									Minimized
 								</span>
 							)}

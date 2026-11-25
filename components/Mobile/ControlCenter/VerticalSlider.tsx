@@ -76,6 +76,8 @@ export default function VerticalSlider({ value, onChange, icon, label }: Vertica
 		}
 	};
 
+	const iconColorClass = value >= 22 ? 'text-[#1c1c1e]' : 'text-white/90';
+
 	return (
 		<div
 			ref={sliderRef}
@@ -106,11 +108,12 @@ export default function VerticalSlider({ value, onChange, icon, label }: Vertica
 			<div className="absolute inset-0 flex items-end justify-center pb-5 pointer-events-none">
 				{icon === 'sun' ? (
 					<svg
+						aria-hidden="true"
 						width="30"
 						height="30"
 						viewBox="0 0 24 24"
 						fill="currentColor"
-						className={`transition-colors drop-shadow-sm ${value > 45 ? 'text-ios-yellow' : 'text-white'}`}
+						className={`transition-colors duration-150 ${iconColorClass}`}
 					>
 						<circle cx="12" cy="12" r="4.5" />
 						<path
@@ -122,6 +125,7 @@ export default function VerticalSlider({ value, onChange, icon, label }: Vertica
 					</svg>
 				) : (
 					<svg
+						aria-hidden="true"
 						width="30"
 						height="30"
 						viewBox="0 0 24 24"
@@ -130,7 +134,7 @@ export default function VerticalSlider({ value, onChange, icon, label }: Vertica
 						strokeWidth="2.6"
 						strokeLinecap="round"
 						strokeLinejoin="round"
-						className={`transition-colors drop-shadow-sm ${value > 0 ? 'text-black' : 'text-white'}`}
+						className={`transition-colors duration-150 ${iconColorClass}`}
 					>
 						{value === 0 ? (
 							<>

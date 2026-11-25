@@ -45,7 +45,7 @@ export default function Mail() {
 					onToggleHiddenMailbox={state.toggleHiddenMailbox}
 					onNavigateToMailbox={state.navigateToMailbox}
 					onToggleAccount={state.toggleAccount}
-					onOpenCompose={() => state.setIsComposeOpen(true)}
+					onOpenCompose={state.openNewCompose}
 				/>
 
 				<EmailListPane
@@ -68,7 +68,7 @@ export default function Mail() {
 					onBatchArchive={state.handleBatchArchive}
 					onBatchDelete={state.handleBatchDelete}
 					onToggleUnreadFilter={() => state.setIsUnreadFilterActive(!state.isUnreadFilterActive)}
-					onOpenCompose={() => state.setIsComposeOpen(true)}
+					onOpenCompose={state.openNewCompose}
 				/>
 
 				{/* 3. Email Detail Reading Pane */}
@@ -84,8 +84,14 @@ export default function Mail() {
 							mailboxName={mailboxTitle}
 							onBack={state.handleBack}
 							onReply={state.handleReply}
+							onNewEmail={state.openNewCompose}
 							onDelete={state.handleDeleteEmail}
 							onArchive={state.handleArchiveEmail}
+							onToggleFlag={state.handleToggleFlag}
+							onPrev={state.handlePrevEmail}
+							onNext={state.handleNextEmail}
+							hasPrev={state.hasPrevEmail}
+							hasNext={state.hasNextEmail}
 							darkMode={darkMode}
 						/>
 					) : (
@@ -93,7 +99,7 @@ export default function Mail() {
 							className={`flex-1 flex items-center justify-center ${darkMode ? 'bg-black text-gray-500' : 'bg-white text-gray-400'}`}
 						>
 							<div className="text-center">
-								<MailOpen aria-hidden="true" size={48} className="mb-3 opacity-30" />
+								<MailOpen aria-hidden="true" size={48} className="mx-auto mb-3 opacity-30" />
 								<p className="text-base font-medium">No Message Selected</p>
 							</div>
 						</div>
@@ -105,7 +111,10 @@ export default function Mail() {
 			{state.isComposeOpen && (
 				<ComposeModal
 					darkMode={darkMode}
-					onClose={() => state.setIsComposeOpen(false)}
+					initialTo={state.composeDraft?.to}
+					initialSubject={state.composeDraft?.subject}
+					initialBody={state.composeDraft?.body}
+					onClose={state.closeCompose}
 					onSend={state.handleSendEmail}
 				/>
 			)}

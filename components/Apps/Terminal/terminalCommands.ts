@@ -8,6 +8,22 @@ import {
 } from '../../../utils/fileSystem';
 import { parseTerminalInput } from './terminalInput';
 
+export const TERMINAL_COMMANDS = [
+	'help',
+	'ls',
+	'cd',
+	'pwd',
+	'mkdir',
+	'touch',
+	'cat',
+	'rm',
+	'echo',
+	'clear',
+	'whoami',
+	'date',
+	'uname',
+] as const;
+
 export interface OutputLine {
 	id: string;
 	text: string;
@@ -50,13 +66,39 @@ export function runTerminalCommand(cmd: string, ctx: TerminalCommandContext): vo
 			break;
 
 		case 'ls': {
-			if (currentItems.length === 0) {
+			const rawTarget = args[0];
+			let listItems = currentItems;
+
+			if (rawTarget && rawTarget !== '.') {
+				if (rawTarget === '~' || rawTarget === '/') {
+					listItems = fs.items.filter(i => i.parentId === null);
+				} else if (rawTarget === '..') {
+					const parentId = currentFolderId
+						? (fs.items.find(i => i.id === currentFolderId)?.parentId ?? null)
+						: null;
+					listItems = fs.items.filter(i => i.parentId === parentId);
+				} else {
+					const cleaned = rawTarget.replace(/\/+$/, '');
+					const match = currentItems.find(i => i.name.toLowerCase() === cleaned.toLowerCase());
+					if (!match) {
+						addOutput(`ls: ${rawTarget}: No such file or directory`, 'error');
+						break;
+					}
+					if (match.type === 'file') {
+						addOutput(`${match.name} (${formatFileSize(match.size || 0)})`, 'output');
+						break;
+					}
+					listItems = fs.items.filter(i => i.parentId === match.id);
+				}
+			}
+
+			if (listItems.length === 0) {
 				addOutput('(empty directory)', 'info');
 				break;
 			}
-			const formattedList = currentItems
+			const formattedList = listItems
 				.map(i =>
-					i.type === 'folder' ? `📁 ${i.name}/` : `📄 ${i.name} (${formatFileSize(i.size || 0)})`
+					i.type === 'folder' ? `${i.name}/` : `${i.name} (${formatFileSize(i.size || 0)})`
 				)
 				.join('    ');
 			addOutput(formattedList, 'success');

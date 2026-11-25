@@ -48,6 +48,15 @@ export default function MenuBar() {
 		};
 	}, []);
 
+	useEffect(() => {
+		function handleToggleSpotlight() {
+			setActiveMenu(null);
+			setIsSpotlightOpen(prev => !prev);
+		}
+		window.addEventListener('ilmi:toggle-spotlight', handleToggleSpotlight);
+		return () => window.removeEventListener('ilmi:toggle-spotlight', handleToggleSpotlight);
+	}, []);
+
 	function handleToggleControlCenter(e: React.MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
@@ -88,7 +97,8 @@ export default function MenuBar() {
 					{/* Apple Logo */}
 					<div className="relative h-full flex items-center">
 						<button
-							className={`h-full px-3 pl-0 flex items-center rounded-md transition-colors ${activeMenu === 'apple' ? 'bg-black/10' : 'hover:bg-transparent'}`}
+							type="button"
+							className={`h-full px-3 pl-0 flex items-center rounded-md transition-colors ${activeMenu === 'apple' ? 'bg-black/10 dark:bg-white/15' : 'hover:bg-transparent'}`}
 							onClick={() => handleMenuClick('apple')}
 							onMouseEnter={() => handleMenuHover('apple')}
 							aria-label="Apple menu"
@@ -115,9 +125,10 @@ export default function MenuBar() {
 							return (
 								<div key={key} className="relative h-full flex items-center">
 									<button
-										className={`h-[22px] px-3 my-auto flex items-center rounded-[4px] transition-colors cursor-default ${
-											activeMenu === key ? 'bg-black/10 dark:bg-white/10' : ''
-										} ${menu.bold ? 'font-bold' : 'text-black dark:text-white'}`}
+										type="button"
+										className={`h-[22px] px-3 my-auto flex items-center rounded-[4px] transition-colors cursor-default text-black dark:text-white ${
+											activeMenu === key ? 'bg-black/10 dark:bg-white/15' : ''
+										} ${menu.bold ? 'font-bold' : ''}`}
 										onClick={() => handleMenuClick(key)}
 										onMouseEnter={() => handleMenuHover(key)}
 									>

@@ -47,10 +47,10 @@ export function useMusicPlayer() {
 
 	const allTracksRef = useRef(allTracks);
 	allTracksRef.current = allTracks;
+	const activePoolRef = useRef<DemoTrack[]>(DEMO_TRACKS);
 	const localUrlsRef = useRef<string[]>([]);
 	const playToken = useRef(0);
 	const searchSeq = useRef(0);
-	const lastRepeatTap = useRef(0);
 	const stateRef = useRef({ queue, qi, repeat });
 	stateRef.current = { queue, qi, repeat };
 	const advanceRef = useRef(() => {});
@@ -129,7 +129,8 @@ export function useMusicPlayer() {
 
 	const playTrackId = (id: string, pool?: DemoTrack[]) => {
 		triggerHaptic('light');
-		const sourcePool = pool ?? allTracksRef.current;
+		const sourcePool = pool && pool.length > 0 ? pool : allTracksRef.current;
+		activePoolRef.current = sourcePool;
 		const q = buildQueue(sourcePool, id, shuffle);
 		void playAt(0, q, 0);
 	};
@@ -140,7 +141,8 @@ export function useMusicPlayer() {
 		setShuffle(on);
 		if (queue.length > 0) {
 			const currentId = queue[qi] ?? queue[0] ?? '';
-			const q = buildQueue(allTracksRef.current, currentId, on);
+			const pool = activePoolRef.current.length > 0 ? activePoolRef.current : allTracksRef.current;
+			const q = buildQueue(pool, currentId, on);
 			setQueue(q);
 			setQi(0);
 		}
@@ -148,13 +150,7 @@ export function useMusicPlayer() {
 
 	const cycleRepeat = () => {
 		triggerHaptic('light');
-		const now = Date.now();
-		if (now - lastRepeatTap.current < 350) {
-			setRepeat('one');
-		} else {
-			setRepeat(prev => (prev === 'off' ? 'all' : 'off'));
-		}
-		lastRepeatTap.current = now;
+		setRepeat(prev => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
 	};
 
 	const toggleLike = (id: string) => {

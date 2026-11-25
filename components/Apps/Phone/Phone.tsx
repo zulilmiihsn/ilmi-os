@@ -99,6 +99,19 @@ export default function Phone() {
 		if (!saveFavorites(next)) setPersistError(true);
 	};
 
+	const handleClearRecents = () => {
+		triggerHaptic('medium');
+		setRecents([]);
+		if (!saveRecents([])) setPersistError(true);
+	};
+
+	const handleRedialLast = () => {
+		const latest = recents[0];
+		if (!latest) return;
+		triggerHaptic('light');
+		setNumber(latest.number);
+	};
+
 	// Contacts are derived from real activity: favorited and dialed numbers.
 	const contacts = useMemo(() => {
 		const seen = new Set<string>();
@@ -149,14 +162,23 @@ export default function Phone() {
 			{tab === 'keypad' && (
 				<KeypadView
 					number={number}
+					lastRecentNumber={recents[0]?.number ?? null}
 					onAddNumber={handleAddNumber}
 					onInputDigit={inputDigit}
 					onCall={startCall}
+					onRedialLast={handleRedialLast}
 					onBackspace={backspace}
 				/>
 			)}
 
-			{tab === 'recents' && <RecentsTab recents={recents} darkMode={darkMode} onCall={startCall} />}
+			{tab === 'recents' && (
+				<RecentsTab
+					recents={recents}
+					darkMode={darkMode}
+					onCall={startCall}
+					onClearRecents={handleClearRecents}
+				/>
+			)}
 
 			{tab === 'contacts' && (
 				<ContactsTab
@@ -170,11 +192,11 @@ export default function Phone() {
 
 			{tab === 'voicemail' && <VoicemailTab />}
 
-			{/* Bottom tab bar: full-width like iOS, not a floating pill */}
+			{/* Bottom tab bar: full-width like iOS with safe home-indicator clearance */}
 			<div
 				role="tablist"
 				aria-label="Phone sections"
-				className="shrink-0 border-t backdrop-blur-xl bg-white/80 dark:bg-black/80 border-black/5 dark:border-white/15 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
+				className="shrink-0 border-t backdrop-blur-xl bg-white/85 dark:bg-black/85 border-black/5 dark:border-white/15 pt-2 pb-[max(env(safe-area-inset-bottom),1.75rem)]"
 			>
 				<div className="flex items-start justify-around">
 					{(

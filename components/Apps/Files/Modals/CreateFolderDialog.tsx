@@ -39,10 +39,13 @@ export default function CreateFolderDialog({
 			onKeyDown={e => {
 				if (e.key === 'Escape') onClose();
 			}}
-			className="absolute inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 animate-fade-in"
+			className="absolute inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50"
 		>
 			<div
-				className={`${theme.modalBg} backdrop-blur-md rounded-2xl w-72 p-0 shadow-2xl animate-scale-in transition-colors`}
+				role="dialog"
+				aria-modal="true"
+				aria-label="New Folder"
+				className={`${theme.modalBg} backdrop-blur-md rounded-2xl w-72 p-0 shadow-2xl transition-colors`}
 			>
 				<div className="p-4 text-center">
 					<h3 className={`text-lg font-semibold mb-1 ${theme.text}`}>New Folder</h3>
@@ -51,7 +54,13 @@ export default function CreateFolderDialog({
 						type="text"
 						value={folderName}
 						onChange={e => onFolderNameChange(e.target.value)}
+						onKeyDown={e => {
+							if (e.key === 'Enter' && folderName.trim()) {
+								onCreate();
+							}
+						}}
 						placeholder="Name"
+						aria-label="Folder name"
 						className={`w-full px-3 py-2 rounded-lg border-none outline-none text-center ${theme.modalInputBg}`}
 						autoFocus
 					/>
@@ -60,6 +69,7 @@ export default function CreateFolderDialog({
 					className={`flex border-t ${darkMode ? 'border-ios-dark-separator' : 'border-ios-gray4/50'}`}
 				>
 					<button
+						type="button"
 						onClick={onClose}
 						className="flex-1 py-3 text-ios-blue font-medium active:bg-ios-gray6/10 transition-colors"
 					>
@@ -67,6 +77,7 @@ export default function CreateFolderDialog({
 					</button>
 					<div className={`w-px ${darkMode ? 'bg-ios-dark-separator' : 'bg-ios-gray4'}`} />
 					<button
+						type="button"
 						onClick={onCreate}
 						disabled={!folderName.trim()}
 						className="flex-1 py-3 text-ios-blue font-semibold active:bg-ios-blue/10 disabled:text-ios-gray transition-colors"

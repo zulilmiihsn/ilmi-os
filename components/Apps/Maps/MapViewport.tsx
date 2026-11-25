@@ -11,12 +11,14 @@ import {
 	projectPoint,
 	worldPxToLatLon,
 	type MapPlace,
+	type MapStyle,
 } from './mapMath';
 
 interface MapViewportProps {
 	center: { lat: number; lon: number };
 	zoom: number;
 	viewMode: '2D' | '3D';
+	mapStyle: MapStyle;
 	darkMode: boolean;
 	userLocation: { lat: number; lon: number } | null;
 	selectedPlace: MapPlace | null;
@@ -29,6 +31,7 @@ export function MapViewport({
 	center,
 	zoom,
 	viewMode,
+	mapStyle,
 	darkMode,
 	userLocation,
 	selectedPlace,
@@ -39,6 +42,7 @@ export function MapViewport({
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [size, setSize] = useState({ width: 800, height: 600 });
 	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+	const [isDragging, setIsDragging] = useState(false);
 	const dragRef = useRef<{ startX: number; startY: number; active: boolean }>({
 		startX: 0,
 		startY: 0,
@@ -59,8 +63,17 @@ export function MapViewport({
 	}, []);
 
 	const tiles = useMemo(
-		() => computeVisibleTiles(center.lat, center.lon, zoom, size.width, size.height, darkMode),
-		[center.lat, center.lon, zoom, size.width, size.height, darkMode]
+		() =>
+			computeVisibleTiles(
+				center.lat,
+				center.lon,
+				zoom,
+				size.width,
+				size.height,
+				darkMode,
+				mapStyle
+			),
+		[center.lat, center.lon, zoom, size.width, size.height, darkMode, mapStyle]
 	);
 
 	const userPt = useMemo(
@@ -98,6 +111,7 @@ export function MapViewport({
 	const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
 		if (e.button !== 0) return;
 		dragRef.current = { startX: e.clientX, startY: e.clientY, active: true };
+		setIsDragging(true);
 		e.currentTarget.setPointerCapture(e.pointerId);
 	};
 
@@ -112,6 +126,7 @@ export function MapViewport({
 	const finishDrag = (e: React.PointerEvent<HTMLDivElement>) => {
 		if (!dragRef.current.active) return;
 		dragRef.current.active = false;
+		setIsDragging(false);
 		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
 			e.currentTarget.releasePointerCapture(e.pointerId);
 		}
@@ -140,24 +155,28 @@ export function MapViewport({
 			onPointerCancel={finishDrag}
 			onWheel={handleWheel}
 			onDoubleClick={() => onChangeZoom(clampZoom(zoom + 1))}
-			className="absolute inset-0 z-0 overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+			className={`absolute inset-0 z-0 overflow-hidden cursor-grab active:cursor-grabbing touch-none ${
+				darkMode || mapStyle === 'satellite' ? 'bg-[#12161f]' : 'bg-[#e8ece8]'
+			}`}
 		>
-			{/* Quiet offline fallback backdrop behind live raster tiles */}
-			<Image
-				src="/media/apple_maps_dark_3d_background.webp"
-				alt="Map fallback background"
-				fill
-				className={`object-cover pointer-events-none transition-opacity duration-500 ${
-					darkMode ? 'opacity-40' : 'opacity-20'
-				}`}
-				priority
-				quality={75}
-				draggable={false}
-			/>
+			{/* Quiet offline fallback backdrop behind live raster tiles (dark / satellite only) */}
+			{(darkMode || mapStyle === 'satellite') && (
+				<Image
+					src="/media/apple_maps_dark_3d_background.webp"
+					alt="Map fallback background"
+					fill
+					className="object-cover pointer-events-none opacity-40"
+					priority
+					quality={75}
+					draggable={false}
+				/>
+			)}
 
 			{/* Live slippy tile layer + 3D perspective */}
 			<div
-				className="absolute inset-0 transition-transform duration-500 ease-out will-change-transform"
+				className={`absolute inset-0 will-change-transform ${
+					isDragging ? '' : 'transition-transform duration-500 ease-out'
+				}`}
 				style={{
 					transform:
 						viewMode === '3D'
@@ -191,7 +210,7 @@ export function MapViewport({
 							y1={userPt.y}
 							x2={pinPt.x}
 							y2={pinPt.y}
-							stroke="#007aff"
+							stroke={darkMode || mapStyle === 'satellite' ? '#0a84ff' : '#007aff'}
 							strokeWidth="5"
 							strokeLinecap="round"
 							strokeDasharray="10 8"
@@ -226,9 +245,9 @@ export function MapViewport({
 				)}
 			</div>
 
-			{/* Attribution */}
-			<div className="absolute bottom-1 right-2 z-[5] text-[9px] text-black/50 dark:text-white/50 pointer-events-none">
-				© OpenStreetMap · CARTO
+			{/* Attribution (stays visible above bottom sheet on narrow layouts) */}
+			<div className="absolute top-4 left-3 @2xl:top-auto @2xl:left-auto @2xl:bottom-2 @2xl:right-3 z-[15] px-1.5 py-0.5 rounded bg-white/75 dark:bg-black/55 backdrop-blur-xs text-[9px] text-black/70 dark:text-white/75 pointer-events-none">
+				{mapStyle === 'satellite' ? '© Esri, Maxar · OpenStreetMap' : '© OpenStreetMap · CARTO'}
 			</div>
 		</div>
 	);

@@ -7,10 +7,17 @@ interface NoteItemProps {
 	note: Note;
 	onClick: (note: Note) => void;
 	selectionMode: boolean;
+	isActive?: boolean;
 	isLast: boolean;
 }
 
-export default function NoteItem({ note, onClick, selectionMode, isLast }: NoteItemProps) {
+export default function NoteItem({
+	note,
+	onClick,
+	selectionMode,
+	isActive = false,
+	isLast,
+}: NoteItemProps) {
 	return (
 		<div
 			onClick={() => onClick(note)}
@@ -23,18 +30,23 @@ export default function NoteItem({ note, onClick, selectionMode, isLast }: NoteI
 			role="button"
 			tabIndex={0}
 			aria-label={note.title || 'New Note'}
-			className="flex pl-4 pr-0 py-0 active:bg-gray-200 dark:active:bg-[#2C2C2E] transition-colors cursor-pointer group"
+			className={`flex pl-4 pr-0 py-0 active:bg-gray-200 dark:active:bg-[#2C2C2E] transition-colors cursor-pointer group ${
+				isActive ? 'md:bg-[#c98a00]/15 dark:md:bg-ios-yellow/20' : ''
+			}`}
 		>
 			{selectionMode && (
-				<div className="flex items-center justify-center mr-3 py-3 animate-in slide-in-from-left-2 duration-200">
+				<div className="flex items-center justify-center mr-3 py-3 transition-opacity">
 					<div
 						className={`w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center transition-colors ${
-							note.selected ? 'bg-ios-yellow border-ios-yellow' : 'border-gray-400 bg-transparent'
+							note.selected
+								? 'bg-[#c98a00] border-[#c98a00] dark:bg-ios-yellow dark:border-ios-yellow'
+								: 'border-gray-400 bg-transparent'
 						}`}
 					>
 						{note.selected && (
 							<svg
-								className="w-3.5 h-3.5 text-white"
+								aria-hidden="true"
+								className="w-3.5 h-3.5 text-white dark:text-black"
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
@@ -64,8 +76,14 @@ export default function NoteItem({ note, onClick, selectionMode, isLast }: NoteI
 						</span>
 						<span className="truncate">{note.content || 'No additional text'}</span>
 					</div>
-					<div className="flex items-center text-[11px] text-gray-400 mt-1.5">
-						<svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<div className="flex items-center text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
+						<svg
+							aria-hidden="true"
+							className="w-3 h-3 mr-1"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
 							<path
 								strokeLinecap="round"
 								strokeLinejoin="round"

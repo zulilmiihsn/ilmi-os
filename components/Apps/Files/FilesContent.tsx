@@ -38,21 +38,22 @@ export default function FilesContent({
 }: FilesContentProps) {
 	return (
 		<div className="flex-1 relative overflow-hidden">
-			{/* Animation Container */}
+			{/* Scrollable Content Container */}
 			<div
-				className={`absolute inset-0 w-full h-full overflow-y-auto overflow-x-hidden transition-transform duration-250 ease-in-out ${
+				className={`absolute inset-0 w-full h-full overflow-y-auto overflow-x-hidden pb-24 transition-opacity duration-150 ${
 					isAnimating
 						? navigationDirection === 'forward'
-							? 'animate-slide-out-left'
-							: 'animate-slide-out-right'
-						: 'animate-slide-in'
+							? 'opacity-70 translate-x-1'
+							: 'opacity-70 -translate-x-1'
+						: 'opacity-100 translate-x-0'
 				}`}
 			>
 				{/* Empty States */}
 				{activeTab === 'shared' && enrichedItems.length === 0 && (
-					<div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
+					<div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-8 text-center">
 						<svg
-							className="w-16 h-16 mb-4 text-gray-300"
+							aria-hidden="true"
+							className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -70,9 +71,10 @@ export default function FilesContent({
 				)}
 
 				{activeTab === 'recents' && enrichedItems.length === 0 && (
-					<div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
+					<div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-8 text-center">
 						<svg
-							className="w-16 h-16 mb-4 text-gray-300"
+							aria-hidden="true"
+							className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -85,14 +87,15 @@ export default function FilesContent({
 							/>
 						</svg>
 						<h3 className={`text-lg font-semibold mb-1 ${theme.text}`}>No Recent Files</h3>
-						<p className="text-sm">Files you've opened recently will appear here.</p>
+						<p className="text-sm">Files you&apos;ve opened recently will appear here.</p>
 					</div>
 				)}
 
 				{activeTab === 'browse' && enrichedItems.length === 0 && (
-					<div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
+					<div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-8 text-center">
 						<svg
-							className="w-16 h-16 mb-4 text-gray-300"
+							aria-hidden="true"
+							className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -106,6 +109,7 @@ export default function FilesContent({
 						</svg>
 						<h3 className={`text-lg font-semibold mb-1 ${theme.text}`}>Empty Folder</h3>
 						<button
+							type="button"
 							onClick={onCreateFolderClick}
 							className="mt-4 px-4 py-2 bg-ios-blue text-white rounded-lg font-medium active:opacity-80 transition-opacity"
 						>
@@ -120,7 +124,7 @@ export default function FilesContent({
 						{enrichedItems.map((item: FileItem) => (
 							<div
 								key={item.id}
-								className="flex flex-col items-center group"
+								className="flex flex-col items-center group cursor-pointer"
 								role="button"
 								tabIndex={0}
 								aria-label={item.name}
@@ -154,6 +158,7 @@ export default function FilesContent({
 								>
 									{item.type === 'folder' ? (
 										<svg
+											aria-hidden="true"
 											className={`w-10 h-10 ${theme.itemIconFolder}`}
 											fill="currentColor"
 											viewBox="0 0 24 24"
@@ -162,6 +167,7 @@ export default function FilesContent({
 										</svg>
 									) : (
 										<svg
+											aria-hidden="true"
 											className={`w-10 h-10 ${theme.itemIconFile}`}
 											fill="currentColor"
 											viewBox="0 0 24 24"

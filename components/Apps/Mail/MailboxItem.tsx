@@ -48,6 +48,12 @@ interface MailboxItemProps {
 
 function MailboxItem({ item, isActive, onClick, darkMode, dimmed }: MailboxItemProps) {
 	const ItemIcon = MAILBOX_ICONS[item.icon] ?? File;
+	const iconTint =
+		item.id === 'flagged'
+			? 'text-ios-orange'
+			: item.id === 'vip'
+				? 'text-ios-yellow'
+				: 'text-ios-blue';
 	return (
 		<div
 			onClick={onClick}
@@ -67,9 +73,7 @@ function MailboxItem({ item, isActive, onClick, darkMode, dimmed }: MailboxItemP
 			} ${isActive ? (darkMode ? 'bg-white/10' : 'bg-ios-blue/10') : ''}`}
 		>
 			<div className="flex items-center gap-3.5">
-				<div
-					className={`w-6 text-center text-base ${item.type === 'smart' ? 'text-ios-blue' : 'text-gray-400'}`}
-				>
+				<div className={`w-6 text-center text-base ${iconTint}`}>
 					<ItemIcon aria-hidden="true" size={16} />
 				</div>
 				<span className={`text-base font-normal ${darkMode ? 'text-white' : 'text-black'}`}>
@@ -78,7 +82,7 @@ function MailboxItem({ item, isActive, onClick, darkMode, dimmed }: MailboxItemP
 			</div>
 			<div className="flex items-center gap-2">
 				{item.count !== undefined && item.count > 0 && (
-					<span className="text-gray-400 text-sm font-medium">{item.count}</span>
+					<span className="text-gray-500 dark:text-gray-400 text-sm font-medium">{item.count}</span>
 				)}
 				<ChevronRight aria-hidden="true" size={12} className="text-gray-300 dark:text-gray-600" />
 			</div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, RotateCw, Zap } from 'lucide-react';
+import { Clock, RotateCw, Sparkles, Zap } from 'lucide-react';
 import { triggerHaptic } from '../../../utils/haptic';
 import { FilterType } from './types';
 
@@ -84,20 +84,20 @@ export const CameraTopControls: React.FC<CameraTopControlsProps> = ({
 
 				{/* Filter Toggle */}
 				<button
+					type="button"
 					onClick={() => {
 						triggerHaptic('light');
 						toggleFilter();
 					}}
 					className="relative w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform after:absolute after:-inset-1.5 after:content-['']"
 					aria-label="Cycle camera filter"
+					aria-pressed={currentFilter !== 'none'}
 				>
-					<div
-						className={`w-4 h-4 rounded-full flex items-center justify-center border border-white/30 ${
-							currentFilter !== 'none' ? 'bg-ios-yellow' : 'bg-white/20'
-						}`}
-					>
-						<span className="text-[8px] font-bold text-black">f</span>
-					</div>
+					<Sparkles
+						aria-hidden="true"
+						size={15}
+						className={currentFilter !== 'none' ? 'text-ios-yellow' : 'text-white/80'}
+					/>
 				</button>
 
 				{/* Rotate Orientation Toggle */}

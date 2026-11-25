@@ -14,7 +14,6 @@ interface CityTimeData {
 
 interface ClockWorldTabProps {
 	cityTimes: CityTimeData[];
-	direction: 'forward' | 'backward';
 	theme: {
 		text: string;
 		textSecondary: string;
@@ -25,13 +24,7 @@ interface ClockWorldTabProps {
 	onRemoveCity?: (city: string) => void;
 }
 
-function ClockWorldTab({
-	cityTimes,
-	direction,
-	theme,
-	isEditingCities,
-	onRemoveCity,
-}: ClockWorldTabProps) {
+function ClockWorldTab({ cityTimes, theme, isEditingCities, onRemoveCity }: ClockWorldTabProps) {
 	if (cityTimes.length === 0) {
 		return (
 			<div className="h-full flex flex-col items-center justify-center gap-1 px-6 text-center">
@@ -41,10 +34,7 @@ function ClockWorldTab({
 		);
 	}
 	return (
-		<div
-			key="world"
-			className={`h-full ${direction === 'forward' ? 'animate-slide-right' : 'animate-slide-left'}`}
-		>
+		<div key="world" className="h-full">
 			{cityTimes.map(city => (
 				<div
 					key={city.city}
@@ -53,6 +43,7 @@ function ClockWorldTab({
 					<div className="flex items-center justify-between">
 						{isEditingCities && (
 							<button
+								type="button"
 								onClick={() => onRemoveCity?.(city.city)}
 								aria-label={`Remove ${city.city}`}
 								className="relative w-7 h-7 rounded-full bg-ios-red text-white flex items-center justify-center mr-3 shrink-0 active:scale-90 transition-transform after:absolute after:-inset-2 after:content-['']"
@@ -60,13 +51,17 @@ function ClockWorldTab({
 								<Minus aria-hidden="true" size={14} />
 							</button>
 						)}
-						<div className="flex-1">
-							<div className={`${theme.text} text-xl font-medium mb-1`}>{city.city}</div>
+						<div className="flex-1 min-w-0">
+							<div className={`${theme.text} text-xl font-medium mb-1 truncate`}>{city.city}</div>
 							<div className={`${theme.textSecondary} text-sm font-normal`}>
 								{city.dayLabel}, {city.hourDiffString}
 							</div>
 						</div>
-						<div className={`${theme.text} text-xl font-light ml-4`}>{city.time}</div>
+						<div
+							className={`${theme.text} text-3xl sm:text-4xl font-light tabular-nums ml-4 shrink-0`}
+						>
+							{city.time}
+						</div>
 					</div>
 				</div>
 			))}

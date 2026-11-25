@@ -79,6 +79,7 @@ export function NotificationsView({ darkMode }: { darkMode: boolean }) {
 						checked={notificationsEnabled}
 						onChange={setNotificationsEnabled}
 						darkMode={darkMode}
+						label="Allow Notifications"
 					/>
 				</ListItem>
 			</Section>
@@ -109,8 +110,11 @@ export function NotificationsView({ darkMode }: { darkMode: boolean }) {
 
 				{notifications.length === 0 ? (
 					<div className="px-4 py-8 text-center">
-						<Bell aria-hidden="true" className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-						<p className="text-xs text-gray-400">No pending notifications.</p>
+						<Bell
+							aria-hidden="true"
+							className="w-6 h-6 mx-auto mb-2 text-gray-500 dark:text-gray-400"
+						/>
+						<p className="text-xs text-gray-500 dark:text-gray-400">No pending notifications.</p>
 					</div>
 				) : (
 					<ul className="divide-y divide-black/5 dark:divide-white/10">
@@ -121,7 +125,9 @@ export function NotificationsView({ darkMode }: { darkMode: boolean }) {
 										<span className={`text-sm font-medium truncate ${theme.text}`}>
 											{item.title}
 										</span>
-										<span className="text-[11px] text-gray-400 shrink-0">{item.time}</span>
+										<span className="text-[11px] text-gray-500 dark:text-gray-400 shrink-0">
+											{item.time}
+										</span>
 									</div>
 									<p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
 										{item.message}
@@ -131,7 +137,7 @@ export function NotificationsView({ darkMode }: { darkMode: boolean }) {
 									type="button"
 									onClick={() => dismissNotification(item.id)}
 									aria-label={`Dismiss ${item.title}`}
-									className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
+									className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
 								>
 									<X aria-hidden="true" size={14} />
 								</button>
@@ -156,6 +162,7 @@ export function FocusView({ darkMode }: { darkMode: boolean }) {
 						<ListItem
 							key={profile.id}
 							label={profile.id}
+							subtitle={profile.description}
 							icon={profile.icon}
 							iconColor={profile.iconColor}
 							hasArrow={false}
@@ -166,12 +173,13 @@ export function FocusView({ darkMode }: { darkMode: boolean }) {
 								checked={isOn}
 								onChange={checked => setActiveFocus(checked ? profile.id : null)}
 								darkMode={darkMode}
+								label={profile.id}
 							/>
 						</ListItem>
 					);
 				})}
 			</Section>
-			<p className="px-8 md:max-w-2xl md:mx-auto text-xs text-gray-400 leading-relaxed">
+			<p className="px-8 md:max-w-2xl md:mx-auto text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
 				{focusMode && activeFocus
 					? `${activeFocus} is currently enabled and synced with Control Center.`
 					: 'Choose a Focus profile to silence distractions. Syncs live with Control Center.'}
@@ -179,6 +187,13 @@ export function FocusView({ darkMode }: { darkMode: boolean }) {
 		</>
 	);
 }
+
+const STORAGE_CATEGORY_ICONS: Record<string, string> = {
+	files: 'folder',
+	photos: 'images',
+	notes: 'sticky-note',
+	other: 'server',
+};
 
 export function StorageView({
 	darkMode,
@@ -217,7 +232,7 @@ export function StorageView({
 				<div className="p-4">
 					<div className="flex items-baseline justify-between mb-2">
 						<span className={`text-sm font-semibold ${theme.text}`}>iLmi Local Storage</span>
-						<span className="text-xs text-gray-400">
+						<span className="text-xs text-gray-500 dark:text-gray-400">
 							{formatFileSize(breakdown.totalBytes)} of {formatFileSize(breakdown.budgetBytes)} Used
 						</span>
 					</div>
@@ -244,7 +259,10 @@ export function StorageView({
 					{/* Legend */}
 					<div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3">
 						{breakdown.categories.map(cat => (
-							<div key={cat.id} className="flex items-center gap-1.5 text-[11px] text-gray-400">
+							<div
+								key={cat.id}
+								className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400"
+							>
 								<span className={`w-2 h-2 rounded-full ${cat.colorClass}`} />
 								<span>{cat.label}</span>
 							</div>
@@ -260,7 +278,7 @@ export function StorageView({
 						label={cat.label}
 						value={`${cat.itemCount} · ${formatFileSize(cat.bytes)}`}
 						iconColor={cat.colorClass}
-						iconClass={cat.id === 'photos' ? 'images' : 'server'}
+						iconClass={STORAGE_CATEGORY_ICONS[cat.id] ?? 'server'}
 						hasArrow={Boolean(cat.appId)}
 						darkMode={darkMode}
 						isLast={idx === breakdown.categories.length - 1}
@@ -276,7 +294,7 @@ export function StorageView({
 							<p className={`text-sm font-medium ${theme.text}`}>
 								Saved Camera &amp; Gallery Photos
 							</p>
-							<p className="text-xs text-gray-400">
+							<p className="text-xs text-gray-500 dark:text-gray-400">
 								{photoCategory.itemCount} photo(s) using {formatFileSize(photoCategory.bytes)}
 							</p>
 						</div>

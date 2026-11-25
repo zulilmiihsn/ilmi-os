@@ -67,21 +67,15 @@ const Day = memo(
 				>
 					{date.getDate()}
 				</div>
-				{hasEvent && (
-					<div
-						className={`w-1 h-1 rounded-full mt-0.5 ${
-							isToday
-								? 'bg-white/80'
-								: isSelected
-									? darkMode
-										? 'bg-black/80'
-										: 'bg-white/80'
-									: darkMode
-										? 'bg-gray-500'
-										: 'bg-gray-400'
-						}`}
-					></div>
-				)}
+				<div className="h-1.5 mt-0.5 flex items-center justify-center">
+					{hasEvent && (
+						<div
+							className={`w-1.5 h-1.5 rounded-full ${
+								isToday || isSelected ? 'bg-ios-red' : 'bg-ios-red/75 dark:bg-ios-red/85'
+							}`}
+						/>
+					)}
+				</div>
 			</div>
 		);
 	},

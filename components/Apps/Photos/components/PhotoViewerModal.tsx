@@ -31,6 +31,7 @@ export default function PhotoViewerModal({
 	hasNext,
 }: PhotoViewerModalProps) {
 	const rootRef = useRef<HTMLDivElement>(null);
+	const touchStartXRef = useRef<number | null>(null);
 	// Mounted only while open: restores focus on close/unmount.
 	useRestoreFocus(Boolean(photo), rootRef);
 	useFocusTrap(Boolean(photo), rootRef);
@@ -42,6 +43,27 @@ export default function PhotoViewerModal({
 		link.href = photo.url;
 		link.download = photo.title || `${photo.id}.jpg`;
 		link.click();
+	};
+
+	const handleTouchStart = (e: React.TouchEvent) => {
+		const touch = e.touches[0];
+		if (!touch) return;
+		touchStartXRef.current = touch.clientX;
+	};
+
+	const handleTouchEnd = (e: React.TouchEvent) => {
+		const startX = touchStartXRef.current;
+		touchStartXRef.current = null;
+		const touch = e.changedTouches[0];
+		if (startX === null || !touch) return;
+		const deltaX = touch.clientX - startX;
+		if (deltaX <= -40 && hasNext) {
+			triggerHaptic('light');
+			onNext();
+		} else if (deltaX >= 40 && hasPrev) {
+			triggerHaptic('light');
+			onPrev();
+		}
 	};
 
 	return (
@@ -60,12 +82,12 @@ export default function PhotoViewerModal({
 					onNext();
 				}
 			}}
-			className="fixed inset-0 z-50 flex flex-col bg-[#0d0d0f]/95 backdrop-blur-xl animate-in fade-in duration-200 text-white"
+			className="absolute inset-0 z-50 flex flex-col bg-[#0d0d0f]/95 backdrop-blur-xl text-white"
 			onClick={onClose}
 		>
 			{/* Top Bar */}
 			<div
-				className="flex items-center justify-between px-4 pt-10 md:pt-5 pb-3 bg-gradient-to-b from-black/60 to-transparent z-10"
+				className="flex items-center justify-between px-4 pt-3 md:pt-5 pb-3 bg-gradient-to-b from-black/60 to-transparent z-10"
 				onClick={e => e.stopPropagation()}
 			>
 				<div className="min-w-0">
@@ -85,16 +107,21 @@ export default function PhotoViewerModal({
 			</div>
 
 			{/* Main Image Canvas */}
-			<div className="flex-1 relative flex items-center justify-center px-4 md:px-14 min-h-0">
+			<div
+				className="flex-1 relative flex items-center justify-center px-10 md:px-14 min-h-0"
+				onTouchStart={handleTouchStart}
+				onTouchEnd={handleTouchEnd}
+			>
 				{hasPrev && (
 					<button
 						type="button"
 						onClick={e => {
 							e.stopPropagation();
+							triggerHaptic('light');
 							onPrev();
 						}}
 						aria-label="Previous photo"
-						className="hidden sm:flex absolute left-3 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/90 active:scale-95 transition-all"
+						className="flex absolute left-2 sm:left-3 z-10 p-1.5 sm:p-2 rounded-full bg-white/15 hover:bg-white/25 text-white/90 active:scale-95 transition-all"
 					>
 						<ChevronLeft aria-hidden="true" className="w-5 h-5" />
 					</button>
@@ -119,10 +146,11 @@ export default function PhotoViewerModal({
 						type="button"
 						onClick={e => {
 							e.stopPropagation();
+							triggerHaptic('light');
 							onNext();
 						}}
 						aria-label="Next photo"
-						className="hidden sm:flex absolute right-3 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/90 active:scale-95 transition-all"
+						className="flex absolute right-2 sm:right-3 z-10 p-1.5 sm:p-2 rounded-full bg-white/15 hover:bg-white/25 text-white/90 active:scale-95 transition-all"
 					>
 						<ChevronRight aria-hidden="true" className="w-5 h-5" />
 					</button>
@@ -148,7 +176,7 @@ export default function PhotoViewerModal({
 						<Heart
 							aria-hidden="true"
 							className={`w-5 h-5 transition-colors ${
-								photo.isFavorite ? 'text-[#ff3b30] fill-[#ff3b30]' : 'text-white/90'
+								photo.isFavorite ? 'text-ios-red fill-ios-red' : 'text-white/90'
 							}`}
 						/>
 					</button>
@@ -169,7 +197,7 @@ export default function PhotoViewerModal({
 							onDelete(photo.id);
 						}}
 						aria-label="Delete photo"
-						className="p-1.5 rounded-full hover:bg-white/10 text-[#ff453a] active:scale-90 transition-all"
+						className="p-1.5 rounded-full hover:bg-white/10 text-ios-red active:scale-90 transition-all"
 					>
 						<Trash2 aria-hidden="true" className="w-5 h-5" />
 					</button>

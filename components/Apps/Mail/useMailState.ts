@@ -6,12 +6,19 @@ import { filterDisplayEmails, getMailboxCounts } from './mailSelectors';
 
 export type ViewState = 'mailboxes' | 'list' | 'detail';
 
+export interface ComposeDraft {
+	to?: string;
+	subject?: string;
+	body?: string;
+}
+
 export function useMailState() {
 	const [emails, setEmails] = useState<Email[]>([]);
 	const [mounted, setMounted] = useState(false);
 	const [selectedMailbox, setSelectedMailbox] = useState<string>('all_inboxes');
 	const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
 	const [isComposeOpen, setIsComposeOpen] = useState(false);
+	const [composeDraft, setComposeDraft] = useState<ComposeDraft | null>(null);
 	const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set(['gmail']));
 	const [searchQuery, setSearchQuery] = useState('');
 	const [isUnreadFilterActive, setIsUnreadFilterActive] = useState(false);
@@ -216,11 +223,53 @@ export function useMailState() {
 		setSelectedForAction(new Set());
 	};
 
+	const handleToggleFlag = (id: string) => {
+		triggerHaptic('light');
+		const updatedEmails = emails.map(e => (e.id === id ? { ...e, isFlagged: !e.isFlagged } : e));
+		commitEmails(updatedEmails);
+	};
+
+	const openNewCompose = () => {
+		setComposeDraft(null);
+		setIsComposeOpen(true);
+	};
+
+	const closeCompose = () => {
+		setIsComposeOpen(false);
+		setComposeDraft(null);
+	};
+
 	const handleReply = () => {
 		const currentEmail = emails.find(e => e.id === selectedEmailId);
 		if (currentEmail) {
+			const subject = /^re:/i.test(currentEmail.subject)
+				? currentEmail.subject
+				: `Re: ${currentEmail.subject}`;
+			setComposeDraft({
+				to: currentEmail.from,
+				subject,
+				body: `\n\n--- On ${currentEmail.date}, ${currentEmail.from} wrote:\n> ${currentEmail.preview}`,
+			});
 			setIsComposeOpen(true);
 		}
+	};
+
+	const selectedEmailIndex = selectedEmailId
+		? displayEmails.findIndex(e => e.id === selectedEmailId)
+		: -1;
+	const hasPrevEmail = selectedEmailIndex > 0;
+	const hasNextEmail = selectedEmailIndex >= 0 && selectedEmailIndex < displayEmails.length - 1;
+
+	const handlePrevEmail = () => {
+		if (!hasPrevEmail) return;
+		const prev = displayEmails[selectedEmailIndex - 1];
+		if (prev) navigateToEmail(prev.id);
+	};
+
+	const handleNextEmail = () => {
+		if (!hasNextEmail) return;
+		const next = displayEmails[selectedEmailIndex + 1];
+		if (next) navigateToEmail(next.id);
 	};
 
 	const toggleEditMode = () => {
@@ -244,7 +293,9 @@ export function useMailState() {
 		selectedMailbox,
 		selectedEmailId,
 		isComposeOpen,
-		setIsComposeOpen,
+		composeDraft,
+		openNewCompose,
+		closeCompose,
 		expandedAccounts,
 		searchQuery,
 		setSearchQuery,
@@ -265,9 +316,14 @@ export function useMailState() {
 		handleSendEmail,
 		handleDeleteEmail,
 		handleArchiveEmail,
+		handleToggleFlag,
 		handleBatchDelete,
 		handleBatchArchive,
 		handleReply,
+		hasPrevEmail,
+		hasNextEmail,
+		handlePrevEmail,
+		handleNextEmail,
 		toggleEditMode,
 		animationClass,
 	};

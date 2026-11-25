@@ -1,10 +1,16 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Compass, Minus, Navigation, Plus } from 'lucide-react';
+import { Compass, Layers, Minus, Navigation, Plus } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings';
 import { triggerHaptic } from '../../utils/haptic';
-import { DEFAULT_CENTER, clampZoom, parseNominatimResults, type MapPlace } from './Maps/mapMath';
+import {
+	DEFAULT_CENTER,
+	clampZoom,
+	parseNominatimResults,
+	type MapPlace,
+	type MapStyle,
+} from './Maps/mapMath';
 import { MapViewport } from './Maps/MapViewport';
 import { MapsSheet } from './Maps/MapsSheet';
 
@@ -13,6 +19,7 @@ export default function Maps() {
 	const [center, setCenter] = useState({ lat: DEFAULT_CENTER.lat, lon: DEFAULT_CENTER.lon });
 	const [zoom, setZoom] = useState(DEFAULT_CENTER.zoom);
 	const [viewMode, setViewMode] = useState<'2D' | '3D'>('2D');
+	const [mapStyle, setMapStyle] = useState<MapStyle>('explore');
 	const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>({
 		lat: DEFAULT_CENTER.lat,
 		lon: DEFAULT_CENTER.lon,
@@ -113,7 +120,7 @@ export default function Maps() {
 
 	return (
 		<div
-			className={`maps-app w-full h-full relative overflow-hidden font-sans select-none ${
+			className={`maps-app @container w-full h-full relative overflow-hidden font-sans select-none ${
 				darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'
 			}`}
 		>
@@ -121,6 +128,7 @@ export default function Maps() {
 				center={center}
 				zoom={zoom}
 				viewMode={viewMode}
+				mapStyle={mapStyle}
 				darkMode={darkMode}
 				userLocation={userLocation}
 				selectedPlace={selectedPlace}
@@ -130,7 +138,20 @@ export default function Maps() {
 			/>
 
 			{/* Floating Action Island (Top Right) */}
-			<div className="absolute top-12 md:top-4 right-4 z-10 flex flex-col gap-2">
+			<div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+				<button
+					type="button"
+					onClick={() => {
+						triggerHaptic('light');
+						setMapStyle(prev => (prev === 'explore' ? 'satellite' : 'explore'));
+					}}
+					aria-label={mapStyle === 'explore' ? 'Switch to Satellite map' : 'Switch to Explore map'}
+					aria-pressed={mapStyle === 'satellite'}
+					className={`${glassBtn} ${mapStyle === 'satellite' ? 'text-white bg-ios-blue dark:bg-ios-blue border-transparent' : 'text-ios-blue'}`}
+				>
+					<Layers aria-hidden="true" size={16} />
+				</button>
+
 				<button
 					type="button"
 					onClick={() => {

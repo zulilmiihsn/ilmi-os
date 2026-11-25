@@ -9,16 +9,7 @@ function DesktopClock() {
 
 	useEffect(() => {
 		setMounted(true);
-		// Initial set
-		const now = new Date();
-		setCurrentTime(
-			now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-		);
-		setCurrentDate(
-			now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-		);
-
-		const interval = setInterval(() => {
+		const updateClock = () => {
 			const now = new Date();
 			setCurrentTime(
 				now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
@@ -26,7 +17,10 @@ function DesktopClock() {
 			setCurrentDate(
 				now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 			);
-		}, 1000);
+		};
+
+		updateClock();
+		const interval = setInterval(updateClock, 15_000);
 
 		return () => clearInterval(interval);
 	}, []);
@@ -34,7 +28,7 @@ function DesktopClock() {
 	if (!mounted) return null; // Prevent hydration mismatch
 
 	return (
-		<span className="text-xs font-medium text-black dark:text-white ml-1">
+		<span className="text-xs font-medium text-black dark:text-white ml-1 tabular-nums">
 			{currentDate} {currentTime}
 		</span>
 	);

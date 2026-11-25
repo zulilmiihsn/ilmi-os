@@ -128,14 +128,17 @@ export function projectPoint(
 	};
 }
 
-/** Computes the grid of Carto raster tiles covering a viewport with a 1-tile pan buffer. */
+export type MapStyle = 'explore' | 'satellite';
+
+/** Computes the grid of Carto or Esri raster tiles covering a viewport with a 1-tile pan buffer. */
 export function computeVisibleTiles(
 	centerLat: number,
 	centerLon: number,
 	zoom: number,
 	width: number,
 	height: number,
-	darkMode: boolean
+	darkMode: boolean,
+	mapStyle: MapStyle = 'explore'
 ): TileSpec[] {
 	const z = clampZoom(zoom);
 	const tileCount = Math.pow(2, z);
@@ -156,9 +159,13 @@ export function computeVisibleTiles(
 		const wrappedX = ((tx % tileCount) + tileCount) % tileCount;
 		for (let ty = minTy; ty <= maxTy; ty++) {
 			const sub = subdomains[Math.abs(wrappedX + ty) % subdomains.length] ?? 'a';
+			const url =
+				mapStyle === 'satellite'
+					? `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty}/${wrappedX}`
+					: `https://${sub}.basemaps.cartocdn.com/${style}/${z}/${wrappedX}/${ty}@2x.png`;
 			tiles.push({
-				key: `${z}/${wrappedX}/${ty}/${tx}`,
-				url: `https://${sub}.basemaps.cartocdn.com/${style}/${z}/${wrappedX}/${ty}@2x.png`,
+				key: `${mapStyle}/${z}/${wrappedX}/${ty}/${tx}`,
+				url,
 				left: Math.round(tx * TILE_SIZE - leftWorld),
 				top: Math.round(ty * TILE_SIZE - topWorld),
 			});

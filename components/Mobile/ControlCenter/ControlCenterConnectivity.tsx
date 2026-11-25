@@ -16,9 +16,11 @@ interface ControlCenterConnectivityProps {
 
 const activeBtnClass =
 	'bg-ios-blue text-white border-white/30 shadow-[0_0_18px_rgba(0,122,255,0.7)]';
+const activeAirplaneBtnClass =
+	'bg-ios-orange text-white border-white/30 shadow-[0_0_18px_rgba(255,149,0,0.7)]';
 const inactiveBtnClass = 'bg-white/10 text-white border-white/20';
 const baseBtnClass =
-	'w-full aspect-square rounded-full flex items-center justify-center transition-all active:scale-90 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_4px_12px_rgba(0,0,0,0.2)]';
+	'w-16 h-16 sm:w-[72px] sm:h-[72px] max-w-full aspect-square rounded-full flex items-center justify-center transition-all active:scale-90 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_4px_12px_rgba(0,0,0,0.2)]';
 
 export default function ControlCenterConnectivity({
 	airplaneMode,
@@ -31,21 +33,24 @@ export default function ControlCenterConnectivity({
 	onToggleBluetooth,
 }: ControlCenterConnectivityProps) {
 	return (
-		<div className="bg-white/10 p-3.5 rounded-[38px] border border-white/20 flex items-center justify-center aspect-square shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_8px_24px_0_rgba(0,0,0,0.25)]">
+		<div className="bg-white/10 p-3 rounded-[38px] border border-white/20 flex items-center justify-center aspect-square shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_8px_24px_0_rgba(0,0,0,0.25)]">
 			{/* 4 Big Circular Buttons inside Connectivity */}
-			<div className="grid grid-cols-2 gap-2.5 w-full">
+			<div className="grid grid-cols-2 place-items-center gap-2 w-full">
 				{/* 1. Airplane Mode (Top-Left: Bold Horizontal Plane) */}
 				<button
+					type="button"
 					onClick={() => {
 						triggerHaptic('light');
 						onToggleAirplaneMode();
 					}}
-					className={`${baseBtnClass} ${airplaneMode ? activeBtnClass : inactiveBtnClass}`}
+					className={`${baseBtnClass} ${airplaneMode ? activeAirplaneBtnClass : inactiveBtnClass}`}
 					aria-label="Airplane Mode"
+					aria-pressed={airplaneMode}
 				>
 					<svg
-						width="32"
-						height="32"
+						aria-hidden="true"
+						width="30"
+						height="30"
 						viewBox="0 0 24 24"
 						fill="currentColor"
 						stroke="currentColor"
@@ -60,16 +65,19 @@ export default function ControlCenterConnectivity({
 
 				{/* 2. AirDrop (Top-Right: Authentic Apple AirDrop 300-deg Concentric Spherical Beacon) */}
 				<button
+					type="button"
 					onClick={() => {
 						triggerHaptic('light');
 						onToggleAirdrop();
 					}}
 					className={`${baseBtnClass} ${airdrop && !airplaneMode ? activeBtnClass : inactiveBtnClass}`}
 					aria-label="AirDrop"
+					aria-pressed={airdrop && !airplaneMode}
 				>
 					<svg
-						width="32"
-						height="32"
+						aria-hidden="true"
+						width="30"
+						height="30"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -85,16 +93,19 @@ export default function ControlCenterConnectivity({
 
 				{/* 3. Wi-Fi (Bottom-Left: 3 Concentric Waves) */}
 				<button
+					type="button"
 					onClick={() => {
 						triggerHaptic('light');
 						onToggleWifi();
 					}}
 					className={`${baseBtnClass} ${wifi && !airplaneMode ? activeBtnClass : inactiveBtnClass}`}
 					aria-label="Wi-Fi"
+					aria-pressed={wifi && !airplaneMode}
 				>
 					<svg
-						width="32"
-						height="32"
+						aria-hidden="true"
+						width="30"
+						height="30"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -111,16 +122,19 @@ export default function ControlCenterConnectivity({
 
 				{/* 4. Bluetooth (Bottom-Right: Large Single Button) */}
 				<button
+					type="button"
 					onClick={() => {
 						triggerHaptic('light');
 						onToggleBluetooth();
 					}}
 					className={`${baseBtnClass} ${bluetooth ? activeBtnClass : inactiveBtnClass}`}
 					aria-label="Bluetooth"
+					aria-pressed={bluetooth}
 				>
 					<svg
-						width="32"
-						height="32"
+						aria-hidden="true"
+						width="30"
+						height="30"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"

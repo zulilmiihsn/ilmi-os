@@ -9,6 +9,7 @@ interface NoteListProps {
 	notes: Note[];
 	todayNotes: Note[];
 	previousNotes: Note[];
+	activeNoteId?: string | null;
 	searchQuery: string;
 	setSearchQuery: (q: string) => void;
 	selectionMode: boolean;
@@ -23,6 +24,7 @@ export default function NoteList({
 	notes,
 	todayNotes,
 	previousNotes,
+	activeNoteId = null,
 	searchQuery,
 	setSearchQuery,
 	selectionMode,
@@ -35,14 +37,15 @@ export default function NoteList({
 	return (
 		<div className="flex flex-col h-full select-none bg-[#f2f2f7] dark:bg-black text-black dark:text-white">
 			{/* Sticky Header */}
-			<div className="px-4 pt-10 pb-2 shrink-0 bg-[#f2f2f7] dark:bg-black">
+			<div className="px-4 pt-3 pb-2 shrink-0 bg-[#f2f2f7] dark:bg-black">
 				<div className="flex justify-end items-center mb-2">
 					<button
+						type="button"
 						onClick={() => {
 							triggerHaptic('light');
 							toggleSelectionMode();
 						}}
-						className="relative text-ios-yellow font-normal text-base active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
+						className="relative text-[#c98a00] dark:text-ios-yellow font-medium text-base active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 					>
 						{selectionMode ? 'Done' : 'Select'}
 					</button>
@@ -80,6 +83,7 @@ export default function NoteList({
 						/>
 						{searchQuery && (
 							<button
+								type="button"
 								onClick={() => setSearchQuery('')}
 								aria-label="Clear search"
 								className="relative text-gray-400 text-xs after:absolute after:-inset-2.5 after:content-['']"
@@ -94,8 +98,9 @@ export default function NoteList({
 			{/* Note List Items */}
 			<div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
 				{notes.length === 0 ? (
-					<div className="flex flex-col items-center justify-center h-64 text-gray-400">
+					<div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
 						<svg
+							aria-hidden="true"
 							className="w-14 h-14 mb-3 text-gray-300 dark:text-gray-700 opacity-60"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -114,7 +119,7 @@ export default function NoteList({
 					<>
 						{todayNotes.length > 0 && (
 							<div>
-								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">
+								<h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">
 									Today
 								</h2>
 								<div className="bg-white dark:bg-[#1C1C1E] rounded-xl overflow-hidden shadow-xs border border-black/5 dark:border-white/10 transition-colors">
@@ -124,6 +129,7 @@ export default function NoteList({
 											note={note}
 											onClick={handleNoteClick}
 											selectionMode={selectionMode}
+											isActive={activeNoteId === note.id}
 											isLast={index === todayNotes.length - 1}
 										/>
 									))}
@@ -133,7 +139,7 @@ export default function NoteList({
 
 						{previousNotes.length > 0 && (
 							<div>
-								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">
+								<h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">
 									Previous
 								</h2>
 								<div className="bg-white dark:bg-[#1C1C1E] rounded-xl overflow-hidden shadow-xs border border-black/5 dark:border-white/10 transition-colors">
@@ -143,6 +149,7 @@ export default function NoteList({
 											note={note}
 											onClick={handleNoteClick}
 											selectionMode={selectionMode}
+											isActive={activeNoteId === note.id}
 											isLast={index === previousNotes.length - 1}
 										/>
 									))}
@@ -154,16 +161,17 @@ export default function NoteList({
 			</div>
 
 			{/* Floating Liquid Glass Toolbar */}
-			<div className="shrink-0 p-4 pb-[max(env(safe-area-inset-bottom),2rem)] flex items-center justify-center">
+			<div className="shrink-0 p-4 pb-[max(env(safe-area-inset-bottom),1.25rem)] flex items-center justify-center">
 				<div className="w-full max-w-[340px] px-5 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 transition-all">
 					{selectionMode ? (
 						<>
-							<span className="text-xs text-gray-400">Batch select</span>
+							<span className="text-xs text-gray-500 dark:text-gray-400">Batch select</span>
 							<button
+								type="button"
 								className={`text-sm font-medium transition-opacity ${
 									selectedCount > 0
-										? 'text-red-500 active:scale-95'
-										: 'text-red-300 pointer-events-none'
+										? 'text-ios-red active:scale-95'
+										: 'text-red-300 dark:text-red-400/40 pointer-events-none'
 								}`}
 								onClick={() => {
 									triggerHaptic('medium');
@@ -177,17 +185,19 @@ export default function NoteList({
 					) : (
 						<>
 							<div className="w-8" />
-							<div className="text-xs text-gray-400 font-medium">{notes.length} Notes</div>
+							<div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+								{notes.length} {notes.length === 1 ? 'Note' : 'Notes'}
+							</div>
 							<button
 								type="button"
 								onClick={() => {
 									triggerHaptic('light');
 									createNewNote();
 								}}
-								className="relative text-ios-yellow p-1 active:scale-95 transition-transform after:absolute after:-inset-2 after:content-['']"
+								className="relative text-[#c98a00] dark:text-ios-yellow p-1 active:scale-95 transition-transform after:absolute after:-inset-2 after:content-['']"
 								aria-label="New Note"
 							>
-								<SquarePen aria-hidden="true" size={24} />
+								<SquarePen aria-hidden="true" size={22} />
 							</button>
 						</>
 					)}

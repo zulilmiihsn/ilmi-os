@@ -190,10 +190,27 @@ export function formatDayLabel(iso: string, now = new Date()): string {
 	return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-/** Initials for the gray avatar circle. */
+/** Initials for the contact avatar circle. */
 export function initials(name: string): string {
 	const parts = name.trim().split(/\s+/).filter(Boolean);
 	if (parts.length === 0) return '?';
 	if (parts.length === 1) return (parts[0]?.charAt(0) ?? '?').toUpperCase();
 	return `${parts[0]?.charAt(0) ?? ''}${parts[parts.length - 1]?.charAt(0) ?? ''}`.toUpperCase();
+}
+
+const AVATAR_GRADIENTS = [
+	'from-[#5ac8fa] to-[#007aff]',
+	'from-[#64d2ff] to-[#5e5ce6]',
+	'from-[#34c759] to-[#30b0c7]',
+	'from-[#ff9f0a] to-[#ff6b35]',
+	'from-[#8e8e93] to-[#636366]',
+] as const;
+
+/** Deterministic Apple-style gradient class for monogram avatars. */
+export function avatarGradient(name: string): string {
+	let hash = 0;
+	for (let i = 0; i < name.length; i += 1) {
+		hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+	}
+	return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length] ?? AVATAR_GRADIENTS[0];
 }

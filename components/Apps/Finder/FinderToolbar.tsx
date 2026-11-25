@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Search, X } from 'lucide-react';
 import { FileItem } from '../../../utils/fileSystem';
 import { DialogState } from './types';
 
@@ -83,12 +84,19 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 				{/* View mode toggle */}
 				<div className="flex items-center bg-gray-200/70 dark:bg-white/10 rounded-md p-0.5 ml-2">
 					<button
-						className={`relative w-7 h-6 flex items-center justify-center rounded transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-[''] ${viewMode === 'grid' ? 'bg-white dark:bg-white/20 shadow-xs' : 'hover:bg-white/50'}`}
+						type="button"
+						className={`relative w-7 h-6 flex items-center justify-center rounded transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-[''] ${
+							viewMode === 'grid'
+								? 'bg-white dark:bg-white/20 shadow-xs'
+								: 'hover:bg-white/50 dark:hover:bg-white/15'
+						}`}
 						onClick={() => setViewMode('grid')}
 						title="Icons View"
 						aria-label="Icons View"
+						aria-pressed={viewMode === 'grid'}
 					>
 						<svg
+							aria-hidden="true"
 							className="w-3.5 h-3.5"
 							viewBox="0 0 24 24"
 							fill="none"
@@ -102,12 +110,19 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 						</svg>
 					</button>
 					<button
-						className={`relative w-7 h-6 flex items-center justify-center rounded transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-[''] ${viewMode === 'list' ? 'bg-white dark:bg-white/20 shadow-xs' : 'hover:bg-white/50'}`}
+						type="button"
+						className={`relative w-7 h-6 flex items-center justify-center rounded transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-[''] ${
+							viewMode === 'list'
+								? 'bg-white dark:bg-white/20 shadow-xs'
+								: 'hover:bg-white/50 dark:hover:bg-white/15'
+						}`}
 						onClick={() => setViewMode('list')}
 						title="List View"
 						aria-label="List View"
+						aria-pressed={viewMode === 'list'}
 					>
 						<svg
+							aria-hidden="true"
 							className="w-3.5 h-3.5"
 							viewBox="0 0 24 24"
 							fill="none"
@@ -239,21 +254,27 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 				)}
 
 				{/* Search Bar */}
-				<div className="relative w-24 sm:w-36 shrink-0">
+				<div className="relative w-28 sm:w-40 shrink-0">
+					<Search
+						aria-hidden="true"
+						className="w-3.5 h-3.5 text-gray-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+					/>
 					<input
 						type="text"
 						placeholder="Search"
+						aria-label="Search Finder"
 						value={searchQuery}
 						onChange={e => setSearchQuery(e.target.value)}
-						className="w-full bg-white dark:bg-white/10 border border-gray-300/70 dark:border-white/10 rounded-md px-2.5 py-1 text-xs outline-none focus:border-ios-blue"
+						className="w-full bg-white dark:bg-white/10 border border-gray-300/70 dark:border-white/10 rounded-md pl-7 pr-6 py-1 text-xs outline-none focus:border-ios-blue"
 					/>
 					{searchQuery && (
 						<button
+							type="button"
 							onClick={() => setSearchQuery('')}
-							className="absolute right-1.5 top-1.5 text-gray-400 hover:text-gray-600"
+							className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5"
 							aria-label="Clear search"
 						>
-							×
+							<X aria-hidden="true" className="w-3 h-3" />
 						</button>
 					)}
 				</div>

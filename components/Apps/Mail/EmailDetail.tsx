@@ -13,6 +13,7 @@ import {
 	Trash2,
 } from 'lucide-react';
 import { Email } from './types';
+import { parseMailDate } from './mailSelectors';
 import { triggerHaptic } from '../../../utils/haptic';
 
 interface EmailDetailProps {
@@ -20,8 +21,14 @@ interface EmailDetailProps {
 	mailboxName?: string;
 	onBack: () => void;
 	onReply: () => void;
+	onNewEmail: () => void;
 	onDelete: (id: string) => void;
 	onArchive: (id: string) => void;
+	onToggleFlag: (id: string) => void;
+	onPrev: () => void;
+	onNext: () => void;
+	hasPrev: boolean;
+	hasNext: boolean;
 	darkMode: boolean;
 }
 
@@ -30,17 +37,36 @@ function EmailDetail({
 	mailboxName = 'All Inboxes',
 	onBack,
 	onReply,
+	onNewEmail,
 	onDelete,
 	onArchive,
+	onToggleFlag,
+	onPrev,
+	onNext,
+	hasPrev,
+	hasNext,
 	darkMode,
 }: EmailDetailProps) {
+	const parsedTimestamp = parseMailDate(email.date);
+	const formattedFullDate =
+		parsedTimestamp > 0
+			? new Date(parsedTimestamp).toLocaleString('en-US', {
+					weekday: 'long',
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric',
+					hour: 'numeric',
+					minute: '2-digit',
+				})
+			: email.date;
+
 	return (
 		<div
 			className={`flex flex-col h-full select-none ${darkMode ? 'bg-black text-white' : 'bg-white text-black'}`}
 		>
 			{/* Native iOS Detail Header */}
 			<div
-				className={`flex items-center justify-between px-4 pt-10 pb-2 border-b shrink-0 ${
+				className={`flex items-center justify-between px-4 pt-3 pb-2 border-b shrink-0 ${
 					darkMode ? 'bg-black/90 border-white/10' : 'bg-white/90 border-gray-100'
 				} backdrop-blur-md sticky top-0 z-10`}
 			>
@@ -49,23 +75,26 @@ function EmailDetail({
 						triggerHaptic('light');
 						onBack();
 					}}
-					className="relative flex items-center text-ios-blue text-base font-normal active:opacity-60 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
+					className="relative flex items-center text-ios-blue text-base font-normal @2xl:hidden active:opacity-60 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 				>
 					<ChevronLeft aria-hidden="true" size={18} className="mr-1.5" />
 					<span>{mailboxName}</span>
 				</button>
+				<div className="hidden @2xl:block" aria-hidden="true" />
 				<div className="flex items-center gap-5 text-ios-blue text-base">
 					<button
-						onClick={() => triggerHaptic('light')}
+						onClick={onPrev}
+						disabled={!hasPrev}
 						aria-label="Previous email"
-						className="relative p-1 active:opacity-60 transition-opacity after:absolute after:-inset-2.5 after:content-['']"
+						className="relative p-1 active:opacity-60 disabled:opacity-30 transition-opacity after:absolute after:-inset-2.5 after:content-['']"
 					>
 						<ChevronUp aria-hidden="true" size={16} />
 					</button>
 					<button
-						onClick={() => triggerHaptic('light')}
+						onClick={onNext}
+						disabled={!hasNext}
 						aria-label="Next email"
-						className="relative p-1 active:opacity-60 transition-opacity after:absolute after:-inset-2.5 after:content-['']"
+						className="relative p-1 active:opacity-60 disabled:opacity-30 transition-opacity after:absolute after:-inset-2.5 after:content-['']"
 					>
 						<ChevronDown aria-hidden="true" size={16} />
 					</button>
@@ -94,11 +123,15 @@ function EmailDetail({
 								</span>
 								{email.isVip && <Star aria-hidden="true" size={12} className="text-ios-yellow" />}
 							</div>
-							<div className="text-xs text-gray-400 font-medium">To: Me</div>
+							<div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+								To: {email.to || 'Me'}
+							</div>
 						</div>
 					</div>
 
-					<div className="text-xs text-gray-400 font-normal pt-1">{email.date}</div>
+					<div className="text-xs text-gray-500 dark:text-gray-400 font-normal pt-1">
+						{email.date}
+					</div>
 				</div>
 
 				{/* Subject Title */}
@@ -107,13 +140,8 @@ function EmailDetail({
 				</h1>
 
 				{/* Formatted Date & Time */}
-				<div className="text-xs text-gray-400 mb-6 pb-3 border-b border-gray-100 dark:border-white/10">
-					{new Date(email.date).toLocaleDateString('en-US', {
-						weekday: 'long',
-						year: 'numeric',
-						month: 'long',
-						day: 'numeric',
-					})}
+				<div className="text-xs text-gray-500 dark:text-gray-400 mb-6 pb-3 border-b border-gray-100 dark:border-white/10">
+					{formattedFullDate}
 				</div>
 
 				{/* Email Body */}
@@ -175,18 +203,21 @@ function EmailDetail({
 
 					{/* Flag */}
 					<button
-						onClick={() => triggerHaptic('light')}
-						className="relative text-ios-blue p-1.5 text-base active:scale-90 transition-transform after:absolute after:-inset-2 after:content-['']"
-						aria-label="Flag Email"
+						onClick={() => onToggleFlag(email.id)}
+						aria-pressed={Boolean(email.isFlagged)}
+						className={`relative p-1.5 text-base active:scale-90 transition-transform after:absolute after:-inset-2 after:content-[''] ${
+							email.isFlagged ? 'text-ios-orange' : 'text-ios-blue'
+						}`}
+						aria-label={email.isFlagged ? 'Unflag Email' : 'Flag Email'}
 					>
-						<Flag aria-hidden="true" size={16} />
+						<Flag aria-hidden="true" size={16} fill={email.isFlagged ? 'currentColor' : 'none'} />
 					</button>
 
 					{/* Compose */}
 					<button
 						onClick={() => {
 							triggerHaptic('light');
-							onReply();
+							onNewEmail();
 						}}
 						className="relative text-ios-blue p-1.5 text-base active:scale-90 transition-transform after:absolute after:-inset-2 after:content-['']"
 						aria-label="New Email"

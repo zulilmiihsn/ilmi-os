@@ -31,12 +31,15 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 			let finalX = x;
 			let finalY = y;
 
-			if (x + width > windowWidth) {
+			if (finalX + width > windowWidth - 4) {
 				finalX = x - width;
 			}
-			if (y + height > windowHeight) {
+			if (finalY + height > windowHeight - 4) {
 				finalY = y - height;
 			}
+
+			finalX = Math.max(4, finalX);
+			finalY = Math.max(32, finalY);
 
 			menuRef.current.style.left = `${finalX}px`;
 			menuRef.current.style.top = `${finalY}px`;
@@ -88,8 +91,8 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 			aria-label="Desktop context menu"
 			className="fixed z-[9999] min-w-[200px] py-1.5 rounded-lg bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl text-sm select-none animate-in fade-in zoom-in-95 duration-100"
 			style={{
-				left: x,
-				top: y,
+				left: Math.max(4, x),
+				top: Math.max(32, y),
 			}}
 		>
 			{menuItems.map((item, index) => {
@@ -106,11 +109,7 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 						className={`
 							w-[calc(100%-0.5rem)] text-left px-4 py-1.5 mx-1 rounded-md cursor-default
 							flex items-center justify-between
-							${
-								item.disabled
-									? 'opacity-50 cursor-not-allowed'
-									: 'hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600'
-							}
+							${item.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-ios-blue hover:text-white'}
 							text-gray-800 dark:text-gray-100 transition-colors duration-75
 						`}
 						onClick={e => {

@@ -25,6 +25,7 @@ function ClockTabBar({ activeTab, onTabChange }: ClockTabBarProps) {
 			case 'world':
 				return (
 					<svg
+						aria-hidden="true"
 						className={className}
 						fill="none"
 						stroke="currentColor"
@@ -38,6 +39,7 @@ function ClockTabBar({ activeTab, onTabChange }: ClockTabBarProps) {
 			case 'alarm':
 				return (
 					<svg
+						aria-hidden="true"
 						className={className}
 						fill="none"
 						stroke="currentColor"
@@ -55,6 +57,7 @@ function ClockTabBar({ activeTab, onTabChange }: ClockTabBarProps) {
 			case 'stopwatch':
 				return (
 					<svg
+						aria-hidden="true"
 						className={className}
 						fill="none"
 						stroke="currentColor"
@@ -72,6 +75,7 @@ function ClockTabBar({ activeTab, onTabChange }: ClockTabBarProps) {
 			case 'timer':
 				return (
 					<svg
+						aria-hidden="true"
 						className={className}
 						fill="none"
 						stroke="currentColor"
@@ -91,22 +95,26 @@ function ClockTabBar({ activeTab, onTabChange }: ClockTabBarProps) {
 	};
 
 	return (
-		<div className="shrink-0 p-4 pb-[max(env(safe-area-inset-bottom),2rem)] flex items-center justify-center select-none">
+		<div className="absolute bottom-[max(env(safe-area-inset-bottom),1rem)] left-4 right-4 z-20 flex items-center justify-center select-none pointer-events-none">
 			<div
-				className="w-full max-w-[360px] px-3 py-2 rounded-full backdrop-blur-2xl flex items-center justify-around border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15"
+				className="w-full max-w-[360px] px-3 py-2 rounded-full backdrop-blur-2xl flex items-center justify-around border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 pointer-events-auto"
 				role="tablist"
+				aria-label="Clock sections"
 			>
 				{tabs.map(tab => {
 					const isActive = activeTab === tab.id;
 					return (
 						<button
 							key={tab.id}
+							type="button"
 							onClick={() => {
 								triggerHaptic('light');
 								onTabChange(tab.id);
 							}}
 							className={`relative flex flex-col items-center justify-center py-2 px-3 rounded-2xl transition-all duration-200 active:scale-90 after:absolute after:-inset-y-0.5 after:content-[''] ${
-								isActive ? 'text-[#ff9f0a]' : 'text-ios-gray hover:text-gray-600'
+								isActive
+									? 'text-[#ff9f0a]'
+									: 'text-ios-gray hover:text-gray-900 dark:hover:text-white'
 							}`}
 							role="tab"
 							aria-selected={isActive}

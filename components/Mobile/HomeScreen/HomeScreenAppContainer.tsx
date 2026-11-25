@@ -68,7 +68,7 @@ function HomeScreenAppContainer({
 		<div
 			key={currentApp || appToOpen || 'app-container'}
 			ref={appContainerRef}
-			className={`ios-app fixed inset-0 z-50 bg-white dark:bg-black overflow-hidden select-none ${
+			className={`ios-app fixed inset-0 z-50 bg-white dark:bg-black text-black dark:text-white overflow-hidden select-none ${
 				isOpening ? 'ios-app-opening' : ''
 			}`}
 			style={{
@@ -102,37 +102,28 @@ function HomeScreenAppContainer({
 				)}
 			</div>
 
-			{/* iOS Bottom Bar Indicator - floating on top of all child content with high hit area and pointer capture */}
-			<div
-				className="ios-bottom-bar fixed bottom-0 left-0 right-0 z-70 flex items-end justify-center cursor-pointer touch-none select-none"
+			{/* iOS Bottom Bar Indicator - floating on top of all child content with pointer capture */}
+			<button
+				type="button"
+				className="ios-bottom-bar fixed bottom-0 left-0 right-0 z-70 flex items-end justify-center cursor-pointer touch-none select-none bg-transparent border-0 p-0 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue"
 				style={{
-					height: '36px',
-					paddingBottom: 'max(env(safe-area-inset-bottom), 5px)',
-					paddingTop: '6px',
+					height: '26px',
+					paddingBottom: 'max(env(safe-area-inset-bottom), 6px)',
 				}}
-				role="button"
-				tabIndex={0}
 				aria-label="Close app and return to home screen"
 				onPointerDown={onBottomPointerDown}
 				onPointerMove={onBottomPointerMove}
 				onPointerUp={onBottomPointerUp}
 				onPointerCancel={onBottomPointerCancel}
 				onClick={onCloseApp}
-				onKeyDown={e => {
-					if ((e.key === 'Enter' || e.key === ' ') && onCloseApp) {
-						e.preventDefault();
-						onCloseApp();
-					}
-				}}
 			>
-				<div
-					className="ios-bottom-bar-handle w-[134px] h-[5px] rounded-full transition-colors duration-300 pointer-events-none"
-					style={{
-						backgroundColor: statusBarColors.textColor,
-						boxShadow: '0 1px 4px rgba(0, 0, 0, 0.35)',
-					}}
+				<span
+					aria-hidden="true"
+					className={`ios-bottom-bar-handle w-[134px] h-[5px] rounded-full transition-colors duration-300 pointer-events-none ${
+						statusBarColors.textColor === '#ffffff' ? 'bg-white/60' : 'bg-black/35 dark:bg-white/60'
+					}`}
 				/>
-			</div>
+			</button>
 		</div>
 	);
 }

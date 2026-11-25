@@ -27,7 +27,8 @@ export default function ConnectivityGrid({
 		<div className="grid grid-cols-4 gap-2 mb-2.5">
 			{/* Wi-Fi */}
 			<button
-				className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
+				type="button"
+				className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-110 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
 					wifiEnabled ? 'bg-ios-blue' : 'bg-white/10'
 				}`}
 				onClick={onToggleWifi}
@@ -51,7 +52,8 @@ export default function ConnectivityGrid({
 
 			{/* Bluetooth */}
 			<button
-				className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
+				type="button"
+				className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-110 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
 					bluetoothEnabled ? 'bg-ios-blue' : 'bg-white/10'
 				}`}
 				onClick={onToggleBluetooth}
@@ -66,8 +68,9 @@ export default function ConnectivityGrid({
 
 			{/* Focus */}
 			<button
-				className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
-					focusEnabled ? 'bg-ios-blue' : 'bg-white/10'
+				type="button"
+				className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-110 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
+					focusEnabled ? 'bg-ios-indigo' : 'bg-white/10'
 				}`}
 				onClick={onToggleFocus}
 				aria-label={`Focus ${focusEnabled ? 'On' : 'Off'}`}
@@ -84,7 +87,8 @@ export default function ConnectivityGrid({
 
 			{/* AirDrop */}
 			<button
-				className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
+				type="button"
+				className={`aspect-square p-3 rounded-full transition-all flex items-center justify-center hover:brightness-110 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 ${
 					airdropEnabled ? 'bg-ios-blue' : 'bg-white/10'
 				}`}
 				onClick={onToggleAirdrop}

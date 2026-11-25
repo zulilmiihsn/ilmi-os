@@ -185,16 +185,17 @@ export default function Window({ window: windowProp, exposeTile, onExposeSelect 
 		windowStyle.opacity = 0;
 	} else {
 		windowStyle.width = windowState.isMaximized ? '100%' : `${windowState.width}px`;
-		windowStyle.height = windowState.isMaximized ? '100%' : `${windowState.height}px`;
+		windowStyle.height = windowState.isMaximized ? 'calc(100% - 28px)' : `${windowState.height}px`;
 		const transform = windowState.isMaximized
-			? 'translate3d(0, 0, 0)'
+			? 'translate3d(0, 28px, 0)'
 			: `translate3d(${windowState.x}px, ${windowState.y}px, 0)`;
 		windowStyle.transform = isClosing ? `${transform} scale(0.9)` : transform;
 	}
 
 	const containerClasses = [
 		'fixed flex flex-col',
-		'rounded-xl overflow-hidden',
+		windowState.isMaximized ? 'rounded-none' : 'rounded-xl',
+		'overflow-hidden',
 		'border border-black/10 dark:border-white/10',
 		'shadow-[0_0_0_1px_rgba(255,255,255,0.1)]',
 		'will-change-[transform,width,height]',
@@ -243,8 +244,9 @@ export default function Window({ window: windowProp, exposeTile, onExposeSelect 
 				/>
 
 				<div
-					className={`window-content flex-1 bg-white dark:bg-[#1E1E1E] overflow-hidden relative
-					${!windowState.isFocused && 'pointer-events-none opacity-95'}`}
+					className={`window-content flex-1 bg-white dark:bg-[#1E1E1E] text-black dark:text-white overflow-hidden relative ${
+						!windowState.isFocused ? 'pointer-events-none opacity-95' : ''
+					}`}
 				>
 					<div className="absolute inset-0 overflow-auto macos-scrollbar">
 						{Component && <Component />}

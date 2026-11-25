@@ -59,7 +59,7 @@ export default function EmailListPane({
 		>
 			{/* List Navigation Bar */}
 			<div
-				className={`pt-10 px-4 pb-2 flex items-center justify-between shrink-0 ${darkMode ? 'bg-black' : 'bg-white'}`}
+				className={`pt-3 px-4 pb-2 flex items-center justify-between shrink-0 ${darkMode ? 'bg-black' : 'bg-white'}`}
 			>
 				<button
 					onClick={onBack}

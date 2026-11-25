@@ -65,10 +65,11 @@ export default function Safari() {
 	};
 
 	const goBack = () => {
-		if (!active || active.hi <= 0) return;
+		if (!active || active.hi < 0) return;
 		triggerHaptic('light');
-		updateTab(active.id, { ...active, hi: active.hi - 1 });
-		setLoading(true);
+		const nextHi = active.hi - 1;
+		updateTab(active.id, { ...active, hi: nextHi });
+		setLoading(nextHi >= 0);
 	};
 
 	const goForward = () => {
@@ -215,27 +216,33 @@ export default function Safari() {
 				)}
 			</div>
 
-			<SafariToolbar
-				active={active}
-				url={url}
-				editing={editing}
-				addressText={addressText}
-				loading={loading}
-				saved={saved}
-				tabCount={tabs.length}
-				setAddressText={setAddressText}
-				setEditing={setEditing}
-				onNavigate={navigate}
-				onReload={reload}
-				onGoBack={goBack}
-				onGoForward={goForward}
-				onOpenExternal={openExternal}
-				onToggleBookmark={toggleCurrentBookmark}
-				onShowOverview={() => {
-					triggerHaptic('light');
-					setOverview(true);
-				}}
-			/>
+			{!overview && (
+				<SafariToolbar
+					tabs={tabs}
+					active={active}
+					url={url}
+					editing={editing}
+					addressText={addressText}
+					loading={loading}
+					saved={saved}
+					tabCount={tabs.length}
+					setAddressText={setAddressText}
+					setEditing={setEditing}
+					onNavigate={navigate}
+					onReload={reload}
+					onGoBack={goBack}
+					onGoForward={goForward}
+					onOpenExternal={openExternal}
+					onToggleBookmark={toggleCurrentBookmark}
+					onOpenTab={openTab}
+					onCloseTab={closeTab}
+					onAddTab={addTab}
+					onShowOverview={() => {
+						triggerHaptic('light');
+						setOverview(true);
+					}}
+				/>
+			)}
 		</div>
 	);
 }

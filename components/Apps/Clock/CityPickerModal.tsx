@@ -36,6 +36,7 @@ export default function CityPickerModal({
 				}}
 				onClick={e => e.stopPropagation()}
 				role="dialog"
+				aria-modal="true"
 				aria-label="Add city"
 				className="w-72 max-h-[70%] overflow-y-auto rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 shadow-2xl"
 			>
@@ -50,11 +51,12 @@ export default function CityPickerModal({
 						return (
 							<button
 								key={choice.timezone}
+								type="button"
 								onClick={() => onAddCity(choice.timezone)}
 								className="w-full px-4 py-3 flex items-center justify-between active:bg-black/5 dark:active:bg-white/10 transition-colors border-b last:border-b-0 border-black/5 dark:border-white/10"
 							>
 								<span className="text-[15px]">{choice.city}</span>
-								<span className="text-xs text-gray-400">
+								<span className="text-xs text-gray-500 dark:text-gray-400">
 									GMT{offset >= 0 ? `+${offset}` : offset}
 								</span>
 							</button>
@@ -62,8 +64,9 @@ export default function CityPickerModal({
 					})
 				)}
 				<button
+					type="button"
 					onClick={onClose}
-					className="w-full py-3 text-sm text-ios-blue font-semibold active:bg-black/5 dark:active:bg-white/10 transition-colors"
+					className="w-full py-3 text-sm text-[#ff9f0a] font-semibold active:bg-black/5 dark:active:bg-white/10 transition-colors"
 				>
 					Cancel
 				</button>

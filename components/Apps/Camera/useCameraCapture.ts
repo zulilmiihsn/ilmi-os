@@ -12,7 +12,7 @@ import {
 	subscribePhotosChanged,
 } from '../../../utils/photoStorage';
 import { TIMING } from '../../../constants';
-import type { CameraMode, FilterType } from './types';
+import type { CameraMode, FilterType, ZoomLevel } from './types';
 import { applyCanvasFilter } from './cameraFilters';
 
 interface UseCameraCaptureOptions {
@@ -21,9 +21,11 @@ interface UseCameraCaptureOptions {
 	stream: MediaStream | null;
 	setError: (msg: string) => void;
 	flashEnabled: boolean;
+	hdrEnabled: boolean;
 	timerSeconds: 0 | 3 | 10;
 	rotation: number;
 	currentFilter: FilterType;
+	zoom: ZoomLevel;
 }
 
 function savePhotoToStorage(photoData: string, setError: (msg: string) => void): boolean {
@@ -48,9 +50,11 @@ export function useCameraCapture({
 	stream,
 	setError,
 	flashEnabled,
+	hdrEnabled,
 	timerSeconds,
 	rotation,
 	currentFilter,
+	zoom,
 }: UseCameraCaptureOptions) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -100,6 +104,11 @@ export function useCameraCapture({
 				sourceHeight = Math.floor(sourceHeight / 2);
 			}
 
+			if (zoom > 1) {
+				sourceWidth = Math.max(1, Math.floor(sourceWidth / zoom));
+				sourceHeight = Math.max(1, Math.floor(sourceHeight / zoom));
+			}
+
 			const scaled = computeScaledDimensions(sourceWidth, sourceHeight, MAX_PHOTO_DIMENSION);
 			if (scaled.width === 0 || scaled.height === 0) return;
 
@@ -117,8 +126,8 @@ export function useCameraCapture({
 				const sy = (video.videoHeight - sourceHeight) / 2;
 				ctx.drawImage(video, sx, sy, sourceWidth, sourceHeight, 0, 0, scaled.width, scaled.height);
 
-				if (currentFilter !== 'none') {
-					applyCanvasFilter(ctx, scaled.width, scaled.height, currentFilter);
+				if (currentFilter !== 'none' || hdrEnabled) {
+					applyCanvasFilter(ctx, scaled.width, scaled.height, currentFilter, hdrEnabled);
 				}
 
 				ctx.restore();
@@ -129,7 +138,7 @@ export function useCameraCapture({
 				}
 			}
 		}
-	}, [flashEnabled, mode, rotation, currentFilter, videoRef, setError]);
+	}, [flashEnabled, hdrEnabled, mode, rotation, currentFilter, zoom, videoRef, setError]);
 
 	// Cancel a pending countdown when the capture mode changes or on unmount:
 	// a delayed capture must never fire with stale mode/filter settings.

@@ -10,11 +10,10 @@ export function useSystemStatus() {
 	const [isWifi, setIsWifi] = useState(true);
 
 	const batteryColor = useMemo(() => {
-		if (batteryLevel === null) return '#000000'; // Black for desktop
-		if (batteryLevel <= 20) return 'var(--color-ios-red)'; // Red
-		if (batteryLevel <= 50) return 'var(--color-ios-orange)'; // Orange
-		return '#000000'; // Black
-	}, [batteryLevel]);
+		if (batteryCharging) return '#34c759';
+		if (batteryLevel !== null && batteryLevel <= 20) return '#ff3b30';
+		return 'currentColor';
+	}, [batteryLevel, batteryCharging]);
 
 	const batteryFillWidth = useMemo(() => {
 		if (batteryLevel === null) return 100;

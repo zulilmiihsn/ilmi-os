@@ -84,7 +84,7 @@ describe('resolveInitialNotes (Tahap 2 hook logic)', () => {
 			save: vi.fn(),
 			loadVerify: vi.fn(),
 		});
-		expect(result.notes.map(n => n.title)).toContain('Welcome to iLmi Notes 📝');
+		expect(result.notes.map(n => n.title)).toContain('Welcome to iLmi Notes');
 		expect(result.skipInitialSave).toBe(true);
 		expect(result.removeLegacy).toBe(false);
 	});
@@ -141,7 +141,7 @@ describe('resolveInitialNotes (Tahap 2 hook logic)', () => {
 			save: vi.fn(),
 			loadVerify: vi.fn(),
 		});
-		expect(result.notes.map(n => n.title)).toContain('Welcome to iLmi Notes 📝');
+		expect(result.notes.map(n => n.title)).toContain('Welcome to iLmi Notes');
 		expect(result.skipInitialSave).toBe(false);
 		expect(result.removeLegacy).toBe(false);
 	});

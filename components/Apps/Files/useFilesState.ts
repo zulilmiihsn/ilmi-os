@@ -8,6 +8,7 @@ import {
 	getItemCount,
 	getItemsInFolder,
 	loadFileSystem,
+	subscribeFileSystemChanged,
 } from '../../../utils/fileSystem';
 import type { FileItem, FolderPath } from './types';
 import { migrateLegacyFilesStorage } from './utils';
@@ -44,6 +45,8 @@ export function useFilesState() {
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [showRenameDialog, setShowRenameDialog] = useState(false);
 	const [renameValue, setRenameValue] = useState('');
+	const [previewItem, setPreviewItem] = useState<FileItem | null>(null);
+	const [fsVersion, setFsVersion] = useState(0);
 	const [persistError, setPersistError] = useState<string | null>(null);
 	const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 	const [navigationDirection, setNavigationDirection] = useState<'forward' | 'back' | null>(null);
@@ -70,7 +73,13 @@ export function useFilesState() {
 	const loadItems = useCallback(() => {
 		if (!mounted) return;
 		setItems(getItemsInFolder(currentFolderId));
+		setFsVersion(v => v + 1);
 	}, [mounted, currentFolderId]);
+
+	useEffect(() => {
+		if (!mounted) return;
+		return subscribeFileSystemChanged(loadItems);
+	}, [mounted, loadItems]);
 
 	const handleUploadFiles = useCallback(
 		async (list: FileList | null) => {
@@ -99,22 +108,25 @@ export function useFilesState() {
 	}, [currentFolderId, mounted, activeTab, loadItems]);
 
 	const filteredItems = useMemo(() => {
+		void fsVersion;
 		if (activeTab === 'recents') {
 			const sevenDaysAgo = new Date();
 			sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 			const allItems = loadFileSystem().items;
-			return allItems
+			const recent = allItems
 				.filter((item: FileItem) => new Date(item.modified) >= sevenDaysAgo)
 				.sort(
 					(a: FileItem, b: FileItem) =>
 						new Date(b.modified).getTime() - new Date(a.modified).getTime()
 				)
 				.slice(0, 20);
+			if (!searchQuery) return recent;
+			return recent.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
 		}
 		if (activeTab === 'shared') return [];
 		if (!searchQuery) return items;
 		return items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
-	}, [items, searchQuery, activeTab]);
+	}, [items, searchQuery, activeTab, fsVersion]);
 
 	const sortedItems = useMemo(() => {
 		if (activeTab === 'recents') return filteredItems;
@@ -151,6 +163,9 @@ export function useFilesState() {
 				setSearchQuery('');
 				setIsAnimating(false);
 			}, 150);
+		} else if (item.type === 'file') {
+			setSelectedItemId(item.id);
+			setPreviewItem(item);
 		} else {
 			setSelectedItemId(item.id);
 		}
@@ -248,6 +263,8 @@ export function useFilesState() {
 		setShowRenameDialog,
 		renameValue,
 		setRenameValue,
+		previewItem,
+		setPreviewItem,
 		persistError,
 		longPressTimer,
 		setLongPressTimer,

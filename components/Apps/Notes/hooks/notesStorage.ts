@@ -56,7 +56,7 @@ export function readLegacyNotes(): Note[] | null {
 const DEFAULT_NOTES: Note[] = [
 	{
 		id: 'welcome-note-1',
-		title: 'Welcome to iLmi Notes 📝',
+		title: 'Welcome to iLmi Notes',
 		content:
 			'This is a full-featured macOS/iOS Notes simulator. You can create, edit, search, and delete notes.',
 		date: new Date(),

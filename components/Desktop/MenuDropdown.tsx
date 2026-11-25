@@ -29,15 +29,34 @@ export default function MenuDropdown({ items, isOpen, onClose }: MenuDropdownPro
 			}
 		}
 
-		function handleEscape(event: KeyboardEvent) {
-			if (event.key === 'Escape') onClose();
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key === 'Escape') {
+				onClose();
+				return;
+			}
+			if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+			const root = menuRef.current;
+			if (!root) return;
+			const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
+			if (buttons.length === 0) return;
+			event.preventDefault();
+			const activeEl = document.activeElement;
+			const currentIdx = buttons.findIndex(btn => btn === activeEl);
+			let nextIdx: number;
+			if (event.key === 'ArrowDown') {
+				nextIdx = currentIdx < 0 ? 0 : (currentIdx + 1) % buttons.length;
+			} else {
+				nextIdx =
+					currentIdx < 0 ? buttons.length - 1 : (currentIdx - 1 + buttons.length) % buttons.length;
+			}
+			buttons[nextIdx]?.focus();
 		}
 
 		document.addEventListener('mousedown', handleClickOutside);
-		document.addEventListener('keydown', handleEscape);
+		document.addEventListener('keydown', handleKeyDown);
 		return () => {
 			document.removeEventListener('mousedown', handleClickOutside);
-			document.removeEventListener('keydown', handleEscape);
+			document.removeEventListener('keydown', handleKeyDown);
 		};
 	}, [isOpen, onClose]);
 
@@ -47,27 +66,23 @@ export default function MenuDropdown({ items, isOpen, onClose }: MenuDropdownPro
 		<div
 			ref={menuRef}
 			role="menu"
-			className="absolute top-full left-0 mt-1 min-w-[220px] py-1.5 z-50 text-gray-900 overflow-hidden transform animate-in fade-in zoom-in-95 duration-100"
-			style={{
-				background: 'rgba(255, 255, 255, 0.15)',
-				backdropFilter: 'blur(20px) saturate(180%)',
-				borderRadius: '16px',
-				border: '1px solid rgba(255, 255, 255, 0.2)',
-				boxShadow:
-					'0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -1px 2px rgba(0, 0, 0, 0.1)',
-			}}
+			className="absolute top-full left-0 mt-1 min-w-[220px] py-1.5 z-50 rounded-xl bg-white/90 dark:bg-[#1e1e20]/92 text-gray-900 dark:text-gray-100 border border-black/10 dark:border-white/15 backdrop-blur-2xl shadow-2xl overflow-hidden transform animate-in fade-in zoom-in-95 duration-150"
 		>
 			{items.map((item, index) => {
 				if (item.type === 'separator') {
-					return <div key={index} className="h-[1px] bg-gray-300/50 my-1 rounded-full mx-3" />;
+					return (
+						<div
+							key={index}
+							className="h-[1px] bg-black/10 dark:bg-white/15 my-1 rounded-full mx-3"
+						/>
+					);
 				}
 
 				return (
 					<button
 						key={index}
-						className={`w-full text-left flex items-center justify-between px-3 py-[3px] text-[13px] leading-none hover:bg-blue-500 hover:text-white transition-colors rounded-[4px] mx-1 mb-[1px] disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-black/90 ${
-							item.disabled ? 'cursor-default' : 'cursor-default'
-						}`}
+						type="button"
+						className="w-full text-left flex items-center justify-between px-3 py-1 text-[13px] leading-none hover:bg-ios-blue hover:text-white focus:bg-ios-blue focus:text-white focus:outline-none transition-colors rounded-[5px] mx-1 mb-[1px] cursor-default disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-inherit"
 						onClick={e => {
 							e.stopPropagation();
 							if (!item.disabled && item.action) {

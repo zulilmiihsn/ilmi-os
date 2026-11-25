@@ -37,11 +37,14 @@ export default function ActionSheet({
 			onKeyDown={e => {
 				if (e.key === 'Escape') onClose();
 			}}
-			className="absolute inset-0 backdrop-blur-sm bg-black/30 flex items-end justify-center z-50 animate-fade-in"
+			className="absolute inset-0 backdrop-blur-sm bg-black/30 flex items-end justify-center z-50"
 			onClick={onClose}
 		>
 			<div
-				className={`${darkMode ? 'bg-ios-dark-gray6/95 border-ios-dark-separator' : 'bg-white/95 border-ios-separator/50'} backdrop-blur-md rounded-t-2xl w-full max-w-md pb-safe animate-slide-up shadow-2xl transition-colors`}
+				role="dialog"
+				aria-modal="true"
+				aria-label={`Actions for ${itemName}`}
+				className={`${darkMode ? 'bg-ios-dark-gray6/95 border-ios-dark-separator' : 'bg-white/95 border-ios-separator/50'} backdrop-blur-md rounded-t-2xl w-full max-w-md pb-safe shadow-2xl transition-colors`}
 				onClick={e => e.stopPropagation()}
 			>
 				<div
@@ -53,12 +56,15 @@ export default function ActionSheet({
 					className={`divide-y ${darkMode ? 'divide-ios-dark-separator' : 'divide-ios-separator/50'}`}
 				>
 					<button
+						type="button"
+						autoFocus
 						onClick={onRename}
 						className="w-full py-4 text-center text-ios-blue font-medium active:bg-ios-gray6/10 transition-colors"
 					>
 						Rename
 					</button>
 					<button
+						type="button"
 						onClick={onDelete}
 						className="w-full py-4 text-center text-ios-red font-medium active:bg-ios-gray6/10 transition-colors"
 					>
@@ -67,6 +73,7 @@ export default function ActionSheet({
 				</div>
 				<div className={`h-2 ${darkMode ? 'bg-ios-dark-gray5' : 'bg-ios-gray6/50'}`} />
 				<button
+					type="button"
 					onClick={onClose}
 					className="w-full py-4 text-center text-ios-blue font-semibold active:bg-ios-gray6/10 transition-colors"
 				>

@@ -57,7 +57,7 @@ export function buildMenus({
 		},
 		{ type: 'separator' },
 		{
-			label: 'System Preferences...',
+			label: 'System Settings...',
 			action: openSettings,
 		},
 		{ type: 'separator' },
@@ -74,7 +74,7 @@ export function buildMenus({
 
 	const getAppMenu = (): MenuItem[] => [
 		{
-			label: 'Preferences...',
+			label: 'Settings...',
 			shortcut: '⌘,',
 			action: openSettings,
 		},

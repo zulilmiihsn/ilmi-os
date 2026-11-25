@@ -7,28 +7,45 @@ import ConnectivityGrid from './ControlCenter/ConnectivityGrid';
 import MediaBatterySection from './ControlCenter/MediaBatterySection';
 import SmoothSlider from './ControlCenter/SmoothSlider';
 
+const DEFAULT_TRACK = {
+	title: 'Midnight Jazz Session',
+	artist: 'Blue Note Quartet',
+} as const;
+
+const TRACKS = [
+	DEFAULT_TRACK,
+	{
+		title: 'Kyoto Rain (Ambient)',
+		artist: 'Hana Takahashi',
+	},
+	{
+		title: 'Late Night Coding',
+		artist: 'Lo-Fi Study Collective',
+	},
+] as const;
+
 export default function ControlCenter() {
 	const isOpen = useControlCenterStore(state => state.isOpen);
 	const close = useControlCenterStore(state => state.close);
 
-	// Connectivity states
-	const [wifiEnabled, setWifiEnabled] = useState(true);
-	const [bluetoothEnabled, setBluetoothEnabled] = useState(true);
-	const [airdropEnabled, setAirdropEnabled] = useState(true);
-
-	// Focus state
-	const [focusEnabled, setFocusEnabled] = useState(false);
-
-	// Display & Sound
-	const [displayBrightness, setDisplayBrightness] = useState(75);
-	const [soundVolume, setSoundVolume] = useState(25);
+	// Shared connectivity, focus, display & sound state
+	const wifiEnabled = useControlCenterStore(state => state.wifi);
+	const toggleWifi = useControlCenterStore(state => state.toggleWifi);
+	const bluetoothEnabled = useControlCenterStore(state => state.bluetooth);
+	const toggleBluetooth = useControlCenterStore(state => state.toggleBluetooth);
+	const airdropEnabled = useControlCenterStore(state => state.airdrop);
+	const toggleAirdrop = useControlCenterStore(state => state.toggleAirdrop);
+	const focusEnabled = useControlCenterStore(state => state.focusMode);
+	const toggleFocusMode = useControlCenterStore(state => state.toggleFocusMode);
+	const displayBrightness = useControlCenterStore(state => state.brightness);
+	const setDisplayBrightness = useControlCenterStore(state => state.setBrightness);
+	const soundVolume = useControlCenterStore(state => state.volume);
+	const setSoundVolume = useControlCenterStore(state => state.setVolume);
 
 	// Music player
 	const [isPlaying, setIsPlaying] = useState(true);
-	const currentTrack = {
-		title: 'Relaxing Instrumental J...',
-		artist: 'Jazz Guitar Club - Relaxing In...',
-	};
+	const [trackIndex, setTrackIndex] = useState(0);
+	const currentTrack = TRACKS[trackIndex] ?? DEFAULT_TRACK;
 
 	// Battery info
 	const [batteryLevel, setBatteryLevel] = useState<number | null>(84);
@@ -44,6 +61,18 @@ export default function ControlCenter() {
 		}
 		updateBattery();
 	}, []);
+
+	useEffect(() => {
+		if (!isOpen) return;
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				close();
+			}
+		}
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [isOpen, close]);
 
 	return (
 		<>
@@ -68,19 +97,21 @@ export default function ControlCenter() {
 				}`}
 				onClick={e => e.stopPropagation()}
 				data-debug="control-center"
+				role={isOpen ? 'dialog' : undefined}
+				aria-label={isOpen ? 'Control Center' : undefined}
 				aria-hidden={!isOpen}
 			>
 				<div className="control-center-content">
 					{/* Top Section: Connectivity & Quick Actions - Compact Grid */}
 					<ConnectivityGrid
 						wifiEnabled={wifiEnabled}
-						onToggleWifi={() => setWifiEnabled(!wifiEnabled)}
+						onToggleWifi={toggleWifi}
 						bluetoothEnabled={bluetoothEnabled}
-						onToggleBluetooth={() => setBluetoothEnabled(!bluetoothEnabled)}
+						onToggleBluetooth={toggleBluetooth}
 						focusEnabled={focusEnabled}
-						onToggleFocus={() => setFocusEnabled(!focusEnabled)}
+						onToggleFocus={toggleFocusMode}
 						airdropEnabled={airdropEnabled}
-						onToggleAirdrop={() => setAirdropEnabled(!airdropEnabled)}
+						onToggleAirdrop={toggleAirdrop}
 					/>
 
 					{/* Middle Section: Display & Sound - Stacked Bars */}
@@ -108,7 +139,9 @@ export default function ControlCenter() {
 					{/* Bottom Section: Music Player & Battery - Compact */}
 					<MediaBatterySection
 						isPlaying={isPlaying}
-						onTogglePlay={() => setIsPlaying(!isPlaying)}
+						onTogglePlay={() => setIsPlaying(prev => !prev)}
+						onPrevTrack={() => setTrackIndex(prev => (prev - 1 + TRACKS.length) % TRACKS.length)}
+						onNextTrack={() => setTrackIndex(prev => (prev + 1) % TRACKS.length)}
 						trackTitle={currentTrack.title}
 						trackArtist={currentTrack.artist}
 						batteryLevel={batteryLevel}

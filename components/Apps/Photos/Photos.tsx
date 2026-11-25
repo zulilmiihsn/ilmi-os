@@ -19,7 +19,14 @@ import PhotosSidebar from './components/PhotosSidebar';
 import PhotoGrid from './components/PhotoGrid';
 import PhotoViewerModal from './components/PhotoViewerModal';
 import { triggerHaptic } from '../../../utils/haptic';
-import type { Album, PhotosTab } from './types';
+import type { Album, PhotosTab, ViewMode } from './types';
+
+const VIEW_MODES: { id: ViewMode; label: string }[] = [
+	{ id: 'years', label: 'Years' },
+	{ id: 'months', label: 'Months' },
+	{ id: 'days', label: 'Days' },
+	{ id: 'all', label: 'All' },
+];
 
 function renderTabIcon(id: PhotosTab, isActive: boolean) {
 	const className = `w-6 h-6 mb-0.5 ${isActive ? 'stroke-[2.1]' : 'stroke-[1.6]'}`;
@@ -79,6 +86,8 @@ export default function Photos() {
 	const {
 		activeTab,
 		setActiveTab,
+		viewMode,
+		setViewMode,
 		selectedAlbum,
 		setSelectedAlbum,
 		selectedPhoto,
@@ -189,7 +198,7 @@ export default function Photos() {
 			{/* Main Content Area */}
 			<div className="flex-1 flex flex-col overflow-hidden relative">
 				{/* Top Bar Header */}
-				<div className="pt-10 md:pt-5 px-4 pb-2.5 bg-[#f2f2f7] dark:bg-[#0d0d0f] shrink-0">
+				<div className="pt-3 md:pt-5 px-4 pb-2.5 bg-[#f2f2f7] dark:bg-[#0d0d0f] shrink-0">
 					{selectedAlbum && (
 						<button
 							type="button"
@@ -234,6 +243,40 @@ export default function Photos() {
 							</button>
 						</div>
 					</div>
+
+					{/* Library View Mode Segmented Control */}
+					{activeTab === 'library' && selectedAlbum === null && (
+						<div className="mt-2.5 flex justify-center sm:justify-start">
+							<div
+								role="tablist"
+								aria-label="Library grouping"
+								className="inline-flex items-center p-0.5 rounded-full bg-black/5 dark:bg-white/10"
+							>
+								{VIEW_MODES.map(m => {
+									const isActive = viewMode === m.id;
+									return (
+										<button
+											key={m.id}
+											type="button"
+											role="tab"
+											aria-selected={isActive}
+											onClick={() => {
+												triggerHaptic('light');
+												setViewMode(m.id);
+											}}
+											className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+												isActive
+													? 'bg-white dark:bg-[#2c2c2e] text-black dark:text-white shadow-xs'
+													: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+											}`}
+										>
+											{m.label}
+										</button>
+									);
+								})}
+							</div>
+						</div>
+					)}
 
 					{/* Search Input when in Search tab */}
 					{activeTab === 'search' && selectedAlbum === null && (
@@ -286,7 +329,7 @@ export default function Photos() {
 				</div>
 
 				{/* Grid / Albums Scroll Area */}
-				<div className="flex-1 overflow-y-auto px-1 pb-24">
+				<div className="flex-1 overflow-y-auto px-1 pb-24 md:pb-6">
 					{showAlbumsOverview ? (
 						<AlbumCardsGrid
 							albums={albums}
@@ -298,6 +341,7 @@ export default function Photos() {
 					) : (
 						<PhotoGrid
 							photos={currentDisplayPhotos}
+							viewMode={activeTab === 'library' && selectedAlbum === null ? viewMode : 'all'}
 							onSelectPhoto={photo => {
 								triggerHaptic('light');
 								setSelectedPhotoId(photo.id);
@@ -312,14 +356,20 @@ export default function Photos() {
 				</div>
 
 				{/* iOS Floating Liquid Glass Tab Bar */}
-				<div className="md:hidden pb-safe absolute bottom-[max(env(safe-area-inset-bottom),1.25rem)] left-4 right-4 z-20 flex justify-center pointer-events-none">
-					<div className="w-full max-w-[340px] px-3 py-2 rounded-full backdrop-blur-2xl flex items-center justify-around border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 pointer-events-auto">
+				<div className="md:hidden pb-safe absolute bottom-3 left-4 right-4 z-20 flex justify-center pointer-events-none">
+					<div
+						role="tablist"
+						aria-label="Photos navigation"
+						className="w-full max-w-[340px] px-3 py-2 rounded-full backdrop-blur-2xl flex items-center justify-around border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 pointer-events-auto"
+					>
 						{tabs.map(tab => {
 							const isActive = activeTab === tab.id;
 							return (
 								<button
 									key={tab.id}
 									type="button"
+									role="tab"
+									aria-selected={isActive}
 									onClick={() => {
 										triggerHaptic('light');
 										setSelectedAlbum(null);

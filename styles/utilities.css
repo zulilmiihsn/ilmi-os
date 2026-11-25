@@ -1,6 +1,6 @@
 @layer utilities {
 	.pt-safe-top {
-		padding-top: max(env(safe-area-inset-top), 32px);
+		padding-top: max(env(safe-area-inset-top), 44px);
 	}
 
 	.safe-area-bottom {

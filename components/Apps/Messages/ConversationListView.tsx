@@ -2,7 +2,13 @@
 
 import type React from 'react';
 import { ChevronRight, Search, SquarePen, X } from 'lucide-react';
-import { formatMessageTime, initials, lastMessage, type Conversation } from './conversations';
+import {
+	avatarGradient,
+	formatMessageTime,
+	initials,
+	lastMessage,
+	type Conversation,
+} from './conversations';
 
 interface ConversationListViewProps {
 	scrollRef: React.RefObject<HTMLDivElement>;
@@ -23,12 +29,12 @@ export function ConversationListView({
 }: ConversationListViewProps) {
 	return (
 		<>
-			<div className="pt-10 px-4 pb-2 shrink-0">
+			<div className="pt-3 px-4 pb-2 shrink-0">
 				<h1 className="text-ios-large-title">Messages</h1>
 			</div>
 			<div ref={scrollRef} className="flex-1 overflow-y-auto pb-4">
 				{visible.length === 0 ? (
-					<div className="flex flex-col items-center justify-center h-full text-gray-400 px-8 text-center">
+					<div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 px-8 text-center">
 						<p className="text-lg font-semibold mb-1">{query ? 'No Results' : 'No Messages'}</p>
 						<p className="text-sm">
 							{query ? `Nothing matches “${query.trim()}”.` : 'Start one with the compose button.'}
@@ -43,11 +49,17 @@ export function ConversationListView({
 									<button
 										onClick={() => onOpenConvo(c.id)}
 										aria-label={`${c.name}${c.read ? '' : ', unread'}`}
-										className="w-full flex items-center gap-3 pl-4 pr-3 min-h-[86px] py-3 text-left active:bg-black/5 dark:active:bg-white/10 transition-colors"
+										className="w-full flex items-center gap-2.5 pl-2.5 pr-3 min-h-[82px] py-2.5 text-left active:bg-black/5 dark:active:bg-white/10 transition-colors"
 									>
 										<span
 											aria-hidden="true"
-											className="w-[45px] h-[45px] rounded-full bg-gray-300 dark:bg-gray-600 text-white text-[21px] font-semibold flex items-center justify-center shrink-0"
+											className="w-3 shrink-0 flex items-center justify-center"
+										>
+											{!c.read && <span className="w-2.5 h-2.5 rounded-full bg-ios-blue" />}
+										</span>
+										<span
+											aria-hidden="true"
+											className={`w-[45px] h-[45px] rounded-full bg-gradient-to-br ${avatarGradient(c.name)} text-white text-[18px] font-semibold flex items-center justify-center shrink-0 shadow-xs`}
 										>
 											{initials(c.name)}
 										</span>
@@ -60,14 +72,11 @@ export function ConversationListView({
 												>
 													{c.name}
 												</span>
-												<span className="flex items-center gap-1.5 shrink-0">
-													{!c.read && <span className="w-2.5 h-2.5 rounded-full bg-ios-blue" />}
-													<span className="text-[15px] text-gray-400">
-														{last ? formatMessageTime(last.sentAt) : ''}
-													</span>
+												<span className="text-[14px] text-gray-500 dark:text-gray-400 shrink-0">
+													{last ? formatMessageTime(last.sentAt) : ''}
 												</span>
 											</span>
-											<span className="block text-[15px] leading-5 text-gray-400 line-clamp-2">
+											<span className="block text-[15px] leading-5 text-gray-500 dark:text-gray-400 line-clamp-2">
 												{last?.text ?? ''}
 											</span>
 										</span>
@@ -80,7 +89,7 @@ export function ConversationListView({
 									{i < visible.length - 1 && (
 										<span
 											aria-hidden="true"
-											className="block h-px ml-[73px] bg-black/5 dark:bg-white/10"
+											className="block h-px ml-[78px] bg-black/5 dark:bg-white/10"
 										/>
 									)}
 								</li>
@@ -93,20 +102,24 @@ export function ConversationListView({
 			{/* Bottom bar: search pill + separate compose button (iOS 26) */}
 			<div className="shrink-0 px-4 pb-[max(env(safe-area-inset-bottom),1.75rem)] flex items-end gap-3">
 				<div className="flex-1 flex items-center rounded-full px-4 h-12 border bg-black/5 dark:bg-white/10 border-black/5 dark:border-white/10">
-					<Search aria-hidden="true" size={16} className="text-gray-400 mr-2 shrink-0" />
+					<Search
+						aria-hidden="true"
+						size={16}
+						className="text-gray-500 dark:text-gray-400 mr-2 shrink-0"
+					/>
 					<input
 						type="text"
 						value={query}
 						onChange={e => setQuery(e.target.value)}
 						placeholder="Search"
 						aria-label="Search conversations"
-						className="flex-1 bg-transparent border-none outline-none text-[17px] placeholder-gray-400 min-w-0"
+						className="flex-1 bg-transparent border-none outline-none text-[17px] placeholder-gray-500 dark:placeholder-gray-400 min-w-0"
 					/>
 					{query && (
 						<button
 							onClick={() => setQuery('')}
 							aria-label="Clear search"
-							className="text-gray-400 ml-2"
+							className="text-gray-500 dark:text-gray-400 ml-2"
 						>
 							<X aria-hidden="true" size={14} />
 						</button>

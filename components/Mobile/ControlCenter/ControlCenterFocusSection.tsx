@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { BedDouble, Briefcase, Moon, User, type LucideIcon } from 'lucide-react';
 import { triggerHaptic } from '../../../utils/haptic';
 
@@ -77,12 +77,9 @@ export default function ControlCenterFocusSection({
 	onToggleSilentMode,
 	onSetActiveFocus,
 }: ControlCenterFocusSectionProps) {
-	const [flipDegree, setFlipDegree] = useState(0);
-
-	// 3D Flip Focus Cycle
+	// Cycle through Focus modes
 	const handleFocusCycle = () => {
 		triggerHaptic('medium');
-		setFlipDegree(prev => prev + 360);
 
 		if (!activeFocus) {
 			onSetActiveFocus('Do Not Disturb');
@@ -102,24 +99,27 @@ export default function ControlCenterFocusSection({
 
 	return (
 		<div className="flex flex-col justify-between">
-			{/* Top Row: 2 Big Circular Solid-White / Red Buttons (Exact iOS Screenshot) */}
-			<div className="flex items-center justify-between gap-3">
+			{/* Top Row: 2 Big Circular Solid-White / Red Buttons */}
+			<div className="flex items-center justify-between gap-2.5">
 				{/* Orientation Lock (Dynamic Active White/Red vs Inactive Liquid Glass) */}
 				<button
+					type="button"
 					onClick={() => {
 						triggerHaptic('light');
 						onToggleOrientationLock();
 					}}
-					className={`w-[72px] h-[72px] rounded-full border flex items-center justify-center transition-all active:scale-90 ${
+					className={`w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full border flex items-center justify-center transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-90 ${
 						orientationLock
 							? 'bg-white text-ios-red border-white/40 shadow-[0_4px_18px_rgba(0,0,0,0.25)]'
 							: 'bg-white/10 text-white border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]'
 					}`}
 					aria-label="Orientation Lock"
+					aria-pressed={orientationLock}
 				>
 					<svg
-						width="34"
-						height="34"
+						aria-hidden="true"
+						width="32"
+						height="32"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -144,21 +144,24 @@ export default function ControlCenterFocusSection({
 
 				{/* Silent Mode / Bell (Dynamic Active White/Red vs Inactive Liquid Glass) */}
 				<button
+					type="button"
 					onClick={() => {
 						triggerHaptic('light');
 						onToggleSilentMode();
 					}}
-					className={`w-[72px] h-[72px] rounded-full border flex items-center justify-center transition-all active:scale-90 ${
+					className={`w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full border flex items-center justify-center transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-90 ${
 						silentMode
 							? 'bg-white text-ios-red border-white/40 shadow-[0_4px_18px_rgba(0,0,0,0.25)]'
 							: 'bg-white/10 text-white border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]'
 					}`}
 					aria-label="Silent Mode"
+					aria-pressed={silentMode}
 				>
 					{silentMode ? (
 						<svg
-							width="34"
-							height="34"
+							aria-hidden="true"
+							width="32"
+							height="32"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
@@ -172,8 +175,9 @@ export default function ControlCenterFocusSection({
 						</svg>
 					) : (
 						<svg
-							width="34"
-							height="34"
+							aria-hidden="true"
+							width="32"
+							height="32"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
@@ -188,23 +192,19 @@ export default function ControlCenterFocusSection({
 				</button>
 			</div>
 
-			{/* Focus Capsule with 3D Flip/Spin on Click */}
-			<div className="perspective-500 w-full">
+			{/* Focus Capsule with crisp scale spring */}
+			<div className="w-full">
 				<button
+					type="button"
 					onClick={handleFocusCycle}
-					style={{
-						transform: `perspective(600px) rotateX(${flipDegree}deg)`,
-						transition:
-							'transform 0.42s cubic-bezier(0.34, 1.45, 0.64, 1), background-color 0.3s ease',
-					}}
-					className={`w-full h-[72px] rounded-full border shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-between px-4 select-none ${focusInfo.bg} ${focusInfo.border} ${focusInfo.shadow} text-white active:scale-95`}
+					className={`w-full h-16 sm:h-[72px] rounded-full border shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-between px-4 select-none transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${focusInfo.bg} ${focusInfo.border} ${focusInfo.shadow} text-white active:scale-[0.95]`}
 					aria-label="Cycle Focus Mode"
 				>
 					<div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
 						<div className="w-10 h-10 rounded-full bg-white/20 border border-white/15 flex items-center justify-center flex-shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
 							<FocusIcon aria-hidden="true" size={18} />
 						</div>
-						{/* Text container with elegant gradient fade-out / shade away mask */}
+						{/* Text container with gradient fade-out mask */}
 						<div
 							className="flex-1 overflow-hidden whitespace-nowrap"
 							style={{
@@ -218,6 +218,7 @@ export default function ControlCenterFocusSection({
 						</div>
 					</div>
 					<svg
+						aria-hidden="true"
 						width="14"
 						height="14"
 						viewBox="0 0 24 24"

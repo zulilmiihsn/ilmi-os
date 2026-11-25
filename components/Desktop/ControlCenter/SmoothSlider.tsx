@@ -20,13 +20,7 @@ const SLIDER_ICONS: Record<string, LucideIcon> = {
 	'broadcast-tower': RadioTower,
 };
 
-export default function SmoothSlider({
-	value,
-	onChange,
-	icon,
-	label: _label,
-	endIcon,
-}: SmoothSliderProps) {
+export default function SmoothSlider({ value, onChange, icon, label, endIcon }: SmoothSliderProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const fillRef = useRef<HTMLDivElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
@@ -54,7 +48,7 @@ export default function SmoothSlider({
 			};
 
 			const offsetX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-			const percentage = (offsetX / rect.width) * 100;
+			const percentage = Math.round((offsetX / rect.width) * 100);
 
 			if (fillRef.current) {
 				fillRef.current.style.width = `${percentage}%`;
@@ -128,46 +122,65 @@ export default function SmoothSlider({
 		[value, onChange]
 	);
 
-	return (
-		<div
-			ref={containerRef}
-			role="slider"
-			tabIndex={0}
-			aria-label={_label || 'Level control'}
-			aria-valuemin={0}
-			aria-valuemax={100}
-			aria-valuenow={Math.round(value)}
-			className="relative h-11 w-full bg-black/20 dark:bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden cursor-pointer group select-none touch-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue"
-			onMouseDown={e => {
-				e.preventDefault();
-				handleStart(e.clientX);
-			}}
-			onTouchStart={e => {
-				const touch = e.touches[0];
-				if (!touch) return;
-				handleStart(touch.clientX);
-			}}
-			onKeyDown={handleKeyDown}
-		>
-			{/* Fill Bar */}
-			<div
-				ref={fillRef}
-				className="absolute top-0 left-0 bottom-0 bg-white dark:bg-white transition-[width] duration-200 ease-out"
-				style={{ width: `${value}%` }}
-			/>
+	const clampedValue = Math.round(value);
+	const startIconOnFill = clampedValue >= 14;
+	const endIconOnFill = clampedValue >= 88;
 
-			{/* Content Overlay */}
-			<div className="absolute inset-0 px-3 flex items-center justify-between pointer-events-none mix-blend-exclusion filter invert dark:invert-0">
-				<div className="flex items-center justify-center w-6 h-6">
-					<Icon aria-hidden="true" size={18} className="text-black dark:text-black opacity-80" />
-				</div>
+	return (
+		<div className="rounded-xl bg-white/10 border border-white/10 p-2.5">
+			<div className="flex items-center justify-between mb-1.5 px-0.5">
+				<span className="text-[11px] font-semibold text-white/90 leading-none">{label}</span>
+				<span className="text-[10px] font-medium text-white/60 tabular-nums leading-none">
+					{clampedValue}%
+				</span>
 			</div>
-			{/* Optional End Icon */}
-			{EndIcon && (
-				<div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none mix-blend-exclusion filter invert dark:invert-0">
-					<EndIcon aria-hidden="true" size={16} className="text-black dark:text-black opacity-60" />
+			<div
+				ref={containerRef}
+				role="slider"
+				tabIndex={0}
+				aria-label={label || 'Level control'}
+				aria-valuemin={0}
+				aria-valuemax={100}
+				aria-valuenow={clampedValue}
+				className="relative h-7 w-full bg-white/15 rounded-full overflow-hidden cursor-pointer group select-none touch-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue"
+				onMouseDown={e => {
+					e.preventDefault();
+					handleStart(e.clientX);
+				}}
+				onTouchStart={e => {
+					const touch = e.touches[0];
+					if (!touch) return;
+					handleStart(touch.clientX);
+				}}
+				onKeyDown={handleKeyDown}
+			>
+				{/* Fill Bar */}
+				<div
+					ref={fillRef}
+					className="absolute top-0 left-0 bottom-0 bg-white transition-[width] duration-200 ease-out"
+					style={{ width: `${value}%` }}
+				/>
+
+				{/* Start Icon */}
+				<div className="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
+					<Icon
+						aria-hidden="true"
+						size={14}
+						className={`transition-colors ${startIconOnFill ? 'text-neutral-800' : 'text-white/80'}`}
+					/>
 				</div>
-			)}
+
+				{/* Optional End Icon */}
+				{EndIcon && (
+					<div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none">
+						<EndIcon
+							aria-hidden="true"
+							size={13}
+							className={`transition-colors ${endIconOnFill ? 'text-neutral-700' : 'text-white/70'}`}
+						/>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }

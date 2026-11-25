@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { CalendarDays, Check, X } from 'lucide-react';
+import { useFocusTrap } from '../../../utils/hooks/useFocusTrap';
+import { useRestoreFocus } from '../../../utils/hooks/useRestoreFocus';
 import type { CalendarEvent } from './calendarUtils';
 
 interface CalendarsSheetProps {
@@ -19,12 +21,28 @@ export function CalendarsSheet({
 	onTogglePersonal,
 	onClose,
 }: CalendarsSheetProps) {
+	const sheetRef = useRef<HTMLDivElement>(null);
+	useRestoreFocus(true, sheetRef);
+	useFocusTrap(true, sheetRef);
+
+	useEffect(() => {
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') {
+				e.stopPropagation();
+				onClose();
+			}
+		};
+		document.addEventListener('keydown', onKeyDown);
+		return () => document.removeEventListener('keydown', onKeyDown);
+	}, [onClose]);
+
 	return (
 		<div
 			className="absolute inset-0 z-30 flex items-end justify-center bg-black/40 backdrop-blur-[2px] p-4 pb-20"
 			onClick={onClose}
 		>
 			<div
+				ref={sheetRef}
 				role="dialog"
 				aria-modal="true"
 				aria-label="Calendars"
@@ -35,9 +53,10 @@ export function CalendarsSheet({
 					<h2 className="text-base font-semibold">Calendars</h2>
 					<button
 						type="button"
+						autoFocus
 						onClick={onClose}
 						aria-label="Close calendars"
-						className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+						className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
 					>
 						<X aria-hidden="true" size={16} />
 					</button>
@@ -80,12 +99,28 @@ interface InboxSheetProps {
 }
 
 export function InboxSheet({ events, onSelectDate, onClose }: InboxSheetProps) {
+	const sheetRef = useRef<HTMLDivElement>(null);
+	useRestoreFocus(true, sheetRef);
+	useFocusTrap(true, sheetRef);
+
+	useEffect(() => {
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') {
+				e.stopPropagation();
+				onClose();
+			}
+		};
+		document.addEventListener('keydown', onKeyDown);
+		return () => document.removeEventListener('keydown', onKeyDown);
+	}, [onClose]);
+
 	return (
 		<div
 			className="absolute inset-0 z-30 flex items-end justify-center bg-black/40 backdrop-blur-[2px] p-4 pb-20"
 			onClick={onClose}
 		>
 			<div
+				ref={sheetRef}
 				role="dialog"
 				aria-modal="true"
 				aria-label="Event Inbox"
@@ -96,16 +131,19 @@ export function InboxSheet({ events, onSelectDate, onClose }: InboxSheetProps) {
 					<h2 className="text-base font-semibold">Upcoming Events</h2>
 					<button
 						type="button"
+						autoFocus
 						onClick={onClose}
 						aria-label="Close inbox"
-						className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+						className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
 					>
 						<X aria-hidden="true" size={16} />
 					</button>
 				</div>
 				<div className="flex-1 overflow-y-auto space-y-2">
 					{events.length === 0 ? (
-						<p className="text-sm text-gray-400 py-4 text-center">No events scheduled</p>
+						<p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
+							No events scheduled
+						</p>
 					) : (
 						events.map(ev => (
 							<button

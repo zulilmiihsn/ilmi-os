@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, forwardRef, memo, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, forwardRef, memo, useImperativeHandle } from 'react';
 import { useControlCenterStore } from '../../../stores/controlCenter';
 import { useSettingsStore } from '../../../stores/settings';
 import { triggerHaptic } from '../../../utils/haptic';
@@ -46,6 +46,19 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 
 		const { darkMode, toggleDarkMode } = useSettingsStore();
 
+		// Close on Escape when open
+		useEffect(() => {
+			if (!isOpen) return;
+			const handleKeyDown = (e: KeyboardEvent) => {
+				if (e.key === 'Escape') {
+					triggerHaptic('light');
+					onClose();
+				}
+			};
+			window.addEventListener('keydown', handleKeyDown);
+			return () => window.removeEventListener('keydown', handleKeyDown);
+		}, [isOpen, onClose]);
+
 		// Swipe-up dismiss tracking
 		const touchStartRef = useRef<{ y: number; active: boolean } | null>(null);
 
@@ -75,13 +88,17 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 		return (
 			<div
 				ref={internalRef}
+				role={isOpen ? 'dialog' : undefined}
+				aria-modal={isOpen ? true : undefined}
+				aria-label="Control Center"
+				aria-hidden={!isOpen}
 				onClick={e => {
 					if (e.target === e.currentTarget) {
 						triggerHaptic('light');
 						onClose();
 					}
 				}}
-				className="ios-control-center fixed inset-0 z-90 flex flex-col justify-between p-4 pt-10 select-none overflow-y-auto"
+				className="ios-control-center fixed inset-0 z-90 flex flex-col justify-between px-4 pt-[max(env(safe-area-inset-top),2.75rem)] pb-[max(env(safe-area-inset-bottom),0.75rem)] select-none overflow-y-auto"
 				style={{
 					transform: isOpen ? 'translate3d(0, 0, 0)' : 'translate3d(0, -100%, 0)',
 					visibility: isOpen ? 'visible' : 'hidden',
@@ -146,14 +163,22 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 				</div>
 
 				{/* Home Indicator Handle */}
-				<div className="w-full pb-3 flex justify-center items-center">
-					<div
+				<div className="w-full pb-2 flex justify-center items-center">
+					<button
+						type="button"
+						tabIndex={isOpen ? 0 : -1}
+						aria-label="Close Control Center"
 						onClick={() => {
 							triggerHaptic('light');
 							onClose();
 						}}
-						className="w-36 h-1 bg-white/70 rounded-full cursor-pointer hover:bg-white active:scale-95 transition-all"
-					/>
+						className="py-2 px-4 bg-transparent border-0 cursor-pointer group focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ios-blue rounded-full"
+					>
+						<span
+							aria-hidden="true"
+							className="block w-36 h-1.5 bg-white/70 rounded-full group-hover:bg-white group-active:scale-95 transition-all"
+						/>
+					</button>
 				</div>
 			</div>
 		);
