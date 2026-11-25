@@ -40,7 +40,11 @@ export const CameraTopControls: React.FC<CameraTopControlsProps> = ({
 					className="relative w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform after:absolute after:-inset-1.5 after:content-['']"
 					aria-label={flashEnabled ? 'Disable flash' : 'Enable flash'}
 				>
-					<Zap aria-hidden="true" size={14} className={flashEnabled ? 'text-ios-yellow' : 'text-white/80'} />
+					<Zap
+						aria-hidden="true"
+						size={14}
+						className={flashEnabled ? 'text-ios-yellow' : 'text-white/80'}
+					/>
 				</button>
 
 				{/* HDR Toggle */}
@@ -66,9 +70,15 @@ export const CameraTopControls: React.FC<CameraTopControlsProps> = ({
 					className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform relative after:absolute after:-inset-1.5 after:content-['']"
 					aria-label="Toggle camera timer"
 				>
-					<Clock aria-hidden="true" size={14} className={timerSeconds > 0 ? 'text-ios-yellow' : 'text-white/80'} />
+					<Clock
+						aria-hidden="true"
+						size={14}
+						className={timerSeconds > 0 ? 'text-ios-yellow' : 'text-white/80'}
+					/>
 					{timerSeconds > 0 && (
-						<span className="absolute -bottom-1 text-[8px] font-bold text-ios-yellow">{timerSeconds}s</span>
+						<span className="absolute -bottom-1 text-[8px] font-bold text-ios-yellow">
+							{timerSeconds}s
+						</span>
 					)}
 				</button>
 

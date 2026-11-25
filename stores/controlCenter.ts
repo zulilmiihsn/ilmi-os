@@ -36,11 +36,11 @@ interface ControlCenterStore {
 	setVolume: (val: number) => void;
 }
 
-export const useControlCenterStore = create<ControlCenterStore>((set) => ({
+export const useControlCenterStore = create<ControlCenterStore>(set => ({
 	isOpen: false,
 	open: () => set({ isOpen: true }),
 	close: () => set({ isOpen: false }),
-	toggle: () => set((state) => ({ isOpen: !state.isOpen })),
+	toggle: () => set(state => ({ isOpen: !state.isOpen })),
 
 	wifi: true,
 	bluetooth: true,
@@ -56,30 +56,30 @@ export const useControlCenterStore = create<ControlCenterStore>((set) => ({
 	brightness: 85,
 	volume: 65,
 
-	toggleWifi: () => set((state) => ({ wifi: !state.wifi })),
-	toggleBluetooth: () => set((state) => ({ bluetooth: !state.bluetooth })),
-	toggleCellular: () => set((state) => ({ cellular: !state.cellular })),
-	toggleAirdrop: () => set((state) => ({ airdrop: !state.airdrop })),
+	toggleWifi: () => set(state => ({ wifi: !state.wifi })),
+	toggleBluetooth: () => set(state => ({ bluetooth: !state.bluetooth })),
+	toggleCellular: () => set(state => ({ cellular: !state.cellular })),
+	toggleAirdrop: () => set(state => ({ airdrop: !state.airdrop })),
 	toggleAirplaneMode: () =>
-		set((state) => ({
+		set(state => ({
 			airplaneMode: !state.airplaneMode,
 			wifi: state.airplaneMode ? true : false,
 			cellular: state.airplaneMode ? true : false,
 		})),
-	toggleFlashlight: () => set((state) => ({ flashlight: !state.flashlight })),
-	toggleLowPowerMode: () => set((state) => ({ lowPowerMode: !state.lowPowerMode })),
-	toggleOrientationLock: () => set((state) => ({ orientationLock: !state.orientationLock })),
-	toggleSilentMode: () => set((state) => ({ silentMode: !state.silentMode })),
+	toggleFlashlight: () => set(state => ({ flashlight: !state.flashlight })),
+	toggleLowPowerMode: () => set(state => ({ lowPowerMode: !state.lowPowerMode })),
+	toggleOrientationLock: () => set(state => ({ orientationLock: !state.orientationLock })),
+	toggleSilentMode: () => set(state => ({ silentMode: !state.silentMode })),
 	toggleFocusMode: () =>
-		set((state) => ({
+		set(state => ({
 			focusMode: !state.focusMode,
-			activeFocus: !state.focusMode ? (state.activeFocus || 'Do Not Disturb') : null,
+			activeFocus: !state.focusMode ? state.activeFocus || 'Do Not Disturb' : null,
 		})),
-	setActiveFocus: (focus) =>
+	setActiveFocus: focus =>
 		set({
 			activeFocus: focus,
 			focusMode: Boolean(focus),
 		}),
-	setBrightness: (brightness) => set({ brightness }),
-	setVolume: (volume) => set({ volume }),
+	setBrightness: brightness => set({ brightness }),
+	setVolume: volume => set({ volume }),
 }));

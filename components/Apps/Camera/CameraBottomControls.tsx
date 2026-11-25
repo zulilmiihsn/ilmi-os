@@ -52,7 +52,9 @@ export const CameraBottomControls: React.FC<CameraBottomControlsProps> = ({
 				<button
 					onClick={onShutterClick}
 					className="w-[72px] h-[72px] rounded-full flex items-center justify-center active:scale-90 transition-transform duration-100 border-[3px] border-white/80 p-1 shadow-[0_0_20px_rgba(255,255,255,0.2)] bg-black/20 backdrop-blur-md"
-					aria-label={isVideoMode ? (isRecording ? 'Stop recording' : 'Start recording') : 'Take photo'}
+					aria-label={
+						isVideoMode ? (isRecording ? 'Stop recording' : 'Start recording') : 'Take photo'
+					}
 				>
 					{isVideoMode ? (
 						isRecording ? (

@@ -13,9 +13,7 @@ describe('safari browsing helpers', () => {
 	it('normalizes addresses and searches', () => {
 		expect(normalizeUrl('  apple.com  ')).toBe('https://apple.com');
 		expect(normalizeUrl('http://x.id/a?b=1')).toBe('http://x.id/a?b=1');
-		expect(normalizeUrl('cara masak nasi')).toBe(
-			'https://duckduckgo.com/?q=cara%20masak%20nasi'
-		);
+		expect(normalizeUrl('cara masak nasi')).toBe('https://duckduckgo.com/?q=cara%20masak%20nasi');
 		expect(normalizeUrl('   ')).toBeNull();
 	});
 

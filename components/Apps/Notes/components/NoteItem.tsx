@@ -33,15 +33,27 @@ export default function NoteItem({ note, onClick, selectionMode, isLast }: NoteI
 						}`}
 					>
 						{note.selected && (
-							<svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+							<svg
+								className="w-3.5 h-3.5 text-white"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={3}
+									d="M5 13l4 4L19 7"
+								/>
 							</svg>
 						)}
 					</div>
 				</div>
 			)}
 
-			<div className={`flex-1 flex py-3 pr-4 ${!isLast ? 'border-b border-gray-200 dark:border-white/10' : ''}`}>
+			<div
+				className={`flex-1 flex py-3 pr-4 ${!isLast ? 'border-b border-gray-200 dark:border-white/10' : ''}`}
+			>
 				<div className="flex-1 min-w-0 mr-2">
 					<h3 className="text-sm font-semibold text-black dark:text-white truncate leading-tight mb-0.5">
 						{note.title || 'New Note'}
@@ -54,7 +66,12 @@ export default function NoteItem({ note, onClick, selectionMode, isLast }: NoteI
 					</div>
 					<div className="flex items-center text-[11px] text-gray-400 mt-1.5">
 						<svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+							/>
 						</svg>
 						{note.folder}
 					</div>

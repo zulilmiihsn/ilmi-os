@@ -34,7 +34,7 @@ export default function Home() {
 		}
 	}, [darkMode]);
 
-	// Debounced resize handler untuk prevent excessive re-renders
+	// Debounced resize handler to prevent excessive re-renders
 	const debouncedHandleResize = useMemo(
 		() => debounce(() => setDeviceInfo(detectDevice()), RESIZE.DEBOUNCE_DELAY),
 		[]

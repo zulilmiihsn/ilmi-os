@@ -19,9 +19,21 @@ export default function PhotosSidebar({
 	albums,
 }: PhotosSidebarProps) {
 	const navItems: { id: PhotosTab; label: string; icon: string }[] = [
-		{ id: 'library', label: 'Library', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
-		{ id: 'foryou', label: 'For You', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
-		{ id: 'albums', label: 'Albums', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+		{
+			id: 'library',
+			label: 'Library',
+			icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
+		},
+		{
+			id: 'foryou',
+			label: 'For You',
+			icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+		},
+		{
+			id: 'albums',
+			label: 'Albums',
+			icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+		},
 		{ id: 'search', label: 'Search', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
 	];
 
@@ -47,7 +59,13 @@ export default function PhotosSidebar({
 											: 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300'
 									}`}
 								>
-									<svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+									<svg
+										className="w-4 h-4 shrink-0"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										strokeWidth={2}
+									>
 										<path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
 									</svg>
 									<span>{item.label}</span>

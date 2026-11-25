@@ -32,7 +32,13 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 			>
 				{currentItems.length === 0 ? (
 					<div className="flex flex-col items-center justify-center h-full text-gray-400">
-						<svg className="w-12 h-12 mb-2 text-gray-300 dark:text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+						<svg
+							className="w-12 h-12 mb-2 text-gray-300 dark:text-gray-600"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="1"
+						>
 							<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
 						</svg>
 						<p className="text-sm font-medium">This folder is empty</p>
@@ -75,11 +81,21 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 									}`}
 								>
 									{item.type === 'folder' ? (
-										<svg className={`w-12 h-12 mb-1.5 ${isSelected ? 'text-white' : 'text-ios-blue'}`} viewBox="0 0 24 24" fill="currentColor">
+										<svg
+											className={`w-12 h-12 mb-1.5 ${isSelected ? 'text-white' : 'text-ios-blue'}`}
+											viewBox="0 0 24 24"
+											fill="currentColor"
+										>
 											<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
 										</svg>
 									) : (
-										<svg className={`w-12 h-12 mb-1.5 ${isSelected ? 'text-white' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+										<svg
+											className={`w-12 h-12 mb-1.5 ${isSelected ? 'text-white' : 'text-gray-400'}`}
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="1.5"
+										>
 											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
 											<polyline points="14 2 14 8 20 8" />
 											<line x1="16" y1="13" x2="8" y2="13" />
@@ -139,11 +155,21 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 									>
 										<div className="col-span-6 flex items-center gap-2 truncate">
 											{item.type === 'folder' ? (
-												<svg className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-ios-blue'}`} viewBox="0 0 24 24" fill="currentColor">
+												<svg
+													className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-ios-blue'}`}
+													viewBox="0 0 24 24"
+													fill="currentColor"
+												>
 													<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
 												</svg>
 											) : (
-												<svg className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+												<svg
+													className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-gray-400'}`}
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													strokeWidth="2"
+												>
 													<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
 													<polyline points="14 2 14 8 20 8" />
 												</svg>
@@ -171,7 +197,8 @@ export const FinderContent: React.FC<FinderContentProps> = ({
 				<span>{currentItems.length} items</span>
 				{selectedItem && (
 					<span>
-						Selected: {selectedItem.name} {selectedItem.size ? `(${formatFileSize(selectedItem.size)})` : ''}
+						Selected: {selectedItem.name}{' '}
+						{selectedItem.size ? `(${formatFileSize(selectedItem.size)})` : ''}
 					</span>
 				)}
 			</div>

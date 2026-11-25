@@ -235,8 +235,8 @@ describe('store coverage (Tahap 6)', () => {
 
 	it('selects ios apps for the mobile shell', () => {
 		expect(selectIosApps(useAppsStore.getState()).length).toBeGreaterThan(0);
-		expect(
-			selectIosApps(useAppsStore.getState()).every(app => app.platform !== 'macos')
-		).toBe(true);
+		expect(selectIosApps(useAppsStore.getState()).every(app => app.platform !== 'macos')).toBe(
+			true
+		);
 	});
 });

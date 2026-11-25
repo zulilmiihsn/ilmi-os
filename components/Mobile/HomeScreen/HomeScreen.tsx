@@ -75,7 +75,7 @@ function HomeScreen() {
 		setIsEditing,
 	});
 
-	// --- Notification Center & Control Center Panels ---
+	// Notification Center & Control Center panels
 	const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
 	const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
 	const notificationCenterRef = useRef<HTMLDivElement>(null);

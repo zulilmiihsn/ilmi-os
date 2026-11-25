@@ -19,7 +19,7 @@ export const DOCK_START_POSITION = IOS_LAYOUT.DOCK_BASE;
 const DEFAULT_DOCK_IDS = ['safari', 'music', 'messages', 'phone'];
 
 const defaultApps: AppMetadata[] = [
-	// --- Dock Apps (Standard macOS Order) ---
+	// Dock apps (standard macOS order)
 	{
 		id: 'finder',
 		name: 'Finder',
@@ -111,7 +111,7 @@ const defaultApps: AppMetadata[] = [
 		showOnDesktop: false,
 	},
 
-	// --- Desktop Apps (Utilities & Others) ---
+	// Desktop apps (utilities and others)
 	{
 		id: 'calculator',
 		name: 'Calculator',

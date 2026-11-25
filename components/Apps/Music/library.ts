@@ -11,11 +11,46 @@ export interface DemoTrack {
 }
 
 export const DEMO_TRACKS: DemoTrack[] = [
-	{ id: 'glasswing', title: 'Glasswing', artist: 'Pagi Drive', durationSec: 24, seed: 11, hue: ['#5e5ce6', '#0a84ff'] },
-	{ id: 'kopi tubruk', title: 'Kopi Tubruk', artist: 'Samarinda Tapes', durationSec: 28, seed: 27, hue: ['#ff9f0a', '#ff375f'] },
-	{ id: 'amparan', title: 'Amparan', artist: 'Mahakam Drift', durationSec: 21, seed: 42, hue: ['#30d158', '#64d2ff'] },
-	{ id: 'senja-darat', title: 'Senja Darat', artist: 'Pagi Drive', durationSec: 32, seed: 63, hue: ['#ff375f', '#bf5af2'] },
-	{ id: 'hujan-batu', title: 'Hujan Batu', artist: 'Mahakam Drift', durationSec: 26, seed: 88, hue: ['#64d2ff', '#5e5ce6'] },
+	{
+		id: 'glasswing',
+		title: 'Glasswing',
+		artist: 'Pagi Drive',
+		durationSec: 24,
+		seed: 11,
+		hue: ['#5e5ce6', '#0a84ff'],
+	},
+	{
+		id: 'kopi tubruk',
+		title: 'Kopi Tubruk',
+		artist: 'Samarinda Tapes',
+		durationSec: 28,
+		seed: 27,
+		hue: ['#ff9f0a', '#ff375f'],
+	},
+	{
+		id: 'amparan',
+		title: 'Amparan',
+		artist: 'Mahakam Drift',
+		durationSec: 21,
+		seed: 42,
+		hue: ['#30d158', '#64d2ff'],
+	},
+	{
+		id: 'senja-darat',
+		title: 'Senja Darat',
+		artist: 'Pagi Drive',
+		durationSec: 32,
+		seed: 63,
+		hue: ['#ff375f', '#bf5af2'],
+	},
+	{
+		id: 'hujan-batu',
+		title: 'Hujan Batu',
+		artist: 'Mahakam Drift',
+		durationSec: 26,
+		seed: 88,
+		hue: ['#64d2ff', '#5e5ce6'],
+	},
 ];
 
 export const LIKED_KEY = 'ilmi_music_liked_v1';
@@ -73,7 +108,12 @@ export function mulberry32(seed: number): () => number {
 }
 
 /** Track order for a fresh play. Shuffled with a random seed live. */
-export function buildQueue(tracks: DemoTrack[], startId: string, shuffle: boolean, rand = Math.random): string[] {
+export function buildQueue(
+	tracks: DemoTrack[],
+	startId: string,
+	shuffle: boolean,
+	rand = Math.random
+): string[] {
 	const ids = tracks.map(t => t.id);
 	const rest = ids.filter(id => id !== startId);
 	if (shuffle) {

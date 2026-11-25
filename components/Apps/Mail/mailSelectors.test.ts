@@ -48,7 +48,11 @@ describe('mail selectors (Tahap 7)', () => {
 			{ ...base, id: '2', mailbox: 'inbox', date: '9/16/21', isVip: true },
 			{ ...base, id: '3', mailbox: 'sent', date: '9/15/21' },
 		];
-		const vip = filterDisplayEmails(emails, { mailboxId: 'vip', searchQuery: '', unreadOnly: false });
+		const vip = filterDisplayEmails(emails, {
+			mailboxId: 'vip',
+			searchQuery: '',
+			unreadOnly: false,
+		});
 		expect(vip.map(e => e.id)).toEqual(['2', '1']);
 		const sent = filterDisplayEmails(emails, {
 			mailboxId: 'sent',

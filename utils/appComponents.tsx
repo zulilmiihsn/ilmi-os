@@ -15,7 +15,7 @@ export { isValidComponentName };
 // Loading component for dynamic imports (Clean native-like splash)
 const LoadingComponent = () => <div className="w-full h-full bg-white dark:bg-black" />;
 
-// Dynamic imports untuk code splitting
+// Dynamic imports for code splitting
 const Calculator = dynamic(() => import('../components/Apps/Calculator'), {
 	loading: () => <LoadingComponent />,
 	ssr: false,

@@ -22,4 +22,3 @@ export function debounce<T extends (...args: never[]) => unknown>(
 		timeout = setTimeout(later, wait);
 	};
 }
-

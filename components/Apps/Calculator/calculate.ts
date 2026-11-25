@@ -2,11 +2,7 @@
 
 export type CalcResult = number | 'Error';
 
-export function calculateResult(
-	previous: number,
-	current: number,
-	operation: string
-): CalcResult {
+export function calculateResult(previous: number, current: number, operation: string): CalcResult {
 	switch (operation) {
 		case '+':
 			return previous + current;

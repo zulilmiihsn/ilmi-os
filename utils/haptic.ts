@@ -1,7 +1,7 @@
 /**
  * Haptic feedback utility for iOS-like vibration
  * Provides native-like haptic feedback when supported
- * 
+ *
  * NOTE: navigator.vibrate() must be called within a user gesture handler
  * (e.g., touchstart, touchend, click). It cannot be called from setTimeout
  * or other async callbacks without user interaction context.
@@ -56,15 +56,12 @@ export function triggerHaptic(type: HapticType = 'medium'): boolean {
 	};
 
 	const pattern = patterns[type];
-	
+
 	try {
 		// Skip without an active user gesture: calling vibrate anyway only
 		// litters the console with an Intervention (e.g. desktop browsers or
 		// devtools device emulation with a mobile UA but no vibrator).
-		if (
-			typeof navigator.userActivation !== 'undefined' &&
-			!navigator.userActivation.isActive
-		) {
+		if (typeof navigator.userActivation !== 'undefined' && !navigator.userActivation.isActive) {
 			return false;
 		}
 		// Check if vibrate is available and call it
@@ -77,4 +74,3 @@ export function triggerHaptic(type: HapticType = 'medium'): boolean {
 		return false;
 	}
 }
-

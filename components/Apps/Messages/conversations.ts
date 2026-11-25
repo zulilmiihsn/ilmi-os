@@ -47,9 +47,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
 		id: 'kurir',
 		name: 'Kurir Paket',
 		read: true,
-		messages: [
-			msg(false, 'Paket sudah sampai di pos satpam ya pak', '2026-09-18T11:05:00.000Z'),
-		],
+		messages: [msg(false, 'Paket sudah sampai di pos satpam ya pak', '2026-09-18T11:05:00.000Z')],
 	},
 ];
 
@@ -118,13 +116,21 @@ export function addMessage(
 	if (!body) return convos;
 	return convos.map(c =>
 		c.id === convoId
-			? { ...c, read: true, messages: [...c.messages, { id: generateId('msg'), fromMe: true, text: body, sentAt }] }
+			? {
+					...c,
+					read: true,
+					messages: [...c.messages, { id: generateId('msg'), fromMe: true, text: body, sentAt }],
+				}
 			: c
 	);
 }
 
 /** Starts a thread with the first message. Pure and testable. */
-export function createConversation(convos: Conversation[], name: string, text: string): Conversation[] {
+export function createConversation(
+	convos: Conversation[],
+	name: string,
+	text: string
+): Conversation[] {
 	const target = name.trim();
 	const body = text.trim();
 	if (!target || !body) return convos;
@@ -155,9 +161,7 @@ export function filterConversations(convos: Conversation[], query: string): Conv
 	const q = query.trim().toLowerCase();
 	if (!q) return convos;
 	return convos.filter(
-		c =>
-			c.name.toLowerCase().includes(q) ||
-			c.messages.some(m => m.text.toLowerCase().includes(q))
+		c => c.name.toLowerCase().includes(q) || c.messages.some(m => m.text.toLowerCase().includes(q))
 	);
 }
 

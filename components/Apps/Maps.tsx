@@ -46,7 +46,9 @@ export default function Maps() {
 
 				<div
 					className={`absolute inset-0 bg-gradient-to-b pointer-events-none transition-all duration-500 ${
-						viewMode === '3D' ? 'from-black/20 via-transparent to-black/40' : 'from-black/10 via-transparent to-black/20'
+						viewMode === '3D'
+							? 'from-black/20 via-transparent to-black/40'
+							: 'from-black/10 via-transparent to-black/20'
 					}`}
 				/>
 			</div>
@@ -69,9 +71,7 @@ export default function Maps() {
 					}}
 					className="relative w-10 h-10 backdrop-blur-2xl rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform border bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 after:absolute after:-inset-0.5 after:content-['']"
 				>
-					<span className="font-bold text-xs tracking-tight text-ios-blue">
-						{viewMode}
-					</span>
+					<span className="font-bold text-xs tracking-tight text-ios-blue">{viewMode}</span>
 				</button>
 
 				{/* Location / Center */}
@@ -137,59 +137,59 @@ export default function Maps() {
 
 						<div className="grid grid-cols-2 gap-2.5">
 							{showHome && (
-							<div
-								onClick={() => {
-									triggerHaptic('light');
-									setShowUserDot(true);
-								}}
-								onKeyDown={e => {
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault();
+								<div
+									onClick={() => {
 										triggerHaptic('light');
 										setShowUserDot(true);
-									}
-								}}
-								role="button"
-								tabIndex={0}
-								aria-label="Show Home on map"
-								className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
-							>
-								<div className="w-8 h-8 rounded-full bg-ios-blue text-white flex items-center justify-center text-xs">
-									<House aria-hidden="true" size={14} />
+									}}
+									onKeyDown={e => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											triggerHaptic('light');
+											setShowUserDot(true);
+										}
+									}}
+									role="button"
+									tabIndex={0}
+									aria-label="Show Home on map"
+									className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
+								>
+									<div className="w-8 h-8 rounded-full bg-ios-blue text-white flex items-center justify-center text-xs">
+										<House aria-hidden="true" size={14} />
+									</div>
+									<div>
+										<div className="text-xs font-semibold">Home</div>
+										<div className="text-[10px] text-gray-400">12 min</div>
+									</div>
 								</div>
-								<div>
-									<div className="text-xs font-semibold">Home</div>
-									<div className="text-[10px] text-gray-400">12 min</div>
-								</div>
-							</div>
 							)}
 
 							{showWork && (
-							<div
-								onClick={() => {
-									triggerHaptic('light');
-									setShowUserDot(true);
-								}}
-								onKeyDown={e => {
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault();
+								<div
+									onClick={() => {
 										triggerHaptic('light');
 										setShowUserDot(true);
-									}
-								}}
-								role="button"
-								tabIndex={0}
-								aria-label="Show Work on map"
-								className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
-							>
-								<div className="w-8 h-8 rounded-full bg-ios-orange text-white flex items-center justify-center text-xs">
-									<Briefcase aria-hidden="true" size={14} />
+									}}
+									onKeyDown={e => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											triggerHaptic('light');
+											setShowUserDot(true);
+										}
+									}}
+									role="button"
+									tabIndex={0}
+									aria-label="Show Work on map"
+									className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
+								>
+									<div className="w-8 h-8 rounded-full bg-ios-orange text-white flex items-center justify-center text-xs">
+										<Briefcase aria-hidden="true" size={14} />
+									</div>
+									<div>
+										<div className="text-xs font-semibold">Work</div>
+										<div className="text-[10px] text-gray-400">25 min</div>
+									</div>
 								</div>
-								<div>
-									<div className="text-xs font-semibold">Work</div>
-									<div className="text-[10px] text-gray-400">25 min</div>
-								</div>
-							</div>
 							)}
 							{!showHome && !showWork && (
 								<p className="col-span-2 text-xs text-gray-400 px-1 py-2">No results</p>

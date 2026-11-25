@@ -63,7 +63,15 @@ export default function Photos() {
 		currentDisplayPhotos,
 	} = usePhotos();
 
-	const title = selectedAlbum || (activeTab === 'library' ? 'Library' : activeTab === 'foryou' ? 'For You' : activeTab === 'albums' ? 'Albums' : 'Search');
+	const title =
+		selectedAlbum ||
+		(activeTab === 'library'
+			? 'Library'
+			: activeTab === 'foryou'
+				? 'For You'
+				: activeTab === 'albums'
+					? 'Albums'
+					: 'Search');
 
 	const tabs: { id: PhotosTabId; label: string }[] = [
 		{ id: 'library', label: 'Library' },
@@ -89,7 +97,9 @@ export default function Photos() {
 				<div className="pt-10 px-4 pb-2 bg-[#f2f2f7] dark:bg-black shrink-0">
 					<div className="flex items-baseline justify-between mb-1">
 						<h1 className="text-ios-large-title">{title}</h1>
-						<span className="text-xs text-gray-400 font-medium">{currentDisplayPhotos.length} Photos</span>
+						<span className="text-xs text-gray-400 font-medium">
+							{currentDisplayPhotos.length} Photos
+						</span>
 					</div>
 				</div>
 
@@ -118,15 +128,11 @@ export default function Photos() {
 										setActiveTab(tab.id);
 									}}
 									className={`relative flex flex-col items-center justify-center py-2 px-3 rounded-2xl transition-all duration-200 active:scale-90 after:absolute after:-inset-y-0.5 after:content-[''] ${
-										isActive
-											? 'text-ios-blue'
-											: 'text-ios-gray'
+										isActive ? 'text-ios-blue' : 'text-ios-gray'
 									}`}
 								>
 									{renderTabIcon(tab.id, isActive)}
-									<span className="text-[11px] font-medium tracking-tight">
-										{tab.label}
-									</span>
+									<span className="text-[11px] font-medium tracking-tight">{tab.label}</span>
 								</button>
 							);
 						})}
@@ -135,10 +141,7 @@ export default function Photos() {
 			</div>
 
 			{/* Fullscreen Photo Viewer */}
-			<PhotoViewerModal
-				imageUrl={selectedImage}
-				onClose={() => setSelectedImage(null)}
-			/>
+			<PhotoViewerModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
 		</div>
 	);
 }

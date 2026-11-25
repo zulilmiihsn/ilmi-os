@@ -43,15 +43,16 @@ function AppIcon({
 		<>
 			<button
 				data-app-id={app.id}
-				className={`ios-icon w-full flex flex-col items-center justify-center transition-all ${isPressed && !isDragging ? 'ios-tap-animation scale-90' : ''
-					} ${isDragging ? 'ios-dragging' : ''} ${!isDragging ? 'ios-icon-swapping' : ''}`}
+				className={`ios-icon w-full flex flex-col items-center justify-center transition-all ${
+					isPressed && !isDragging ? 'ios-tap-animation scale-90' : ''
+				} ${isDragging ? 'ios-dragging' : ''} ${!isDragging ? 'ios-icon-swapping' : ''}`}
 				onClick={() => {
 					triggerAppLaunch();
 				}}
 				onMouseDown={() => !isDragging && setIsPressed(true)}
 				onMouseUp={() => setIsPressed(false)}
 				onMouseLeave={() => setIsPressed(false)}
-				onTouchStart={(e) => {
+				onTouchStart={e => {
 					const t = e.touches && e.touches[0];
 					if (t) {
 						touchStartRef.current = { time: Date.now(), x: t.clientX, y: t.clientY, moved: false };
@@ -62,7 +63,7 @@ function AppIcon({
 						setIsPressed(true);
 					}
 				}}
-				onTouchMove={(e) => {
+				onTouchMove={e => {
 					if (touchStartRef.current && e.touches[0]) {
 						const dx = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
 						const dy = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
@@ -74,7 +75,7 @@ function AppIcon({
 						onTouchMove(e);
 					}
 				}}
-				onTouchEnd={(e) => {
+				onTouchEnd={e => {
 					setIsPressed(false);
 					const record = touchStartRef.current;
 					const elapsed = record ? Date.now() - record.time : 999;
@@ -144,5 +145,3 @@ function AppIcon({
 }
 
 export default memo(AppIcon);
-
-

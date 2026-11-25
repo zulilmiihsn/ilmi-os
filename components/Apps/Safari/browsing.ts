@@ -52,7 +52,11 @@ export function newTab(): BrowserTab {
 }
 
 /** Records a visit, newest first, deduped consecutively, capped. */
-export function recordVisit(history: HistoryEntry[], url: string, at = new Date().toISOString()): HistoryEntry[] {
+export function recordVisit(
+	history: HistoryEntry[],
+	url: string,
+	at = new Date().toISOString()
+): HistoryEntry[] {
 	if (history[0]?.url === url) return history;
 	return [{ url, at }, ...history].slice(0, MAX_HISTORY);
 }

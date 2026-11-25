@@ -44,17 +44,35 @@ module.exports = {
 				sans: ['SF Pro Display', '-apple-system', 'BlinkMacSystemFont'],
 			},
 			fontSize: {
-				'ios-large-title': ['34px', { lineHeight: '41px', letterSpacing: '0.37px', fontWeight: '700' }],
+				'ios-large-title': [
+					'34px',
+					{ lineHeight: '41px', letterSpacing: '0.37px', fontWeight: '700' },
+				],
 				'ios-title1': ['28px', { lineHeight: '34px', letterSpacing: '0.36px', fontWeight: '700' }],
 				'ios-title2': ['22px', { lineHeight: '28px', letterSpacing: '0.35px', fontWeight: '700' }],
 				'ios-title3': ['20px', { lineHeight: '25px', letterSpacing: '0.38px', fontWeight: '600' }],
-				'ios-headline': ['17px', { lineHeight: '22px', letterSpacing: '-0.41px', fontWeight: '600' }],
+				'ios-headline': [
+					'17px',
+					{ lineHeight: '22px', letterSpacing: '-0.41px', fontWeight: '600' },
+				],
 				'ios-body': ['17px', { lineHeight: '22px', letterSpacing: '-0.41px', fontWeight: '400' }],
-				'ios-callout': ['16px', { lineHeight: '21px', letterSpacing: '-0.32px', fontWeight: '400' }],
-				'ios-subhead': ['15px', { lineHeight: '20px', letterSpacing: '-0.24px', fontWeight: '400' }],
-				'ios-footnote': ['13px', { lineHeight: '18px', letterSpacing: '-0.08px', fontWeight: '400' }],
+				'ios-callout': [
+					'16px',
+					{ lineHeight: '21px', letterSpacing: '-0.32px', fontWeight: '400' },
+				],
+				'ios-subhead': [
+					'15px',
+					{ lineHeight: '20px', letterSpacing: '-0.24px', fontWeight: '400' },
+				],
+				'ios-footnote': [
+					'13px',
+					{ lineHeight: '18px', letterSpacing: '-0.08px', fontWeight: '400' },
+				],
 				'ios-caption1': ['12px', { lineHeight: '16px', letterSpacing: '0px', fontWeight: '400' }],
-				'ios-caption2': ['11px', { lineHeight: '13px', letterSpacing: '0.07px', fontWeight: '400' }],
+				'ios-caption2': [
+					'11px',
+					{ lineHeight: '13px', letterSpacing: '0.07px', fontWeight: '400' },
+				],
 			},
 			borderRadius: {
 				'ios-icon': '22px',

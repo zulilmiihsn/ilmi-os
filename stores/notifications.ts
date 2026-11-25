@@ -62,18 +62,18 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 	},
 ];
 
-export const useNotificationsStore = create<NotificationsState>((set) => ({
+export const useNotificationsStore = create<NotificationsState>(set => ({
 	notifications: INITIAL_NOTIFICATIONS,
-	dismissNotification: (id) =>
-		set((state) => ({
-			notifications: state.notifications.filter((n) => n.id !== id),
+	dismissNotification: id =>
+		set(state => ({
+			notifications: state.notifications.filter(n => n.id !== id),
 		})),
 	clearAllNotifications: () =>
 		set({
 			notifications: [],
 		}),
-	addNotification: (notif) =>
-		set((state) => ({
+	addNotification: notif =>
+		set(state => ({
 			notifications: [
 				{
 					...notif,

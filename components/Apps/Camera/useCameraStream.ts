@@ -26,7 +26,12 @@ export function useCameraStream({ mode }: UseCameraStreamProps) {
 
 			const constraints = [
 				{
-					video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+					video: {
+						facingMode,
+						width: { ideal: 1920 },
+						height: { ideal: 1080 },
+						frameRate: { ideal: 30 },
+					},
 					audio: mode === 'VIDEO' || mode === 'SLO-MO',
 				},
 				{
@@ -59,7 +64,9 @@ export function useCameraStream({ mode }: UseCameraStreamProps) {
 			}
 
 			if (isMounted) {
-				setError('Could not start camera. Please check permissions and close other apps using the camera.');
+				setError(
+					'Could not start camera. Please check permissions and close other apps using the camera.'
+				);
 			}
 		};
 

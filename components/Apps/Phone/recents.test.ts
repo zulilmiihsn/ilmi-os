@@ -36,9 +36,9 @@ describe('phone recents', () => {
 		expect(log[0]?.id).not.toBe('old');
 
 		const full = Array.from({ length: 60 }, (_, i) => entry({ id: `c${i}` }));
-		expect(addCallLog(full, { number: 'x', startedAt: full[0]?.startedAt ?? '', durationSec: 1 })).toHaveLength(
-			50
-		);
+		expect(
+			addCallLog(full, { number: 'x', startedAt: full[0]?.startedAt ?? '', durationSec: 1 })
+		).toHaveLength(50);
 	});
 
 	it('formats call times relatively', () => {

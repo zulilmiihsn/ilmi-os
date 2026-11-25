@@ -56,8 +56,19 @@ export default function NoteList({
 				{/* Search Bar Capsule */}
 				<div className="relative mb-2">
 					<div className="flex items-center rounded-xl px-3 py-2 border bg-[#e3e3e8]/70 dark:bg-[#1c1c1e] border-black/5 dark:border-white/10">
-						<svg aria-hidden="true" className="h-4 w-4 text-gray-400 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+						<svg
+							aria-hidden="true"
+							className="h-4 w-4 text-gray-400 mr-2 shrink-0"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2.5}
+								d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+							/>
 						</svg>
 						<input
 							type="text"
@@ -84,8 +95,18 @@ export default function NoteList({
 			<div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
 				{notes.length === 0 ? (
 					<div className="flex flex-col items-center justify-center h-64 text-gray-400">
-						<svg className="w-14 h-14 mb-3 text-gray-300 dark:text-gray-700 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+						<svg
+							className="w-14 h-14 mb-3 text-gray-300 dark:text-gray-700 opacity-60"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={1.5}
+								d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+							/>
 						</svg>
 						<p className="text-sm font-medium">No Notes</p>
 					</div>
@@ -93,7 +114,9 @@ export default function NoteList({
 					<>
 						{todayNotes.length > 0 && (
 							<div>
-								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">Today</h2>
+								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">
+									Today
+								</h2>
 								<div className="bg-white dark:bg-[#1C1C1E] rounded-xl overflow-hidden shadow-xs border border-black/5 dark:border-white/10 transition-colors">
 									{todayNotes.map((note, index) => (
 										<NoteItem
@@ -110,7 +133,9 @@ export default function NoteList({
 
 						{previousNotes.length > 0 && (
 							<div>
-								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">Previous</h2>
+								<h2 className="text-xs font-semibold text-gray-400 uppercase mb-1.5 ml-2 tracking-wider">
+									Previous
+								</h2>
 								<div className="bg-white dark:bg-[#1C1C1E] rounded-xl overflow-hidden shadow-xs border border-black/5 dark:border-white/10 transition-colors">
 									{previousNotes.map((note, index) => (
 										<NoteItem
@@ -136,7 +161,9 @@ export default function NoteList({
 							<span className="text-xs text-gray-400">Batch select</span>
 							<button
 								className={`text-sm font-medium transition-opacity ${
-									selectedCount > 0 ? 'text-red-500 active:scale-95' : 'text-red-300 pointer-events-none'
+									selectedCount > 0
+										? 'text-red-500 active:scale-95'
+										: 'text-red-300 pointer-events-none'
 								}`}
 								onClick={() => {
 									triggerHaptic('medium');

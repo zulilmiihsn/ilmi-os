@@ -138,7 +138,10 @@ export function setEngineVolume(v: number): void {
 
 export function getEnginePosition(): number {
 	if (!ctx || !source) return startOffsetSec;
-	return Math.min(startOffsetSec + Math.max(0, ctx.currentTime - startedAtCtxTime), currentDuration);
+	return Math.min(
+		startOffsetSec + Math.max(0, ctx.currentTime - startedAtCtxTime),
+		currentDuration
+	);
 }
 
 export function getEngineDuration(): number {
