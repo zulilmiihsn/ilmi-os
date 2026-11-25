@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useSettingsStore } from '../../stores/settings';
+import { createUniqueFolder } from '../../utils/fileSystem';
 
 interface ContextMenuProps {
 	x: number;
@@ -8,8 +10,13 @@ interface ContextMenuProps {
 	onClose: () => void;
 }
 
+function dispatchOpenApp(appId: string): void {
+	window.dispatchEvent(new CustomEvent<string>('ilmi:open-app', { detail: appId }));
+}
+
 export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 	const menuRef = useRef<HTMLDivElement>(null);
+	const darkMode = useSettingsStore(state => state.darkMode);
 
 	// Adjust position if menu goes off-screen
 	useEffect(() => {
@@ -18,19 +25,15 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 			const windowWidth = window.innerWidth;
 			const windowHeight = window.innerHeight;
 
-			// If scaling messes up rect, use offsetWidth/Height
 			const width = rect.width;
 			const height = rect.height;
 
 			let finalX = x;
 			let finalY = y;
 
-			// Check right edge
 			if (x + width > windowWidth) {
 				finalX = x - width;
 			}
-
-			// Check bottom edge
 			if (y + height > windowHeight) {
 				finalY = y - height;
 			}
@@ -49,25 +52,40 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [onClose]);
 
-	// Close on click outside (already handled by parent usually, but fail-safe)
-	// Actually parent (Desktop) handles global click closing.
-
-	const menuItems = [
-		{ label: 'New Folder', action: () => {}, disabled: false },
-		{ label: 'Get Info', action: () => {}, disabled: false },
+	const menuItems: (
+		| { type: 'separator' }
+		| { type?: 'item'; label: string; action: () => void; disabled?: boolean }
+	)[] = [
+		{
+			label: 'New Folder',
+			action: () => {
+				if (createUniqueFolder('Untitled Folder', 'folder-desktop')) {
+					dispatchOpenApp('finder');
+				}
+			},
+		},
+		{
+			label: 'Open Finder',
+			action: () => dispatchOpenApp('finder'),
+		},
 		{ type: 'separator' },
 		{
 			label: 'Change Wallpaper...',
-			action: () => {},
-			disabled: false,
+			action: () => dispatchOpenApp('settings'),
+		},
+		{
+			label: darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+			action: () => useSettingsStore.getState().toggleDarkMode(),
 		},
 		{ type: 'separator' },
-		{ label: 'Refresh', action: () => window.location.reload(), disabled: false },
+		{ label: 'Refresh', action: () => window.location.reload() },
 	];
 
 	return (
 		<div
 			ref={menuRef}
+			role="menu"
+			aria-label="Desktop context menu"
 			className="fixed z-[9999] min-w-[200px] py-1.5 rounded-lg bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl text-sm select-none animate-in fade-in zoom-in-95 duration-100"
 			style={{
 				left: x,
@@ -80,28 +98,31 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 				}
 
 				return (
-					<div
+					<button
 						key={index}
+						type="button"
+						role="menuitem"
+						disabled={item.disabled}
 						className={`
-                            px-4 py-1.5 mx-1 rounded-md cursor-default
-                            flex items-center justify-between
-                            ${
-															item.disabled
-																? 'opacity-50 cursor-not-allowed'
-																: 'hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600'
-														}
-                            text-gray-800 dark:text-gray-100 transition-colors duration-75
-                        `}
+							w-[calc(100%-0.5rem)] text-left px-4 py-1.5 mx-1 rounded-md cursor-default
+							flex items-center justify-between
+							${
+								item.disabled
+									? 'opacity-50 cursor-not-allowed'
+									: 'hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600'
+							}
+							text-gray-800 dark:text-gray-100 transition-colors duration-75
+						`}
 						onClick={e => {
 							e.stopPropagation();
-							if (!item.disabled && item.action) {
+							if (!item.disabled) {
 								item.action();
 								onClose();
 							}
 						}}
 					>
 						<span>{item.label}</span>
-					</div>
+					</button>
 				);
 			})}
 		</div>

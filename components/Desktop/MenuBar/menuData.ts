@@ -1,4 +1,7 @@
 import type { WindowState } from '../../../types';
+import { WINDOW } from '../../../constants';
+import { useSettingsStore } from '../../../stores/settings';
+import { createUniqueFolder } from '../../../utils/fileSystem';
 import type { MenuItem } from '../MenuDropdown';
 
 export interface MenuDefinition {
@@ -18,7 +21,10 @@ interface BuildMenusParams {
 	) => string;
 	closeWindow: (id: string) => void;
 	minimizeWindow: (id: string) => void;
+	maximizeWindow: (id: string) => void;
+	focusWindow: (id: string) => void;
 	updateWindow: (id: string, updates: Partial<WindowState>) => void;
+	onOpenSpotlight: () => void;
 }
 
 export function buildMenus({
@@ -28,94 +34,69 @@ export function buildMenus({
 	openWindow,
 	closeWindow,
 	minimizeWindow,
+	maximizeWindow,
+	focusWindow,
 	updateWindow,
+	onOpenSpotlight,
 }: BuildMenusParams): Record<string, MenuDefinition> {
+	const openSettings = () =>
+		window.dispatchEvent(new CustomEvent<string>('ilmi:open-app', { detail: 'settings' }));
+
+	const restoreAllWindows = () => {
+		windows.forEach(w => {
+			if (w.isMinimized) updateWindow(w.id, { isMinimized: false });
+		});
+		const last = windows[windows.length - 1];
+		if (last) focusWindow(last.id);
+	};
+
 	const getAppleMenu = (): MenuItem[] => [
 		{
 			label: 'About This Mac',
-			action: () =>
-				openWindow({
-					appId: 'finder',
-					title: 'About This Mac',
-					x: 200,
-					y: 150,
-					width: 400,
-					height: 300,
-					isMaximized: false,
-					isMinimized: false,
-				}),
+			action: openSettings,
 		},
 		{ type: 'separator' },
 		{
 			label: 'System Preferences...',
-			action: () =>
-				openWindow({
-					appId: 'settings',
-					title: 'Settings',
-					x: 100,
-					y: 100,
-					width: 900,
-					height: 600,
-					isMaximized: false,
-					isMinimized: false,
-				}),
+			action: openSettings,
 		},
-		{ label: 'App Store...', action: () => alert('App Store is currently unavailable.') },
 		{ type: 'separator' },
-		{ label: 'Recent Items', submenu: [] },
-		{ type: 'separator' },
-		{ label: 'Force Quit...', shortcut: '⌥⌘Esc', action: () => {} },
+		{
+			label: activeWindow ? `Force Quit ${activeWindow.title}` : 'Force Quit...',
+			shortcut: '⌥⌘Esc',
+			disabled: !activeWindow,
+			action: () => activeWindow && closeWindow(activeWindow.id),
+		},
 		{ type: 'separator' },
 		{ label: 'Sleep', action: () => document.documentElement.classList.toggle('grayscale') },
 		{ label: 'Restart...', action: () => window.location.reload() },
-		{ label: 'Shut Down...', action: () => window.close() },
-		{ type: 'separator' },
-		{ label: 'Lock Screen', shortcut: '⌃⌘Q', action: () => alert('Screen Locked') },
-		{ label: 'Log Out User...', shortcut: '⇧⌘Q', action: () => alert('Logging Out...') },
 	];
 
 	const getAppMenu = (): MenuItem[] => [
 		{
-			label: `About ${activeAppName}`,
-			action: () => alert(`iLmi OS ${activeAppName}\nVersion 1.0.0`),
-		},
-		{ type: 'separator' },
-		{
 			label: 'Preferences...',
 			shortcut: '⌘,',
-			action: () =>
-				openWindow({
-					appId: 'settings',
-					title: 'Settings',
-					x: 150,
-					y: 150,
-					width: 800,
-					height: 600,
-					isMaximized: false,
-					isMinimized: false,
-				}),
+			action: openSettings,
 		},
 		{ type: 'separator' },
 		{
 			label: `Hide ${activeAppName}`,
 			shortcut: '⌘H',
+			disabled: !activeWindow,
 			action: () => {
 				if (activeWindow) minimizeWindow(activeWindow.id);
 			},
 		},
 		{
 			label: 'Show All',
-			action: () => {
-				windows.forEach(w => {
-					if (w.isMinimized) updateWindow(w.id, { isMinimized: false });
-				});
-			},
+			disabled: windows.length === 0,
+			action: restoreAllWindows,
 		},
 		{ type: 'separator' },
 		{
 			label: `Quit ${activeAppName}`,
 			shortcut: '⌘Q',
-			disabled: activeAppName === 'Finder',
+			disabled: !activeWindow,
 			action: () => {
 				if (activeWindow) closeWindow(activeWindow.id);
 			},
@@ -130,10 +111,10 @@ export function buildMenus({
 				openWindow({
 					appId: 'finder',
 					title: 'Finder',
-					x: 100,
-					y: 100,
-					width: 800,
-					height: 500,
+					x: WINDOW.DEFAULT_X,
+					y: WINDOW.DEFAULT_Y,
+					width: WINDOW.DEFAULT_WIDTH,
+					height: WINDOW.DEFAULT_HEIGHT,
 					isMaximized: false,
 					isMinimized: false,
 				}),
@@ -141,10 +122,12 @@ export function buildMenus({
 		{
 			label: 'New Folder',
 			shortcut: '⇧⌘N',
-			disabled: activeAppName !== 'Finder',
-			action: () => alert('Create Folder action triggered'),
+			action: () => {
+				if (createUniqueFolder('Untitled Folder', 'folder-desktop')) {
+					window.dispatchEvent(new CustomEvent<string>('ilmi:open-app', { detail: 'finder' }));
+				}
+			},
 		},
-		{ label: 'Open...', shortcut: '⌘O', action: () => {} },
 		{ type: 'separator' },
 		{
 			label: 'Close Window',
@@ -155,32 +138,43 @@ export function buildMenus({
 	];
 
 	const getEditMenu = (): MenuItem[] => [
-		{ label: 'Undo', shortcut: '⌘Z', action: () => {} },
-		{ label: 'Redo', shortcut: '⇧⌘Z', action: () => {} },
-		{ type: 'separator' },
-		{ label: 'Cut', shortcut: '⌘X', action: () => navigator.clipboard.writeText('Simulated Cut') },
 		{
-			label: 'Copy',
+			label: 'Copy Selection',
 			shortcut: '⌘C',
-			action: () => navigator.clipboard.writeText('Simulated Copy'),
+			action: () => {
+				const text = window.getSelection()?.toString();
+				if (text) navigator.clipboard?.writeText(text).catch(() => {});
+			},
 		},
-		{ label: 'Paste', shortcut: '⌘V', action: () => alert('Paste triggered') },
-		{ label: 'Select All', shortcut: '⌘A', action: () => {} },
+		{
+			label: 'Select All',
+			shortcut: '⌘A',
+			action: () => {
+				const active = document.activeElement;
+				if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
+					active.select();
+				}
+			},
+		},
 	];
 
 	const getViewMenu = (): MenuItem[] => [
-		{ label: 'As Icons', disabled: activeAppName !== 'Finder', action: () => {} },
-		{ label: 'As List', disabled: activeAppName !== 'Finder', action: () => {} },
-		{ label: 'As Columns', disabled: activeAppName !== 'Finder', action: () => {} },
+		{
+			label: useSettingsStore.getState().darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+			action: () => useSettingsStore.getState().toggleDarkMode(),
+		},
 		{ type: 'separator' },
 		{
-			label: 'Enter Full Screen',
+			label:
+				typeof document !== 'undefined' && document.fullscreenElement
+					? 'Exit Full Screen'
+					: 'Enter Full Screen',
 			shortcut: '⌃⌘F',
 			action: () => {
 				if (!document.fullscreenElement) {
-					document.documentElement.requestFullscreen().catch(e => console.error(e));
+					document.documentElement.requestFullscreen().catch(() => {});
 				} else {
-					document.exitFullscreen();
+					document.exitFullscreen().catch(() => {});
 				}
 			},
 		},
@@ -193,21 +187,28 @@ export function buildMenus({
 			disabled: !activeWindow,
 			action: () => activeWindow && minimizeWindow(activeWindow.id),
 		},
-		{ label: 'Zoom', disabled: !activeWindow, action: () => {} },
+		{
+			label: activeWindow?.isMaximized ? 'Restore Size' : 'Zoom',
+			disabled: !activeWindow,
+			action: () => activeWindow && maximizeWindow(activeWindow.id),
+		},
 		{ type: 'separator' },
 		{
 			label: 'Bring All to Front',
-			action: () => {
-				// Bring all windows to front by updating z-indices?
-				// For now, just re-focus the last one.
-			},
+			disabled: windows.length === 0,
+			action: restoreAllWindows,
 		},
 	];
 
 	const getHelpMenu = (): MenuItem[] => [
 		{
-			label: `${activeAppName} Help`,
-			action: () => alert(`Help for ${activeAppName} coming soon.`),
+			label: 'Spotlight Search',
+			action: onOpenSpotlight,
+		},
+		{
+			label: 'Open Terminal',
+			action: () =>
+				window.dispatchEvent(new CustomEvent<string>('ilmi:open-app', { detail: 'terminal' })),
 		},
 	];
 

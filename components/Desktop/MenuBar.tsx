@@ -21,7 +21,15 @@ export default function MenuBar() {
 	const [activeMenu, setActiveMenu] = useState<string | null>(null);
 	const menuBarRef = useRef<HTMLDivElement>(null);
 
-	const { windows, closeWindow, minimizeWindow, openWindow, updateWindow } = useWindowsStore();
+	const {
+		windows,
+		closeWindow,
+		minimizeWindow,
+		maximizeWindow,
+		focusWindow,
+		openWindow,
+		updateWindow,
+	} = useWindowsStore();
 
 	const activeWindow = windows.find(w => w.isFocused && !w.isMinimized);
 	const activeAppName = activeWindow?.title || 'Finder';
@@ -53,7 +61,10 @@ export default function MenuBar() {
 		openWindow,
 		closeWindow,
 		minimizeWindow,
+		maximizeWindow,
+		focusWindow,
 		updateWindow,
+		onOpenSpotlight: () => setIsSpotlightOpen(true),
 	});
 
 	const handleMenuClick = (menuId: string) => {

@@ -16,6 +16,7 @@ export {
 	getItemsInFolder,
 	getItemById,
 	createFolder,
+	createUniqueFolder,
 	createFile,
 	deleteItem,
 	renameItem,

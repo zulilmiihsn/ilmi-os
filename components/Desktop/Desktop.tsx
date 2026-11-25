@@ -9,7 +9,10 @@ import Window from './Window';
 import ContextMenu from './ContextMenu';
 import AppSwitcher from './AppSwitcher';
 import { useWindowsStore } from '../../stores/windows';
+import { useAppsStore } from '../../stores/apps';
 import { useSettingsStore } from '../../stores/settings';
+import { WINDOW } from '../../constants';
+import { isMacosApp } from '../../types';
 import { layoutExposeTiles } from '../../utils/exposeLayout';
 import {
 	findTopVisibleWindow,
@@ -161,6 +164,36 @@ function Desktop() {
 		if (exposeOpen && windows.length === 0) exitExpose();
 		if (switcherRef.current.open && windows.length === 0) cancelSwitcher();
 	}, [exposeOpen, windows.length, exitExpose, cancelSwitcher]);
+
+	useEffect(() => {
+		const onOpenApp = (event: Event) => {
+			const appId = (event as CustomEvent<string>).detail;
+			if (!appId) return;
+			const appsStore = useAppsStore.getState();
+			const app = appsStore.apps.find(a => a.id === appId && isMacosApp(a));
+			if (!app) return;
+			appsStore.launchApp(app.id);
+			const winStore = useWindowsStore.getState();
+			const existing = winStore.windows.find(w => w.appId === app.id);
+			if (existing) {
+				if (existing.isMinimized) winStore.updateWindow(existing.id, { isMinimized: false });
+				winStore.focusWindow(existing.id);
+			} else {
+				winStore.openWindow({
+					title: app.name,
+					appId: app.id,
+					x: WINDOW.DEFAULT_X + Math.random() * 40,
+					y: WINDOW.DEFAULT_Y + Math.random() * 40,
+					width: app.defaultSize?.width ?? WINDOW.DEFAULT_WIDTH,
+					height: app.defaultSize?.height ?? WINDOW.DEFAULT_HEIGHT,
+					isMaximized: false,
+					isMinimized: false,
+				});
+			}
+		};
+		window.addEventListener('ilmi:open-app', onOpenApp);
+		return () => window.removeEventListener('ilmi:open-app', onOpenApp);
+	}, []);
 
 	const exposeTiles = useMemo(() => {
 		if (!exposeOpen) return {};

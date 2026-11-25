@@ -43,6 +43,21 @@ export function createFolder(name: string, parentId: string | null): FileItem | 
 }
 
 /**
+ * Create a new folder with a unique suffix ("Untitled Folder", "Untitled Folder 2", ...)
+ * inside parentId. Returns null when the change could not be persisted.
+ */
+export function createUniqueFolder(baseName: string, parentId: string | null): FileItem | null {
+	const existing = new Set(getItemsInFolder(parentId).map(item => item.name));
+	let name = baseName;
+	let suffix = 2;
+	while (existing.has(name)) {
+		name = `${baseName} ${suffix}`;
+		suffix += 1;
+	}
+	return createFolder(name, parentId);
+}
+
+/**
  * Create a new file
  */
 export function createFile(
