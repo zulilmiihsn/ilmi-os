@@ -5,7 +5,7 @@ import { useWindowsStore } from '../../stores/windows';
 import { useAppsStore } from '../../stores/apps';
 import type { WindowState } from '../../types';
 import { getAppComponent } from '../../utils/appComponents';
-import { TIMING } from '../../constants';
+import { TIMING, WINDOW } from '../../constants';
 import { useWindowDragResize } from './Window/useWindowDragResize';
 import WindowHeader from './Window/WindowHeader';
 import SnapPreviewOverlay from './Window/SnapPreviewOverlay';
@@ -33,6 +33,9 @@ export default function Window({ window: windowProp, exposeTile, onExposeSelect 
 		state => state.windows.find(w => w.id === windowProp.id) || windowProp
 	) as WindowState;
 
+	const app = useAppsStore(state => state.apps.find(a => a.id === windowState.appId));
+	const minWidth = Math.min(WINDOW.MIN_WIDTH, app?.defaultSize?.width ?? WINDOW.MIN_WIDTH);
+
 	const {
 		isDragging,
 		isResizing,
@@ -41,9 +44,7 @@ export default function Window({ window: windowProp, exposeTile, onExposeSelect 
 		interactionRef,
 		handleMouseDown,
 		handleResizeStart,
-	} = useWindowDragResize(windowState);
-
-	const app = useAppsStore(state => state.apps.find(a => a.id === windowState.appId));
+	} = useWindowDragResize(windowState, minWidth);
 
 	const Component = useMemo(() => {
 		if (!app?.component) return null;

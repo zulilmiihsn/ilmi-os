@@ -9,6 +9,7 @@ import { useFocusTrap } from '../../utils/hooks/useFocusTrap';
 import { type CalendarEvent, MONTH_NAMES, formatDateStr } from './Calendar/calendarUtils';
 import { Month } from './Calendar/CalendarGrid';
 import { AddEventSheet } from './Calendar/AddEventSheet';
+import { CalendarsSheet, InboxSheet } from './Calendar/CalendarBottomSheets';
 
 function Calendar() {
 	const { darkMode } = useSettingsStore();
@@ -60,10 +61,21 @@ function Calendar() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [searchMiss, setSearchMiss] = useState(false);
 	const [showAddSheet, setShowAddSheet] = useState(false);
+	const [showCalendars, setShowCalendars] = useState(false);
+	const [showInbox, setShowInbox] = useState(false);
+	const [showHolidays, setShowHolidays] = useState(true);
+	const [showPersonal, setShowPersonal] = useState(true);
 	const [newTitle, setNewTitle] = useState('');
 	const sheetRef = useRef<HTMLDivElement>(null);
 	useRestoreFocus(showAddSheet, sheetRef);
 	useFocusTrap(showAddSheet, sheetRef);
+
+	const visibleEvents = useMemo(() => {
+		return events.filter(ev => {
+			const isHoliday = ev.title === 'Christmas' || ev.title === 'New Year';
+			return isHoliday ? showHolidays : showPersonal;
+		});
+	}, [events, showHolidays, showPersonal]);
 
 	const scrollToDate = (iso: string) => {
 		setSelectedDate(new Date(`${iso}T12:00:00`));
@@ -202,7 +214,7 @@ function Calendar() {
 						month={m.month}
 						name={m.name}
 						selectedDate={selectedDate}
-						events={events}
+						events={visibleEvents}
 						onDateClick={date => setSelectedDate(date)}
 						setTodayRef={el => {
 							todayRef.current = el;
@@ -223,6 +235,24 @@ function Calendar() {
 				/>
 			)}
 
+			{showCalendars && (
+				<CalendarsSheet
+					showHolidays={showHolidays}
+					showPersonal={showPersonal}
+					onToggleHolidays={() => setShowHolidays(v => !v)}
+					onTogglePersonal={() => setShowPersonal(v => !v)}
+					onClose={() => setShowCalendars(false)}
+				/>
+			)}
+
+			{showInbox && (
+				<InboxSheet
+					events={visibleEvents}
+					onSelectDate={scrollToDate}
+					onClose={() => setShowInbox(false)}
+				/>
+			)}
+
 			{/* iOS 26 Floating Liquid Glass Action Toolbar */}
 			<div className="absolute bottom-[max(env(safe-area-inset-bottom),1.25rem)] left-4 right-4 z-20 flex justify-center pointer-events-none">
 				<div className="w-full max-w-[340px] px-6 py-2.5 rounded-full backdrop-blur-2xl flex items-center justify-between border shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08)] bg-white/80 dark:bg-[#1c1c1e]/80 border-black/5 dark:border-white/15 text-ios-red pointer-events-auto">
@@ -233,13 +263,23 @@ function Calendar() {
 						Today
 					</button>
 					<button
-						onClick={() => triggerHaptic('light')}
+						onClick={() => {
+							triggerHaptic('light');
+							setShowInbox(false);
+							setShowCalendars(prev => !prev);
+						}}
+						aria-expanded={showCalendars}
 						className="font-normal text-sm active:scale-95 transition-transform"
 					>
 						Calendars
 					</button>
 					<button
-						onClick={() => triggerHaptic('light')}
+						onClick={() => {
+							triggerHaptic('light');
+							setShowCalendars(false);
+							setShowInbox(prev => !prev);
+						}}
+						aria-expanded={showInbox}
 						className="font-normal text-sm active:scale-95 transition-transform"
 					>
 						Inbox

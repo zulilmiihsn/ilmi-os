@@ -120,6 +120,7 @@ const defaultApps: AppMetadata[] = [
 		platform: 'both',
 		showInDock: false,
 		showOnDesktop: true,
+		defaultSize: { width: 340, height: 540 },
 	},
 	{
 		id: 'clock',
@@ -138,6 +139,7 @@ const defaultApps: AppMetadata[] = [
 		platform: 'both',
 		showInDock: false,
 		showOnDesktop: true,
+		defaultSize: { width: 760, height: 540 },
 	},
 	{
 		id: 'files',
@@ -156,6 +158,7 @@ const defaultApps: AppMetadata[] = [
 		platform: 'both',
 		showInDock: false,
 		showOnDesktop: true,
+		defaultSize: { width: 380, height: 600 },
 	},
 	{
 		id: 'terminal',

@@ -11,7 +11,7 @@ interface CameraModeSelectorProps {
 
 export const CameraModeSelector: React.FC<CameraModeSelectorProps> = ({ mode, setMode }) => {
 	return (
-		<div className="absolute bottom-32 left-0 right-0 z-20 flex justify-center">
+		<div className="absolute bottom-32 md:bottom-24 left-0 right-0 z-20 flex justify-center">
 			<div className="flex items-center gap-5 px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
 				{CAMERA_MODES.map(m => (
 					<button

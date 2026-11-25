@@ -72,6 +72,7 @@ export interface AppMetadata {
 	platform: SupportedPlatform;
 	showInDock?: boolean;
 	showOnDesktop?: boolean;
+	defaultSize?: { width: number; height: number };
 }
 
 export function isIosApp(app: AppMetadata): boolean {

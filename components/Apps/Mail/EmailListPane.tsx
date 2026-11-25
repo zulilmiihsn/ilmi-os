@@ -53,8 +53,8 @@ export default function EmailListPane({
 		<div
 			className={`
 					flex flex-col
-					w-full md:w-[340px] md:shrink-0 md:border-r ${darkMode ? 'md:border-white/10 bg-black' : 'md:border-gray-200 bg-white'}
-					${isActiveView ? `flex ${animationClass}` : 'hidden md:flex'}
+					w-full @2xl:w-[300px] @2xl:shrink-0 @2xl:border-r ${darkMode ? '@2xl:border-white/10 bg-black' : '@2xl:border-gray-200 bg-white'}
+					${isActiveView ? `flex ${animationClass}` : 'hidden @2xl:flex'}
 				`}
 		>
 			{/* List Navigation Bar */}
@@ -63,12 +63,12 @@ export default function EmailListPane({
 			>
 				<button
 					onClick={onBack}
-					className="relative flex items-center text-ios-blue text-base font-normal md:hidden active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
+					className="relative flex items-center text-ios-blue text-base font-normal @2xl:hidden active:opacity-50 transition-opacity after:absolute after:-inset-y-2.5 after:content-['']"
 				>
 					<ChevronLeft aria-hidden="true" size={18} className="mr-1.5" />
 					<span>Mailboxes</span>
 				</button>
-				<div className="hidden md:block w-8"></div>
+				<div className="hidden @2xl:block w-8"></div>
 
 				<button
 					onClick={onToggleEditMode}

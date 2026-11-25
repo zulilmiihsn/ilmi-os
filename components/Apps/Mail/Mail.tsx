@@ -19,7 +19,7 @@ export default function Mail() {
 
 	return (
 		<div
-			className={`w-full h-full flex flex-col overflow-hidden font-sans ${darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'}`}
+			className={`@container w-full h-full flex flex-col overflow-hidden font-sans ${darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'}`}
 		>
 			{state.persistError && (
 				<div
@@ -74,8 +74,8 @@ export default function Mail() {
 				{/* 3. Email Detail Reading Pane */}
 				<div
 					className={`
-					flex-col flex-1
-					${state.currentView === 'detail' ? `flex ${state.animationClass}` : 'hidden md:flex'}
+					flex-col flex-1 min-w-0
+					${state.currentView === 'detail' ? `flex ${state.animationClass}` : 'hidden @2xl:flex'}
 				`}
 				>
 					{selectedEmail ? (

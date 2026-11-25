@@ -36,9 +36,9 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 	setDialogInput,
 }) => {
 	return (
-		<div className="toolbar h-12 bg-[#F6F6F6] dark:bg-[#282828] border-b border-gray-300/60 dark:border-black/50 flex items-center justify-between px-3 shrink-0 gap-2">
+		<div className="toolbar min-h-12 bg-[#F6F6F6] dark:bg-[#282828] border-b border-gray-300/60 dark:border-black/50 flex flex-wrap items-center justify-between px-3 py-1.5 shrink-0 gap-2 min-w-0">
 			{/* Navigation history & view toggles */}
-			<div className="flex items-center gap-1.5">
+			<div className="flex items-center gap-1.5 shrink-0">
 				<div className="flex items-center bg-gray-200/70 dark:bg-white/10 rounded-md p-0.5">
 					<button
 						className="relative w-7 h-6 flex items-center justify-center rounded hover:bg-white dark:hover:bg-white/20 disabled:opacity-30 transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
@@ -47,7 +47,15 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 						title="Back"
 						aria-label="Back"
 					>
-						<svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+						<svg
+							className="w-3.5 h-3.5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2.5"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						>
 							<polyline points="15 18 9 12 15 6" />
 						</svg>
 					</button>
@@ -58,7 +66,15 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 						title="Forward"
 						aria-label="Forward"
 					>
-						<svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+						<svg
+							className="w-3.5 h-3.5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2.5"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						>
 							<polyline points="9 18 15 12 9 6" />
 						</svg>
 					</button>
@@ -72,7 +88,13 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 						title="Icons View"
 						aria-label="Icons View"
 					>
-						<svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+						<svg
+							className="w-3.5 h-3.5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
 							<rect x="3" y="3" width="7" height="7" />
 							<rect x="14" y="3" width="7" height="7" />
 							<rect x="14" y="14" width="7" height="7" />
@@ -85,7 +107,13 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 						title="List View"
 						aria-label="List View"
 					>
-						<svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+						<svg
+							className="w-3.5 h-3.5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
 							<line x1="8" y1="6" x2="21" y2="6" />
 							<line x1="8" y1="12" x2="21" y2="12" />
 							<line x1="8" y1="18" x2="21" y2="18" />
@@ -98,7 +126,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 			</div>
 
 			{/* Breadcrumb Path Bar */}
-			<div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300 overflow-x-auto px-2 py-1 bg-white/70 dark:bg-white/5 rounded-md border border-gray-300/40 dark:border-white/5 max-w-[280px]">
+			<div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300 overflow-x-auto scrollbar-hide px-2 py-1 bg-white/70 dark:bg-white/5 rounded-md border border-gray-300/40 dark:border-white/5 min-w-0 max-w-[280px]">
 				<button
 					className="hover:underline font-medium hover:text-ios-blue"
 					onClick={() => navigateTo(null)}
@@ -129,7 +157,13 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 					title="New Folder"
 					aria-label="New Folder"
 				>
-					<svg className="w-3.5 h-3.5 text-ios-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+					<svg
+						className="w-3.5 h-3.5 text-ios-blue"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+					>
 						<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
 						<line x1="12" y1="11" x2="12" y2="17" />
 						<line x1="9" y1="14" x2="15" y2="14" />
@@ -146,7 +180,13 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 					title="New File"
 					aria-label="New File"
 				>
-					<svg className="w-3.5 h-3.5 text-ios-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+					<svg
+						className="w-3.5 h-3.5 text-ios-blue"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+					>
 						<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
 						<polyline points="14 2 14 8 20 8" />
 						<line x1="12" y1="18" x2="12" y2="12" />
@@ -166,7 +206,13 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 							title="Rename"
 							aria-label="Rename"
 						>
-							<svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+							<svg
+								className="w-3.5 h-3.5"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
 								<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
 								<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
 							</svg>
@@ -178,7 +224,13 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 							title="Delete"
 							aria-label="Delete"
 						>
-							<svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+							<svg
+								className="w-3.5 h-3.5"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
 								<polyline points="3 6 5 6 21 6" />
 								<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
 							</svg>
@@ -187,7 +239,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
 				)}
 
 				{/* Search Bar */}
-				<div className="relative w-36">
+				<div className="relative w-24 sm:w-36 shrink-0">
 					<input
 						type="text"
 						placeholder="Search"

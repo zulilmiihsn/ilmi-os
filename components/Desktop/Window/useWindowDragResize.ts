@@ -34,7 +34,10 @@ interface DragResizeState {
  * Single Responsibility: all pointer drag/resize/snap math lives here.
  * Window.tsx only consumes isDragging/isResizing/snapZone + refs.
  */
-export function useWindowDragResize(windowState: WindowState): DragResizeState {
+export function useWindowDragResize(
+	windowState: WindowState,
+	minWidth: number = WINDOW.MIN_WIDTH
+): DragResizeState {
 	const windowRef = useRef<HTMLDivElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
 	const [isResizing, setIsResizing] = useState(false);
@@ -137,7 +140,7 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 				if (isResizing) {
 					const deltaX = pointer.x - interactionRef.current.startX;
 					const deltaY = pointer.y - interactionRef.current.startY;
-					const newWidth = Math.max(WINDOW.MIN_WIDTH, interactionRef.current.initialWidth + deltaX);
+					const newWidth = Math.max(minWidth, interactionRef.current.initialWidth + deltaX);
 					const newHeight = Math.max(
 						WINDOW.MIN_HEIGHT,
 						interactionRef.current.initialHeight + deltaY
@@ -152,7 +155,7 @@ export function useWindowDragResize(windowState: WindowState): DragResizeState {
 				}
 			});
 		},
-		[isDragging, isResizing]
+		[isDragging, isResizing, minWidth]
 	);
 
 	const handleMouseUp = useCallback(() => {

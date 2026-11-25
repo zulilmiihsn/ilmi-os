@@ -41,8 +41,8 @@ export default function MailboxesPane({
 		<div
 			className={`
 					flex flex-col
-					w-full md:w-[300px] md:shrink-0 md:border-r ${darkMode ? 'md:border-white/10' : 'md:border-gray-200'}
-					${isActiveView ? `flex ${animationClass}` : 'hidden md:flex'}
+					w-full @2xl:w-[260px] @2xl:shrink-0 @2xl:border-r ${darkMode ? '@2xl:border-white/10' : '@2xl:border-gray-200'}
+					${isActiveView ? `flex ${animationClass}` : 'hidden @2xl:flex'}
 				`}
 		>
 			{/* Mailboxes Navigation Bar */}

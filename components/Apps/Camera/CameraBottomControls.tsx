@@ -24,7 +24,7 @@ export const CameraBottomControls: React.FC<CameraBottomControlsProps> = ({
 	const isVideoMode = mode === 'VIDEO' || mode === 'SLO-MO';
 
 	return (
-		<div className="absolute bottom-0 left-0 right-0 z-20 pb-[max(env(safe-area-inset-bottom),2rem)] pt-4">
+		<div className="absolute bottom-0 left-0 right-0 z-20 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-4">
 			<div className="flex items-center justify-center gap-14">
 				{/* Gallery Thumbnail */}
 				<button

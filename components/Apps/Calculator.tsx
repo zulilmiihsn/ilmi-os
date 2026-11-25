@@ -132,7 +132,8 @@ function Calculator() {
 	}, [display]);
 
 	// iOS 26 Liquid Glass Button Classes
-	const btnBase = 'calc-button aspect-square rounded-full flex items-center justify-center font-medium text-3xl select-none active:scale-90 transition-transform duration-100 shadow-xs';
+	const btnBase =
+		'calc-button aspect-square rounded-full flex items-center justify-center font-medium text-2xl select-none active:scale-90 transition-transform duration-100 shadow-xs';
 	const btnNumber = darkMode
 		? 'bg-[#2c2c2e]/90 text-white border border-white/10 active:bg-white/30'
 		: 'bg-white text-black border border-black/5 active:bg-gray-200';
@@ -143,11 +144,13 @@ function Calculator() {
 	const btnOperatorActive = 'bg-white text-[#ff9f0a] shadow-[0_0_15px_rgba(255,159,10,0.5)]';
 
 	return (
-		<div className={`calculator-app flex flex-col justify-end h-full font-sans px-5 pb-[max(env(safe-area-inset-bottom),2.5rem)] pt-10 select-none ${
-			darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'
-		}`}>
+		<div
+			className={`calculator-app flex flex-col justify-end h-full overflow-y-auto font-sans px-5 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-4 select-none ${
+				darkMode ? 'bg-black text-white' : 'bg-[#f2f2f7] text-black'
+			}`}
+		>
 			{/* Display Area */}
-			<div className="flex-1 flex flex-col justify-end items-end px-3 mb-6">
+			<div className="flex-1 min-h-[72px] flex flex-col justify-end items-end px-3 mb-4 max-w-[280px] mx-auto w-full">
 				{calculationHistory && (
 					<div className="text-gray-400 text-lg font-normal mb-1 tracking-tight">
 						{calculationHistory}
@@ -156,7 +159,12 @@ function Calculator() {
 				<div
 					className="text-right font-light tracking-tighter leading-none overflow-x-auto w-full scrollbar-hide tabular-nums"
 					style={{
-						fontSize: formattedDisplay.length > 8 ? '2.5rem' : formattedDisplay.length > 5 ? '3.5rem' : '4.5rem',
+						fontSize:
+							formattedDisplay.length > 8
+								? '2.25rem'
+								: formattedDisplay.length > 5
+									? '3rem'
+									: '3.75rem',
 					}}
 				>
 					{formattedDisplay}
@@ -164,7 +172,7 @@ function Calculator() {
 			</div>
 
 			{/* iOS 26 Keypad Grid */}
-			<div className="grid grid-cols-4 gap-3.5 max-w-[360px] mx-auto w-full">
+			<div className="grid grid-cols-4 gap-2.5 max-w-[280px] mx-auto w-full shrink-0">
 				{/* Row 1 */}
 				<button className={`${btnBase} ${btnFunction}`} onClick={clear}>
 					{display !== '0' ? 'C' : 'AC'}

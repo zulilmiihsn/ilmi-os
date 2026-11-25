@@ -35,8 +35,8 @@ export default function DesktopIcons() {
 				appId: app.id,
 				x: WINDOW.DEFAULT_X + Math.random() * 40,
 				y: WINDOW.DEFAULT_Y + Math.random() * 40,
-				width: WINDOW.DEFAULT_WIDTH,
-				height: WINDOW.DEFAULT_HEIGHT,
+				width: app.defaultSize?.width ?? WINDOW.DEFAULT_WIDTH,
+				height: app.defaultSize?.height ?? WINDOW.DEFAULT_HEIGHT,
 				isMaximized: false,
 				isMinimized: false,
 			});

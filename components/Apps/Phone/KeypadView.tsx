@@ -33,9 +33,9 @@ export default function KeypadView({
 	onBackspace,
 }: KeypadViewProps) {
 	return (
-		<>
+		<div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
 			{/* Add Number: saves the typed number to Favorites */}
-			<div className="pt-10 flex justify-center shrink-0">
+			<div className="pt-4 flex justify-center shrink-0">
 				<button
 					onClick={onAddNumber}
 					aria-label="Add number to favorites"
@@ -44,26 +44,26 @@ export default function KeypadView({
 					Add Number
 				</button>
 			</div>
-			<div className="flex-1 flex flex-col items-center justify-end px-6 pb-4 min-h-0">
+			<div className="flex-1 flex flex-col items-center justify-end px-6 pb-2 min-h-[52px]">
 				<div
 					aria-live="polite"
-					className="text-[40px] font-light tracking-tight tabular-nums truncate max-w-full"
+					className="text-4xl font-light tracking-tight tabular-nums truncate max-w-full"
 				>
 					{number || <span className="opacity-0 select-none">0</span>}
 				</div>
 			</div>
 
 			{/* Keypad */}
-			<div className="shrink-0 px-8 pb-2">
-				<div className="grid grid-cols-3 gap-x-6 gap-y-3.5 max-w-[312px] mx-auto justify-items-center">
+			<div className="shrink-0 px-8 pb-3">
+				<div className="grid grid-cols-3 gap-x-6 gap-y-2.5 max-w-[280px] mx-auto justify-items-center">
 					{KEYS.map(key => (
 						<button
 							key={key.digit}
 							onClick={() => onInputDigit(key.digit)}
 							aria-label={key.label}
-							className="w-[72px] h-[72px] rounded-full bg-black/5 dark:bg-white/[0.15] active:bg-black/10 dark:active:bg-white/20 transition-colors flex flex-col items-center justify-center select-none"
+							className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/[0.15] active:bg-black/10 dark:active:bg-white/20 transition-colors flex flex-col items-center justify-center select-none"
 						>
-							<span className="text-3xl font-normal leading-none">{key.digit}</span>
+							<span className="text-2xl font-normal leading-none">{key.digit}</span>
 							{key.letters && (
 								<span className="text-[10px] font-medium tracking-[0.2em] text-gray-500 dark:text-gray-400 leading-none mt-1">
 									{key.letters}
@@ -75,14 +75,14 @@ export default function KeypadView({
 
 				{/* Call row: green button centered, small backspace chip
 					on the right like iOS */}
-				<div className="grid grid-cols-3 gap-x-6 max-w-[312px] mx-auto justify-items-center items-center mt-3.5">
+				<div className="grid grid-cols-3 gap-x-6 max-w-[280px] mx-auto justify-items-center items-center mt-2.5">
 					<span aria-hidden="true" />
 					<button
 						onClick={() => onCall(number)}
 						aria-label={number ? `Call ${number}` : 'Call'}
-						className="w-[72px] h-[72px] rounded-full bg-ios-green text-white flex items-center justify-center shadow-lg active:scale-95 transition-all"
+						className="w-16 h-16 rounded-full bg-ios-green text-white flex items-center justify-center shadow-lg active:scale-95 transition-all"
 					>
-						<PhoneIcon aria-hidden="true" size={30} />
+						<PhoneIcon aria-hidden="true" size={26} />
 					</button>
 					<button
 						onClick={onBackspace}
@@ -93,6 +93,6 @@ export default function KeypadView({
 					</button>
 				</div>
 			</div>
-		</>
+		</div>
 	);
 }
