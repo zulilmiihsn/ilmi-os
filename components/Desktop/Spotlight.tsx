@@ -120,8 +120,8 @@ export default function Spotlight({ isOpen, onClose }: SpotlightProps) {
 			{/* Spotlight Bar */}
 			<div
 				ref={containerRef}
-				role="dialog"
-				aria-label="Spotlight Search"
+				role={isOpen ? 'dialog' : undefined}
+				aria-label={isOpen ? 'Spotlight Search' : undefined}
 				aria-hidden={!isOpen}
 				className={`spotlight-container fixed top-[20%] left-1/2 -translate-x-1/2 w-[min(600px,calc(100vw-2rem))] z-[10001]
                 ${
@@ -211,7 +211,9 @@ export default function Spotlight({ isOpen, onClose }: SpotlightProps) {
 													</div>
 												)}
 												<div className="min-w-0 flex-1">
-													<div className="text-[13px] font-medium leading-tight truncate">{item.title}</div>
+													<div className="text-[13px] font-medium leading-tight truncate">
+														{item.title}
+													</div>
 													<div
 														className={`text-[11px] leading-tight mt-0.5 truncate ${
 															isSelected ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'
