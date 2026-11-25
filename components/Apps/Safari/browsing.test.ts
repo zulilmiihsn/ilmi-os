@@ -2,9 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
 	currentUrl,
 	displayHost,
+	extractSearchQuery,
+	isLikelyFrameBlocked,
 	navigateTab,
 	newTab,
 	normalizeUrl,
+	parseWikiSearchResults,
 	recordVisit,
 	toggleBookmark,
 } from './browsing';
@@ -45,5 +48,37 @@ describe('safari browsing helpers', () => {
 	it('toggles bookmarks', () => {
 		expect(toggleBookmark([], 'https://a.com')).toEqual(['https://a.com']);
 		expect(toggleBookmark(['https://a.com'], 'https://a.com')).toEqual([]);
+	});
+
+	it('extracts search queries and flags frame-blocked hosts', () => {
+		expect(extractSearchQuery('https://duckduckgo.com/?q=apple%20macos')).toBe('apple macos');
+		expect(extractSearchQuery('https://example.com')).toBeNull();
+		expect(isLikelyFrameBlocked('https://www.apple.com/mac')).toBe(true);
+		expect(isLikelyFrameBlocked('https://github.com/org/repo')).toBe(true);
+		expect(isLikelyFrameBlocked('https://en.wikipedia.org/wiki/MacOS')).toBe(false);
+	});
+
+	it('parses Wikipedia search responses cleanly without HTML tags', () => {
+		const items = parseWikiSearchResults({
+			query: {
+				search: [
+					{
+						pageid: 1,
+						title: 'MacOS',
+						snippet: '<span class="searchmatch">macOS</span> &amp; &quot;Apple&quot;',
+					},
+					{ pageid: 0, title: '' },
+				],
+			},
+		});
+		expect(items).toEqual([
+			{
+				pageId: 1,
+				title: 'MacOS',
+				snippet: 'macOS & "Apple"',
+				url: 'https://en.wikipedia.org/wiki/MacOS',
+			},
+		]);
+		expect(parseWikiSearchResults(undefined)).toEqual([]);
 	});
 });

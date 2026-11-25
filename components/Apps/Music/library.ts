@@ -2,12 +2,77 @@ export interface DemoTrack {
 	id: string;
 	title: string;
 	artist: string;
-	/** Length of the generated loop, seconds. */
+	/** Length of the track, seconds. */
 	durationSec: number;
-	/** Melody seed for the WebAudio generator. */
+	/** Melody seed for the offline WebAudio fallback generator. */
 	seed: number;
 	/** Artwork gradient stops. */
 	hue: [string, string];
+	/** Album or collection name (defaults to "Demo Mix" for demo tracks). */
+	album?: string;
+	/** Real audio URL (iTunes preview or local object URL). */
+	audioUrl?: string;
+	/** HD album artwork URL. */
+	artworkUrl?: string;
+	/** Origin of the track. */
+	source?: 'demo' | 'itunes' | 'local';
+}
+
+const ITUNES_HUES: [string, string][] = [
+	['#fa2d48', '#ff6482'],
+	['#5e5ce6', '#0a84ff'],
+	['#ff9f0a', '#ff375f'],
+	['#30d158', '#64d2ff'],
+	['#bf5af2', '#5e5ce6'],
+];
+
+/** Validates an iTunes Search API JSON payload into playable tracks. Pure and testable. */
+export function parseItunesResults(payload: unknown): DemoTrack[] {
+	if (typeof payload !== 'object' || payload === null) return [];
+	const results = (payload as { results?: unknown }).results;
+	if (!Array.isArray(results)) return [];
+
+	const tracks: DemoTrack[] = [];
+	for (const entry of results) {
+		if (typeof entry !== 'object' || entry === null) continue;
+		const r = entry as Record<string, unknown>;
+		const trackId = r.trackId;
+		const title = typeof r.trackName === 'string' ? r.trackName.trim() : '';
+		const artist = typeof r.artistName === 'string' ? r.artistName.trim() : '';
+		const previewUrl = typeof r.previewUrl === 'string' ? r.previewUrl.trim() : '';
+		if ((typeof trackId !== 'number' && typeof trackId !== 'string') || !title || !artist) continue;
+		if (!/^https:\/\//i.test(previewUrl)) continue;
+
+		const rawArt = typeof r.artworkUrl100 === 'string' ? r.artworkUrl100 : '';
+		const artworkUrl = /^https:\/\//i.test(rawArt)
+			? rawArt.replace(/100x100bb/i, '600x600bb')
+			: undefined;
+		const album =
+			typeof r.collectionName === 'string' && r.collectionName.trim()
+				? r.collectionName.trim()
+				: 'Apple Music Preview';
+		const durationMs =
+			typeof r.trackTimeMillis === 'number' && r.trackTimeMillis > 0
+				? Math.min(30, Math.round(r.trackTimeMillis / 1000))
+				: 30;
+		const seed = Math.abs(Number(trackId)) % 1000 || 17;
+		// Hue index is bounded by ITUNES_HUES.length; fallback satisfies strict indexing.
+		const hue = ITUNES_HUES[seed % ITUNES_HUES.length] ?? ['#fa2d48', '#ff6482'];
+
+		tracks.push({
+			id: `itunes-${trackId}`,
+			title,
+			artist,
+			album,
+			durationSec: durationMs,
+			seed,
+			hue,
+			audioUrl: previewUrl,
+			artworkUrl,
+			source: 'itunes',
+		});
+	}
+	return tracks;
 }
 
 export const DEMO_TRACKS: DemoTrack[] = [

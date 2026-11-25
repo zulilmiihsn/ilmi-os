@@ -1,18 +1,24 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { triggerHaptic } from '../../../utils/haptic';
 import {
 	DEMO_TRACKS,
 	buildQueue,
 	loadLiked,
 	nextIndex,
+	parseItunesResults,
 	prevIndex,
 	saveLiked,
 	toggleLiked,
+	type DemoTrack,
 	type RepeatMode,
 } from './library';
 import { getEnginePosition, playTrack, setEngineVolume, stopPlayback } from './audioEngine';
 
 export function useMusicPlayer() {
+	const [libraryTracks, setLibraryTracks] = useState<DemoTrack[]>(() => DEMO_TRACKS);
+	const [catalogTracks, setCatalogTracks] = useState<DemoTrack[]>([]);
+	const [catalogLoading, setCatalogLoading] = useState(false);
+	const [catalogError, setCatalogError] = useState<string | null>(null);
 	const [queue, setQueue] = useState<string[]>([]);
 	const [qi, setQi] = useState(0);
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -26,7 +32,20 @@ export function useMusicPlayer() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [persistError, setPersistError] = useState(false);
 
+	const allTracks = useMemo(() => {
+		const map = new Map<string, DemoTrack>();
+		for (const t of libraryTracks) map.set(t.id, t);
+		for (const t of catalogTracks) {
+			if (!map.has(t.id)) map.set(t.id, t);
+		}
+		return Array.from(map.values());
+	}, [libraryTracks, catalogTracks]);
+
+	const allTracksRef = useRef(allTracks);
+	allTracksRef.current = allTracks;
+	const localUrlsRef = useRef<string[]>([]);
 	const playToken = useRef(0);
+	const searchSeq = useRef(0);
 	const lastRepeatTap = useRef(0);
 	const stateRef = useRef({ queue, qi, repeat });
 	stateRef.current = { queue, qi, repeat };
@@ -45,7 +64,11 @@ export function useMusicPlayer() {
 
 	useEffect(() => {
 		setLiked(loadLiked());
-		return () => stopPlayback();
+		const urls = localUrlsRef.current;
+		return () => {
+			stopPlayback();
+			urls.forEach(u => URL.revokeObjectURL(u));
+		};
 	}, []);
 
 	useEffect(() => {
@@ -56,7 +79,7 @@ export function useMusicPlayer() {
 
 	const playAt = async (index: number, list?: string[], offset = 0) => {
 		const q = list ?? stateRef.current.queue;
-		const track = DEMO_TRACKS.find(t => t.id === q[index]);
+		const track = allTracksRef.current.find(t => t.id === q[index]);
 		if (!track) return;
 		const token = ++playToken.current;
 		const realDuration = await playTrack(track, offset, () => advanceRef.current());
@@ -100,9 +123,10 @@ export function useMusicPlayer() {
 		else void playAt(prev);
 	};
 
-	const playTrackId = (id: string) => {
+	const playTrackId = (id: string, pool?: DemoTrack[]) => {
 		triggerHaptic('light');
-		const q = buildQueue(DEMO_TRACKS, id, shuffle);
+		const sourcePool = pool ?? allTracksRef.current;
+		const q = buildQueue(sourcePool, id, shuffle);
 		void playAt(0, q, 0);
 	};
 
@@ -112,7 +136,7 @@ export function useMusicPlayer() {
 		setShuffle(on);
 		if (queue.length > 0) {
 			const currentId = queue[qi] ?? queue[0] ?? '';
-			const q = buildQueue(DEMO_TRACKS, currentId, on);
+			const q = buildQueue(allTracksRef.current, currentId, on);
 			setQueue(q);
 			setQi(0);
 		}
@@ -146,17 +170,88 @@ export function useMusicPlayer() {
 		setEngineVolume(value);
 	};
 
+	const importLocalFiles = useCallback((files: FileList | null) => {
+		if (!files || files.length === 0) return;
+		const added: DemoTrack[] = [];
+		for (const file of Array.from(files)) {
+			if (!file.type.startsWith('audio/') && !/\.(mp3|m4a|wav|ogg|flac|aac)$/i.test(file.name)) {
+				continue;
+			}
+			const objectUrl = URL.createObjectURL(file);
+			localUrlsRef.current.push(objectUrl);
+			const cleanTitle =
+				file.name
+					.replace(/\.[^/.]+$/, '')
+					.replace(/[_-]+/g, ' ')
+					.trim() || 'Audio';
+			added.push({
+				id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+				title: cleanTitle,
+				artist: 'Local File',
+				album: 'My Device',
+				durationSec: 180,
+				seed: cleanTitle.length * 13,
+				hue: ['#fa2d48', '#ff6482'],
+				audioUrl: objectUrl,
+				source: 'local',
+			});
+		}
+		if (added.length > 0) {
+			setLibraryTracks(prev => [...added, ...prev]);
+		}
+	}, []);
+
+	const searchAppleMusic = useCallback(async (rawTerm: string) => {
+		const term = rawTerm.trim();
+		if (!term) {
+			setCatalogTracks([]);
+			setCatalogError(null);
+			return;
+		}
+		const seq = ++searchSeq.current;
+		setCatalogLoading(true);
+		setCatalogError(null);
+		try {
+			const res = await fetch(
+				`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=12`
+			);
+			if (!res.ok) throw new Error('Catalog unavailable');
+			const json: unknown = await res.json();
+			if (seq !== searchSeq.current) return;
+			const parsed = parseItunesResults(json);
+			setCatalogTracks(parsed);
+			if (parsed.length === 0) setCatalogError(`No Apple Music songs found for "${term}".`);
+		} catch {
+			if (seq !== searchSeq.current) return;
+			setCatalogError('Could not reach Apple Music catalog. Offline library is still available.');
+		} finally {
+			if (seq === searchSeq.current) setCatalogLoading(false);
+		}
+	}, []);
+
+	const updateSearchQuery = useCallback((value: string) => {
+		setSearchQuery(value);
+		if (!value.trim()) {
+			setCatalogTracks([]);
+			setCatalogError(null);
+		}
+	}, []);
+
 	const currentId = queue[qi] ?? null;
-	const current = DEMO_TRACKS.find(t => t.id === currentId) ?? null;
+	const current = allTracks.find(t => t.id === currentId) ?? null;
 	const results = useMemo(() => {
 		const q = searchQuery.trim().toLowerCase();
-		if (!q) return DEMO_TRACKS;
-		return DEMO_TRACKS.filter(
+		if (!q) return libraryTracks;
+		return libraryTracks.filter(
 			t => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
 		);
-	}, [searchQuery]);
+	}, [searchQuery, libraryTracks]);
 
 	return {
+		libraryTracks,
+		catalogTracks,
+		catalogLoading,
+		catalogError,
 		isPlaying,
 		shuffle,
 		repeat,
@@ -167,7 +262,7 @@ export function useMusicPlayer() {
 		fullPlayer,
 		setFullPlayer,
 		searchQuery,
-		setSearchQuery,
+		setSearchQuery: updateSearchQuery,
 		persistError,
 		current,
 		results,
@@ -180,5 +275,7 @@ export function useMusicPlayer() {
 		toggleLike,
 		seek,
 		changeVolume,
+		importLocalFiles,
+		searchAppleMusic,
 	};
 }

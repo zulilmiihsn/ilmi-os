@@ -1,14 +1,15 @@
 import { mulberry32, type DemoTrack } from './library';
 
 /**
- * Thin WebAudio wrapper. Browser-only: never imported by unit tests.
- * Each demo track is a deterministically rendered loop, so playback,
- * pause, seek, and volume are real — only the catalogue is demo data.
+ * Dual-backend audio engine (browser-only, never imported by unit tests):
+ * - Real HTML5 <audio> for iTunes previews and user-imported local audio files.
+ * - Deterministic WebAudio synthesizer fallback for bundled offline demo tracks.
  */
 
 let ctx: AudioContext | null = null;
 let gainNode: GainNode | null = null;
 let source: AudioBufferSourceNode | null = null;
+let htmlAudio: HTMLAudioElement | null = null;
 let startedAtCtxTime = 0;
 let startOffsetSec = 0;
 let currentDuration = 0;
@@ -83,17 +84,75 @@ function renderTrack(track: DemoTrack): Promise<AudioBuffer> {
 	return job;
 }
 
-/** Starts playback, resolving with the real buffer duration. */
+function playHtmlAudio(
+	url: string,
+	fallbackDuration: number,
+	offsetSec: number,
+	seq: number,
+	onEnded: () => void
+): Promise<number> {
+	return new Promise(resolve => {
+		const el = new Audio(url);
+		el.volume = volumeLevel;
+		htmlAudio = el;
+		currentDuration = fallbackDuration;
+		startOffsetSec = offsetSec;
+
+		const finishResolve = (dur: number) => {
+			if (Number.isFinite(dur) && dur > 0) {
+				currentDuration = dur;
+			}
+			resolve(currentDuration);
+		};
+
+		el.onloadedmetadata = () => {
+			if (htmlAudio !== el || seq !== playSeq) return;
+			const dur = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : fallbackDuration;
+			currentDuration = dur;
+			if (offsetSec > 0 && offsetSec < dur) {
+				el.currentTime = offsetSec;
+			}
+			finishResolve(dur);
+		};
+
+		el.onended = () => {
+			if (htmlAudio === el) {
+				htmlAudio = null;
+				onEnded();
+			}
+		};
+
+		el.onerror = () => {
+			if (htmlAudio === el) htmlAudio = null;
+			finishResolve(fallbackDuration);
+		};
+
+		void el.play().catch(() => {
+			finishResolve(fallbackDuration);
+		});
+
+		// Resolve promptly even if metadata takes a moment on slow networks.
+		setTimeout(() => finishResolve(currentDuration), 400);
+	});
+}
+
+/** Starts playback, resolving with the real track/buffer duration. */
 export async function playTrack(
 	track: DemoTrack,
 	offsetSec: number,
 	onEnded: () => void
 ): Promise<number> {
+	if (typeof window === 'undefined') return track.durationSec;
+	const seq = ++playSeq;
+	stopSource();
+
+	if (track.audioUrl) {
+		return playHtmlAudio(track.audioUrl, track.durationSec, offsetSec, seq, onEnded);
+	}
+
 	const ac = ensureCtx();
 	const out = gainNode;
 	if (!ac || !out) return track.durationSec;
-	const seq = ++playSeq;
-	stopSource();
 	const buffer = await renderTrack(track);
 	if (seq !== playSeq) return buffer.duration; // superseded while rendering
 	source = ac.createBufferSource();
@@ -123,6 +182,14 @@ function stopSource(): void {
 		// Already stopped: harmless.
 	}
 	source = null;
+	if (htmlAudio) {
+		htmlAudio.onended = null;
+		htmlAudio.onloadedmetadata = null;
+		htmlAudio.onerror = null;
+		htmlAudio.pause();
+		htmlAudio.src = '';
+		htmlAudio = null;
+	}
 }
 
 export function stopPlayback(): void {
@@ -131,12 +198,18 @@ export function stopPlayback(): void {
 
 export function setEngineVolume(v: number): void {
 	volumeLevel = Math.min(1, Math.max(0, v));
+	if (htmlAudio) {
+		htmlAudio.volume = volumeLevel;
+	}
 	if (ctx && gainNode) {
 		gainNode.gain.setTargetAtTime(volumeLevel, ctx.currentTime, 0.02);
 	}
 }
 
 export function getEnginePosition(): number {
+	if (htmlAudio) {
+		return Math.min(htmlAudio.currentTime || 0, currentDuration || htmlAudio.duration || 0);
+	}
 	if (!ctx || !source) return startOffsetSec;
 	return Math.min(
 		startOffsetSec + Math.max(0, ctx.currentTime - startedAtCtxTime),

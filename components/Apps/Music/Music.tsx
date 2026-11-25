@@ -35,10 +35,12 @@ export default function Music() {
 
 			{tab === 'library' && (
 				<LibraryTab
+					tracks={player.libraryTracks}
 					rowCard={rowCard}
 					liked={player.liked}
 					onPlayTrack={player.playTrackId}
 					onToggleLike={player.toggleLike}
+					onImportFiles={player.importLocalFiles}
 				/>
 			)}
 
@@ -47,7 +49,11 @@ export default function Music() {
 					rowCard={rowCard}
 					searchQuery={player.searchQuery}
 					results={player.results}
+					catalogTracks={player.catalogTracks}
+					catalogLoading={player.catalogLoading}
+					catalogError={player.catalogError}
 					onSearchChange={player.setSearchQuery}
+					onSearchAppleMusic={player.searchAppleMusic}
 					onPlayTrack={player.playTrackId}
 				/>
 			)}

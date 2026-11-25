@@ -145,3 +145,74 @@ export const DEFAULT_FAVORITES = [
 	'https://github.com',
 	'https://id.wikipedia.org',
 ];
+
+export interface WikiSearchResult {
+	pageId: number;
+	title: string;
+	snippet: string;
+	url: string;
+}
+
+const FRAME_BLOCKED_HOSTS = [
+	'apple.com',
+	'github.com',
+	'google.com',
+	'youtube.com',
+	'x.com',
+	'twitter.com',
+	'instagram.com',
+	'facebook.com',
+];
+
+/** Extracts the search query when a URL is a DuckDuckGo search created by normalizeUrl. */
+export function extractSearchQuery(url: string): string | null {
+	try {
+		const parsed = new URL(url);
+		const host = parsed.hostname.replace(/^www\./, '');
+		if (host !== 'duckduckgo.com') return null;
+		const q = parsed.searchParams.get('q')?.trim();
+		return q ? q : null;
+	} catch {
+		return null;
+	}
+}
+
+/** True for popular domains known to send X-Frame-Options / frame-ancestors headers. */
+export function isLikelyFrameBlocked(url: string): boolean {
+	try {
+		const host = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+		return FRAME_BLOCKED_HOSTS.some(h => host === h || host.endsWith(`.${h}`));
+	} catch {
+		return false;
+	}
+}
+
+/** Parses Wikipedia query/search JSON into clean, HTML-free result items. Pure and testable. */
+export function parseWikiSearchResults(payload: unknown): WikiSearchResult[] {
+	if (typeof payload !== 'object' || payload === null) return [];
+	const query = (payload as { query?: unknown }).query;
+	if (typeof query !== 'object' || query === null) return [];
+	const search = (query as { search?: unknown }).search;
+	if (!Array.isArray(search)) return [];
+
+	const results: WikiSearchResult[] = [];
+	for (const entry of search) {
+		if (typeof entry !== 'object' || entry === null) continue;
+		const r = entry as Record<string, unknown>;
+		const pageId = typeof r.pageid === 'number' ? r.pageid : 0;
+		const title = typeof r.title === 'string' ? r.title.trim() : '';
+		const rawSnippet = typeof r.snippet === 'string' ? r.snippet : '';
+		if (!pageId || !title) continue;
+		const snippet = rawSnippet
+			.replace(/<[^>]*>/g, '')
+			.replace(/&quot;/g, '"')
+			.replace(/&amp;/g, '&');
+		results.push({
+			pageId,
+			title,
+			snippet,
+			url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/\s+/g, '_'))}`,
+		});
+	}
+	return results;
+}

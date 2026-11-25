@@ -5,6 +5,7 @@ import {
 	formatPlayerTime,
 	isValidLiked,
 	nextIndex,
+	parseItunesResults,
 	prevIndex,
 	toggleLiked,
 } from './library';
@@ -54,5 +55,33 @@ describe('music queue', () => {
 	it('formats player times', () => {
 		expect(formatPlayerTime(65)).toBe('1:05');
 		expect(formatPlayerTime(NaN)).toBe('0:00');
+	});
+
+	it('parses iTunes search payloads and upgrades artwork to 600px', () => {
+		const tracks = parseItunesResults({
+			results: [
+				{
+					trackId: 99,
+					trackName: 'Hati-Hati di Jalan',
+					artistName: 'Tulus',
+					collectionName: 'Manusia',
+					previewUrl: 'https://audio-ssl.itunes.apple.com/preview.m4a',
+					artworkUrl100: 'https://is1-ssl.mzstatic.com/image/thumb/100x100bb.jpg',
+					trackTimeMillis: 242000,
+				},
+				{ trackId: 100, trackName: 'No Preview', artistName: 'X', previewUrl: 'http://insecure' },
+			],
+		});
+		expect(tracks).toHaveLength(1);
+		expect(tracks[0]).toMatchObject({
+			id: 'itunes-99',
+			title: 'Hati-Hati di Jalan',
+			artist: 'Tulus',
+			album: 'Manusia',
+			durationSec: 30,
+			source: 'itunes',
+			artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/600x600bb.jpg',
+		});
+		expect(parseItunesResults(null)).toEqual([]);
 	});
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import {
 	ChevronDown,
 	Music as MusicIcon,
@@ -83,18 +84,29 @@ export default function NowPlayingModal({
 			<div className="flex-1 overflow-y-auto px-8 py-4 flex flex-col">
 				<span
 					aria-hidden="true"
-					className={`w-full max-w-[180px] mx-auto shrink-0 aspect-square rounded-2xl text-white flex items-center justify-center shadow-2xl transition-transform duration-500 ${
+					className={`relative overflow-hidden w-full max-w-[200px] mx-auto shrink-0 aspect-square rounded-2xl text-white flex items-center justify-center shadow-2xl transition-transform duration-500 ${
 						isPlaying ? '' : 'scale-95'
 					}`}
 					style={{ background: `linear-gradient(135deg, ${current.hue[0]}, ${current.hue[1]})` }}
 				>
-					<MusicIcon size={64} strokeWidth={1.5} />
+					{current.artworkUrl ? (
+						<Image
+							src={current.artworkUrl}
+							alt=""
+							fill
+							sizes="220px"
+							unoptimized
+							className="object-cover"
+						/>
+					) : (
+						<MusicIcon size={64} strokeWidth={1.5} />
+					)}
 				</span>
 				<p className="text-xl font-semibold tracking-tight mt-4 truncate shrink-0">
 					{current.title}
 				</p>
 				<p className="text-base text-gray-500 dark:text-gray-400 truncate shrink-0">
-					{current.artist} — Demo Mix
+					{current.artist} — {current.album ?? 'Demo Mix'}
 				</p>
 
 				<div className="mt-4">
