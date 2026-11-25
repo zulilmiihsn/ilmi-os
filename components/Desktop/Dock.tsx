@@ -43,15 +43,18 @@ function Dock() {
 
 	function handleAppClick(app: (typeof apps)[number], index: number) {
 		launchApp(app.id);
-		// Bounce the icon while the app opens (macOS cue); state-driven so
-		// React re-renders from opening the window never strip the class.
-		setBouncingAppId(app.id);
-		if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current);
-		bounceTimerRef.current = setTimeout(() => setBouncingAppId(null), 650);
 		const iconEl = iconRefs.current[index];
 		const existingWindow =
 			windows.find(w => w.appId === app.id && !w.isMinimized) ??
 			windows.find(w => w.appId === app.id);
+
+		// Bounce the icon when launching a new window (macOS cue); state-driven so
+		// React re-renders from opening the window never strip the class.
+		if (!existingWindow) {
+			setBouncingAppId(app.id);
+			if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current);
+			bounceTimerRef.current = setTimeout(() => setBouncingAppId(null), 650);
+		}
 
 		// Get icon position for animation
 		let originRect;

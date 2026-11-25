@@ -90,10 +90,10 @@ export default function ControlCenter() {
 			{/* Control Center Panel: always-dark frosted glass like macOS and the
 			mobile sibling (content is white-only, so no light-mode variant). */}
 			<div
-				className={`control-center fixed top-8 right-6 w-80 z-55 p-3.5 rounded-2xl border border-white/20 bg-black/30 backdrop-blur-2xl shadow-2xl transition-opacity duration-200 ${
+				className={`control-center fixed top-8 right-6 w-80 z-55 p-3.5 rounded-2xl border border-white/20 bg-black/30 backdrop-blur-2xl shadow-2xl origin-top-right transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
 					isOpen
-						? 'control-center-open visible opacity-100'
-						: 'control-center-closed invisible opacity-0 pointer-events-none'
+						? 'control-center-open visible opacity-100 scale-100 translate-y-0'
+						: 'control-center-closed invisible opacity-0 scale-95 -translate-y-1 pointer-events-none'
 				}`}
 				onClick={e => e.stopPropagation()}
 				data-debug="control-center"

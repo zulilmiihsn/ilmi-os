@@ -22,8 +22,11 @@ interface UseHomeScreenGesturesProps {
 	closeApp: () => void;
 	setCurrentApp: (app: string | null) => void;
 	appContainerRef: React.RefObject<HTMLDivElement | null>;
+	pagesSliderRef?: React.RefObject<HTMLDivElement | null>;
 	notificationCenterRef?: React.RefObject<HTMLDivElement | null>;
 	controlCenterRef?: React.RefObject<HTMLDivElement | null>;
+	isNotificationCenterOpen?: boolean;
+	isControlCenterOpen?: boolean;
 	setIsNotificationCenterOpen?: (open: boolean) => void;
 	setIsControlCenterOpen?: (open: boolean) => void;
 	onOpenNotificationCenter?: () => void;
@@ -40,8 +43,11 @@ export function useHomeScreenGestures({
 	closeApp,
 	setCurrentApp,
 	appContainerRef,
+	pagesSliderRef,
 	notificationCenterRef,
 	controlCenterRef,
+	isNotificationCenterOpen,
+	isControlCenterOpen,
 	setIsNotificationCenterOpen,
 	setIsControlCenterOpen,
 	onOpenNotificationCenter,
@@ -149,9 +155,11 @@ export function useHomeScreenGestures({
 	const touchStartRef = useRef<{
 		x: number;
 		y: number;
+		startTime: number;
 		isTopSwipe: boolean;
 		isTopRight: boolean;
 		isBottomSwipe: boolean;
+		isPageSwipe: boolean;
 	} | null>(null);
 	// A touch that begins on an app icon is an icon interaction
 	// (tap, hold, or drag) — never a page swipe — even before the dnd-kit
@@ -170,9 +178,11 @@ export function useHomeScreenGestures({
 		touchStartRef.current = {
 			x: touch.clientX,
 			y: touch.clientY,
+			startTime: Date.now(),
 			isBottomSwipe: Boolean((currentApp || appToOpen) && isBottom),
 			isTopSwipe: touch.clientY <= 90,
 			isTopRight: touch.clientX > window.innerWidth * 0.58,
+			isPageSwipe: false,
 		};
 	};
 
@@ -184,7 +194,9 @@ export function useHomeScreenGestures({
 		const touch = touchStartRef.current;
 		const moveTouch = e.touches[0];
 		if (!moveTouch) return;
+		const cx = moveTouch.clientX;
 		const cy = moveTouch.clientY;
+		const deltaX = cx - touch.x;
 		const deltaY = cy - touch.y; // Positive when pulled DOWN
 
 		// Top Swipe Down Real-Time Panel Tracking
@@ -203,6 +215,29 @@ export function useHomeScreenGestures({
 				appContainerRef.current.style.transition = 'none';
 				applyAppDragTransform(appContainerRef.current, swipeUpY);
 			}
+			return;
+		}
+
+		// Home Screen Horizontal Page Tracking with Edge Rubber-Banding
+		if (
+			!currentApp &&
+			!appToOpen &&
+			!iconTouchRef.current &&
+			!touch.isTopSwipe &&
+			!isNotificationCenterOpen &&
+			!isControlCenterOpen &&
+			pagesSliderRef?.current
+		) {
+			if (!touch.isPageSwipe && Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
+				touch.isPageSwipe = true;
+			}
+			if (touch.isPageSwipe) {
+				const atStartEdge = currentPage === 0 && deltaX > 0;
+				const atEndEdge = currentPage === 1 && deltaX < 0;
+				const effectiveDx = atStartEdge || atEndEdge ? deltaX * 0.28 : deltaX;
+				pagesSliderRef.current.style.transition = 'none';
+				pagesSliderRef.current.style.transform = `translateX(calc(-${currentPage * 100}vw + ${effectiveDx}px))`;
+			}
 		}
 	};
 
@@ -210,6 +245,10 @@ export function useHomeScreenGestures({
 		const startedOnIcon = iconTouchRef.current;
 		iconTouchRef.current = false;
 		if (dragging() || !touchStartRef.current || isAnimatingCloseRef.current) {
+			if (pagesSliderRef?.current) {
+				pagesSliderRef.current.style.transition = '';
+				pagesSliderRef.current.style.transform = `translateX(-${currentPage * 100}vw)`;
+			}
 			touchStartRef.current = null;
 			return;
 		}
@@ -221,10 +260,13 @@ export function useHomeScreenGestures({
 		if (!endTouch) return;
 		const deltaX = endTouch.clientX - touch.x;
 		const deltaY = endTouch.clientY - touch.y; // Positive when pulled down
+		const elapsed = Math.max(1, Date.now() - touch.startTime);
 
 		// Top Swipe Down Release (Snaps Open or Snaps Back)
 		if (touch.isTopSwipe) {
-			const isDeliberateSwipe = deltaY >= 50 && deltaY > Math.abs(deltaX);
+			const verticalVelocity = deltaY / elapsed;
+			const isDeliberateSwipe =
+				(deltaY >= 50 || (deltaY >= 30 && verticalVelocity > 0.25)) && deltaY > Math.abs(deltaX);
 			if (touch.isTopRight) {
 				releaseTopPanel(controlCenterRef?.current, isDeliberateSwipe);
 				if (isDeliberateSwipe) {
@@ -251,9 +293,22 @@ export function useHomeScreenGestures({
 		// icon are icon interactions even when the dnd-kit sensor never fired,
 		// so they must not flip pages on release.
 		if (!currentApp && !appToOpen && !startedOnIcon) {
-			const SWIPE_THRESHOLD = window.innerWidth * 0.2;
-			if (deltaX < -SWIPE_THRESHOLD && currentPage < 1) setCurrentPage(1);
-			if (deltaX > SWIPE_THRESHOLD && currentPage > 0) setCurrentPage(0);
+			const horizontalVelocity = Math.abs(deltaX) / elapsed;
+			const SWIPE_THRESHOLD = window.innerWidth * 0.25;
+			const isFastFlick = Math.abs(deltaX) > 25 && horizontalVelocity > 0.25;
+			let nextPage = currentPage;
+			if ((deltaX < -SWIPE_THRESHOLD || (deltaX < 0 && isFastFlick)) && currentPage < 1) {
+				nextPage = 1;
+			} else if ((deltaX > SWIPE_THRESHOLD || (deltaX > 0 && isFastFlick)) && currentPage > 0) {
+				nextPage = 0;
+			}
+			if (pagesSliderRef?.current) {
+				pagesSliderRef.current.style.transition = '';
+				pagesSliderRef.current.style.transform = `translateX(-${nextPage * 100}vw)`;
+			}
+			if (nextPage !== currentPage) {
+				setCurrentPage(nextPage);
+			}
 		}
 
 		// Close App Swipe Logic (Swiping UP from bottom)
@@ -273,7 +328,11 @@ export function useHomeScreenGestures({
 	const handleTouchCancel = useCallback(() => {
 		touchStartRef.current = null;
 		iconTouchRef.current = false;
-	}, []);
+		if (pagesSliderRef?.current) {
+			pagesSliderRef.current.style.transition = '';
+			pagesSliderRef.current.style.transform = `translateX(-${currentPage * 100}vw)`;
+		}
+	}, [currentPage, pagesSliderRef]);
 
 	return {
 		handleTouchStart,

@@ -185,4 +185,96 @@ test.describe('mobile shell gestures', () => {
 		});
 		await expect(page.getByRole('button', { name: 'Done editing home screen' })).toBeHidden();
 	});
+
+	test('top swipe-down tracks Notification Center and Control Center visibly mid-drag', async ({
+		page,
+	}) => {
+		await page.goto('/');
+		await expect(page.locator('.ios-homescreen')).toBeVisible({ timeout: 20000 });
+
+		const cdp = await page.context().newCDPSession(page);
+		const pt = (x: number, y: number) => ({ x: Math.round(x), y: Math.round(y), id: 1 });
+
+		// Top-left pull down -> Notification Center must be visible during drag, then stay open
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchStart',
+			touchPoints: [pt(60, 20)],
+		});
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchMove',
+			touchPoints: [pt(60, 220)],
+		});
+		const ncDuringDrag = await page.locator('.ios-cover-sheet').evaluate(el => {
+			const s = getComputedStyle(el);
+			return { visibility: s.visibility, opacity: Number(s.opacity) };
+		});
+		expect(ncDuringDrag.visibility).toBe('visible');
+		expect(ncDuringDrag.opacity).toBeGreaterThan(0.5);
+
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchEnd',
+			touchPoints: [pt(60, 220)],
+		});
+		await expect(page.getByRole('dialog', { name: 'Notification Center' })).toBeVisible({
+			timeout: 3000,
+		});
+
+		// Swipe up to dismiss Notification Center
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchStart',
+			touchPoints: [pt(195, 700)],
+		});
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchMove',
+			touchPoints: [pt(195, 520)],
+		});
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchEnd',
+			touchPoints: [pt(195, 520)],
+		});
+		await expect(page.getByRole('dialog', { name: 'Notification Center' })).toBeHidden({
+			timeout: 3000,
+		});
+
+		// Top-right pull down -> Control Center must be visible during drag, then stay open
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchStart',
+			touchPoints: [pt(330, 20)],
+		});
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchMove',
+			touchPoints: [pt(330, 220)],
+		});
+		const ccDuringDrag = await page.locator('.ios-control-center').evaluate(el => {
+			const s = getComputedStyle(el);
+			return { visibility: s.visibility };
+		});
+		expect(ccDuringDrag.visibility).toBe('visible');
+
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchEnd',
+			touchPoints: [pt(330, 220)],
+		});
+		await expect(page.getByRole('dialog', { name: 'Control Center' })).toBeVisible({
+			timeout: 3000,
+		});
+
+		// Swipe up to dismiss Control Center
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchStart',
+			touchPoints: [pt(195, 700)],
+		});
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchMove',
+			touchPoints: [pt(195, 520)],
+		});
+		await cdp.send('Input.dispatchTouchEvent', {
+			type: 'touchEnd',
+			touchPoints: [pt(195, 520)],
+		});
+		await expect(page.getByRole('dialog', { name: 'Control Center' })).toBeHidden({
+			timeout: 3000,
+		});
+		await cdp.detach();
+	});
 });

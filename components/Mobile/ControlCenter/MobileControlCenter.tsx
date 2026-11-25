@@ -60,7 +60,7 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 		}, [isOpen, onClose]);
 
 		// Swipe-up dismiss tracking
-		const touchStartRef = useRef<{ y: number; active: boolean } | null>(null);
+		const touchStartRef = useRef<{ y: number; startTime: number; active: boolean } | null>(null);
 
 		const handleTouchStart = (e: React.TouchEvent) => {
 			if (!isOpen) return;
@@ -68,21 +68,51 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 			if (target?.closest('.ios-vertical-slider, button, input')) return;
 			const touch = e.touches[0];
 			if (!touch) return;
-			touchStartRef.current = { y: touch.clientY, active: true };
+			touchStartRef.current = { y: touch.clientY, startTime: Date.now(), active: true };
+		};
+
+		const handleTouchMove = (e: React.TouchEvent) => {
+			if (!touchStartRef.current?.active || !internalRef.current || !isOpen) return;
+			const touch = e.touches[0];
+			if (!touch) return;
+			const deltaY = touchStartRef.current.y - touch.clientY;
+			if (deltaY > 0) {
+				const translateY = Math.min(deltaY, window.innerHeight);
+				internalRef.current.style.transition = 'none';
+				internalRef.current.style.transform = `translate3d(0, -${translateY}px, 0)`;
+			}
+		};
+
+		const resetDragStyles = () => {
+			if (!internalRef.current) return;
+			internalRef.current.style.transition = '';
+			internalRef.current.style.transform = '';
 		};
 
 		const handleTouchEnd = (e: React.TouchEvent) => {
 			if (!touchStartRef.current?.active || !isOpen) return;
 			const touch = e.changedTouches[0];
-			if (!touch) return;
+			if (!touch) {
+				touchStartRef.current = null;
+				resetDragStyles();
+				return;
+			}
 			const deltaY = touchStartRef.current.y - touch.clientY;
+			const elapsed = Math.max(1, Date.now() - touchStartRef.current.startTime);
+			const velocity = deltaY / elapsed;
 			touchStartRef.current = null;
+			resetDragStyles();
 
-			// Swipe up to dismiss (only if swiped UP by > 80px outside interactive controls)
-			if (deltaY > 80) {
+			// Swipe up to dismiss (distance > 80px or quick upward flick)
+			if (deltaY > 80 || (deltaY > 40 && velocity > 0.35)) {
 				triggerHaptic('medium');
 				onClose();
 			}
+		};
+
+		const handleTouchCancel = () => {
+			touchStartRef.current = null;
+			resetDragStyles();
 		};
 
 		return (
@@ -107,7 +137,9 @@ const MobileControlCenter = forwardRef<HTMLDivElement, MobileControlCenterProps>
 					willChange: 'transform',
 				}}
 				onTouchStart={handleTouchStart}
+				onTouchMove={handleTouchMove}
 				onTouchEnd={handleTouchEnd}
+				onTouchCancel={handleTouchCancel}
 			>
 				{/* Dedicated Frosted Backdrop (Eliminates Browser GPU Composite Flash) */}
 				<div className="fixed inset-0 -z-10 bg-black/45 backdrop-blur-[50px] saturate-[190%] pointer-events-none" />

@@ -60,6 +60,9 @@
 
 .dock-item {
 	transform-origin: bottom center;
+	transition:
+		width 0.08s ease-out,
+		height 0.08s ease-out;
 }
 
 .macos-dock:not(:hover) .dock-item {

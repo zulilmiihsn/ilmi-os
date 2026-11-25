@@ -53,6 +53,7 @@ function HomeScreen() {
 	const dockItemIds = useMemo(() => computeDockItems(iosAppPositions), [iosAppPositions]);
 
 	const appContainerRef = useRef<HTMLDivElement>(null);
+	const pagesSliderRef = useRef<HTMLDivElement>(null);
 	const [currentPage, setCurrentPage] = useState(0);
 
 	const {
@@ -127,8 +128,11 @@ function HomeScreen() {
 		closeApp: handleCloseApp,
 		setCurrentApp,
 		appContainerRef,
+		pagesSliderRef,
 		notificationCenterRef,
 		controlCenterRef,
+		isNotificationCenterOpen,
+		isControlCenterOpen,
 		setIsNotificationCenterOpen,
 		setIsControlCenterOpen,
 		onOpenNotificationCenter: handleOpenNotificationCenter,
@@ -228,6 +232,7 @@ function HomeScreen() {
 						page0Items={page0Items}
 						page1Items={page1Items}
 						appsMap={appsMap}
+						sliderRef={pagesSliderRef}
 						onAppClick={handleAppClick}
 						onEmptyPressStart={handleEmptyPressStart}
 						onEmptyPressMove={handleEmptyPressMove}

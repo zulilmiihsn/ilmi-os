@@ -49,7 +49,7 @@ export default function AppSwitcher({
 				role="dialog"
 				aria-modal="true"
 				aria-label="App Switcher"
-				className="bg-white/85 dark:bg-[#1c1c1e]/85 text-gray-900 dark:text-white backdrop-blur-2xl border border-black/10 dark:border-white/15 rounded-3xl px-5 py-4 shadow-2xl flex items-center gap-3 max-w-[90vw] overflow-x-auto"
+				className="bg-white/85 dark:bg-[#1c1c1e]/85 text-gray-900 dark:text-white backdrop-blur-2xl border border-black/10 dark:border-white/15 rounded-3xl px-5 py-4 shadow-2xl flex items-center gap-3 max-w-[90vw] overflow-x-auto animate-in fade-in zoom-in-95 duration-150"
 			>
 				{windows.map((w, idx) => {
 					const app = apps.find(a => a.id === w.appId);

@@ -39,6 +39,7 @@ interface HomeScreenPagesProps {
 	page0Items: string[];
 	page1Items: string[];
 	appsMap: Map<string, AppMetadata>;
+	sliderRef?: React.RefObject<HTMLDivElement>;
 	onAppClick: (appId: string) => void;
 	onEmptyPressStart: (e: React.PointerEvent) => void;
 	onEmptyPressMove: (e: React.PointerEvent) => void;
@@ -51,6 +52,7 @@ export default function HomeScreenPages({
 	page0Items,
 	page1Items,
 	appsMap,
+	sliderRef,
 	onAppClick,
 	onEmptyPressStart,
 	onEmptyPressMove,
@@ -87,10 +89,11 @@ export default function HomeScreenPages({
 			onPointerCancel={onEmptyPressEnd}
 		>
 			<div
+				ref={sliderRef}
 				className="flex h-full w-[200vw]"
 				style={{
 					transform: `translateX(-${currentPage * 100}vw)`,
-					transition: 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
+					transition: 'transform 0.46s cubic-bezier(0.22, 1, 0.36, 1)',
 				}}
 			>
 				{/* Page 0 */}

@@ -31,7 +31,7 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 		const [dateString, setDateString] = useState('');
 
 		// Swipe-up dismiss tracking
-		const touchStartRef = useRef<{ y: number; active: boolean } | null>(null);
+		const touchStartRef = useRef<{ y: number; startTime: number; active: boolean } | null>(null);
 
 		useEffect(() => {
 			if (!isOpen) return;
@@ -67,7 +67,7 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 			if (!isOpen) return;
 			const touch = e.touches[0];
 			if (!touch) return;
-			touchStartRef.current = { y: touch.clientY, active: true };
+			touchStartRef.current = { y: touch.clientY, startTime: Date.now(), active: true };
 		};
 
 		const handleTouchMove = (e: React.TouchEvent) => {
@@ -85,17 +85,29 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 		const handleTouchEnd = (e: React.TouchEvent) => {
 			if (!touchStartRef.current?.active || !internalRef.current || !isOpen) return;
 			const touch = e.changedTouches[0];
-			if (!touch) return;
-			const deltaY = touchStartRef.current.y - touch.clientY;
+			const start = touchStartRef.current;
 			touchStartRef.current = null;
 
 			// Reset inline transform override
 			internalRef.current.style.transition = '';
 			internalRef.current.style.transform = '';
+			if (!touch) return;
 
-			if (deltaY > 80) {
+			const deltaY = start.y - touch.clientY;
+			const elapsed = Math.max(1, Date.now() - start.startTime);
+			const velocity = deltaY / elapsed;
+
+			if (deltaY > 80 || (deltaY > 40 && velocity > 0.35)) {
 				triggerHaptic('medium');
 				onClose();
+			}
+		};
+
+		const handleTouchCancel = () => {
+			touchStartRef.current = null;
+			if (internalRef.current) {
+				internalRef.current.style.transition = '';
+				internalRef.current.style.transform = '';
 			}
 		};
 
@@ -122,6 +134,7 @@ const NotificationCenter = forwardRef<HTMLDivElement, NotificationCenterProps>(
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
 				onTouchEnd={handleTouchEnd}
+				onTouchCancel={handleTouchCancel}
 			>
 				{/* Authentic iOS Lockscreen Wallpaper Background */}
 				<div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
